@@ -2,7 +2,6 @@ import importlib
 import sys
 import pkgutil
 
-
 def import_submodules(package_name):
     """ Import all submodules of a module, recursively
 
@@ -12,11 +11,8 @@ def import_submodules(package_name):
     """
     package = sys.modules[package_name]
     return {
-        name: importlib.import_module(package_name + '.' + name)
-        for loader, name, is_pkg in pkgutil.walk_packages(package.__path__)
+        name: f(name)
+        for loader, name, is_pkg in pkgutil.walk_packages(package.__path__, package.__name__ + '.')
     }
 
-
-
-__all__ = import_submodules(__name__).keys()
-
+__all__ = import_submodules(__name__).keys()                        

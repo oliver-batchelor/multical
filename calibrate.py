@@ -4,19 +4,15 @@ import numpy as np
 import argparse
 import cv2
 
-from . import tables, detect, io
-from .optimization.calibration import Calibration
+from multical import tables, detect, io
+from multical.optimization.calibration import Calibration
 
-from . import display
-
-from .camera import Camera
-from .board import CharucoBoard
+from multical.camera import Camera
+from multical.board import CharucoBoard
 
 from structs.struct import struct
 from structs.numpy import shape, Table
 from pprint import pprint
-
-
 
 
 def main(): 

@@ -35,7 +35,7 @@ class Calibration(parameters.Parameters):
     assert pose_estimates.rig._shape[0] == self.size.rig_poses
 
   @staticmethod
-  def initialise(cameras, board, point_table, min_corners=5):
+  def initialise(cameras, board, point_table, min_corners=20):
       pose_table = tables.make_pose_table(point_table, board, cameras, min_corners=min_corners)
       pose_estimates = tables.initialise_poses(pose_table)
 

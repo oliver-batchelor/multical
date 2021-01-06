@@ -16,7 +16,7 @@ def default_aruco_params():
   # params.adaptiveThreshConstant = 0  
   return params
 
-empty_detection = struct(corners=[], ids=[])
+empty_detection = struct(corners=np.zeros([0, 2]), ids=np.zeros(0, dtype=np.int))
 empty_matches = struct(points1=[], points2=[], ids=[], object_points=[])
 
 
@@ -98,12 +98,11 @@ class CharucoBoard(Parameters):
 
 
 
-  def estimate_pose_points(self, camera, detections, min_corners=5):
+  def estimate_pose_points(self, camera, detections, min_corners=20):
       if len(detections.corners) < min_corners:
           return None
 
-      undistorted = camera.undistort_points(detections.corners)
-      
+      undistorted = camera.undistort_points(detections.corners)      
       valid, rvec, tvec = cv2.solvePnP(self.points[detections.ids], 
         undistorted, camera.intrinsic, np.zeros(0))
 

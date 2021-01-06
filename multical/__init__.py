@@ -11,7 +11,7 @@ def import_submodules(package_name):
     """
     package = sys.modules[package_name]
     return {
-        name: f(name)
+        name: importlib.import_module(name)
         for loader, name, is_pkg in pkgutil.walk_packages(package.__path__, package.__name__ + '.')
     }
 

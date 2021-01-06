@@ -17,7 +17,9 @@ setup(
         "numpy",
         "scipy",
         "matplotlib",
-        "opencv-python>=4.2.0.32",
+        "opencv-python>=4.2.0.0",
+        "opencv-contrib-python",
+        
         "natsort",
         "cached-property",
         "py-structs"

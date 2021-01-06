@@ -61,7 +61,7 @@ def main():
     
     
     point_table = tables.make_point_table(loaded.points, board)
-    calib = Calibration.initialise(cameras, board, point_table,  min_corners=5)
+    calib = Calibration.initialise(cameras, board, point_table,  min_corners=20)
 
     calib.report("initialisation")
     

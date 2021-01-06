@@ -17,17 +17,27 @@ def fill_sparse(n, values, ids):
   mask[ids] = True
   return dense, mask
 
+def fill_sparse_tile(n, values, ids, tile):
+  assert tile.shape == values.shape[1:]
+  dense = np.broadcast_to(np.expand_dims(tile, 0), (n, *tile.shape)).copy()
+  dense[ids] = values
+
+  mask = np.full(n, False)
+  mask[ids] = True
+  return dense, mask
+
+
 
 def sparse_points(points):
   ids = np.flatnonzero(points.valid_points)
   return struct(corners=points.points[ids], ids=ids)
 
 
-invalid_pose = struct(poses=np.eye(4), valid_poses=False)
-identity_pose = struct(poses=np.eye(4), valid_poses=True)
+invalid_pose = struct(poses=np.eye(4), num_points=0, valid_poses=False)
+identity_pose = struct(poses=np.eye(4), num_points=0, valid_poses=True)
 
 
-def extract_pose(points, board, camera, min_corners=0):
+def extract_pose(points, board, camera, min_corners=20):
   detections = sparse_points(points)
   poses = board.estimate_pose_points(
       camera, detections, min_corners=min_corners)
@@ -36,7 +46,7 @@ def extract_pose(points, board, camera, min_corners=0):
       if poses is not None else invalid_pose
 
 
-def make_pose_table(point_table, board, cameras, min_corners=5):
+def make_pose_table(point_table, board, cameras, min_corners=20):
 
   poses = [[extract_pose(points, board, camera, min_corners)
             for points in points_camera._sequence()]
@@ -47,6 +57,7 @@ def make_pose_table(point_table, board, cameras, min_corners=5):
 
 def make_point_table(detections, board):
   def extract_points(frame_dets):
+    
     points, mask = fill_sparse(
         board.num_points, frame_dets.corners, frame_dets.ids)
     return struct(points=points, valid_points=mask)
@@ -141,7 +152,7 @@ def estimate_poses(table, axis=0, hop_penalty=0.9):
   valid_ids = sorted(poses)
   pose_table = np.array([poses[k] for k in valid_ids])
 
-  values, mask = fill_sparse(n, pose_table, valid_ids)
+  values, mask = fill_sparse_tile(n, pose_table, valid_ids, np.eye(4))
   return Table.create(poses=values, valid_poses=mask), master
 
 
@@ -207,6 +218,7 @@ def initialise_poses(pose_table):
 
   # Initialise relative camera poses and rig poses
   relative = struct(camera=camera, rig=rig)
+
 
   # Given relative transforms, find the absolute transform t
   # camera @ rig @ t = pose

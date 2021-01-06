@@ -13,5 +13,15 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    install_requires = [
+        "numpy",
+        "scipy",
+        "matplotlib",
+        "opencv-python>=4.2.0.32",
+        "natsort",
+        "cached-property",
+        "py-structs"
+    ]
+
     python_requires='>=3.7',
 )

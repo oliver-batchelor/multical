@@ -1,4 +1,5 @@
 import json
+from os import path
 import numpy as np
 
 from structs.struct import struct, to_dicts
@@ -27,7 +28,7 @@ def export_extrinsics(camera_names, camera_poses):
     for k, pose, valid in zip(camera_names, camera_poses.poses, camera_poses.valid_poses) 
       if valid}
 
-def export(filename, calib, camera_names, image_dicts):
+def export(filename, calib, camera_names, image_names):
   assert isinstance(calib, Calibration)
   
   pose_sets = calib.pose_estimates
@@ -35,7 +36,7 @@ def export(filename, calib, camera_names, image_dicts):
   valid_frames = np.flatnonzero(pose_sets.rig.valid_poses)
   rig_poses = pose_sets.rig.poses[valid_frames]
 
-  images = np.array(image_dicts)[valid_frames]
+  image_names = np.array(image_names)[valid_frames].tolist()
 
   data = struct(
     cameras = export_cameras(camera_names, calib.cameras),
@@ -44,7 +45,8 @@ def export(filename, calib, camera_names, image_dicts):
     boards = [calib.board.export()],
 
     image_sets = struct(
-      rgb = images.tolist()
+      rgb = [{camera : path.join(camera, image) for camera in camera_names}
+        for image in image_names]
     ),
 
     board_points = [calib.board.adjusted_points.tolist()]

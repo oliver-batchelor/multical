@@ -8,43 +8,9 @@ from tqdm import tqdm
 from multiprocessing import Pool                                                
 
 import numpy as np
-from .camera import  stereo_calibrate
+from multical.camera import  stereo_calibrate
 
 from structs.struct import transpose_structs, struct, filter_none
-
-image_extensions = ['jpg', 'jpeg', 'png', 'ppm', 'bmp']
-
-def has_extension(extensions, filename):
-    return any(filename.lower().endswith("." + extension) for extension in extensions)
-
-
-
-def find_image_files(filepath, extensions=image_extensions):
-    return [filename for filename in natsorted(os.listdir(filepath))
-                if has_extension(extensions, path.join(filepath, filename))]
-
-def find_matching_files(filepath, cameras, extensions):
-  abs_dirs = [path.join(filepath, camera_name) for camera_name in cameras]
-  camera_files = [find_image_files(d, extensions) for d in abs_dirs]
-
-  matching = sorted(set.intersection(*[set(files) for files in camera_files]))
-  return [{camera_name: path.join(camera_name, file)  for camera_name in cameras}
-     for file in matching]
-    
-
-def find_nonempty_dirs(filepath, extensions=image_extensions):
-    return [local_dir for local_dir in os.listdir(filepath)
-      for abs_dir in [path.join(filepath, local_dir)]
-      if path.isdir(abs_dir) and len(find_image_files(abs_dir, extensions)) > 0 
-    ]
-
-def find_images(filepath, cameras=None, extensions=image_extensions):
-  if cameras is None:
-    cameras = find_nonempty_dirs(filepath, extensions)
-
-  cameras = sorted(cameras)
-  images = find_matching_files(filepath, cameras, extensions)
-  return cameras, images
 
 
 def load_image(filename):
@@ -56,8 +22,7 @@ def load_image(filename):
   return image
 
 
-def detect_images(board, filenames, show=False, j=4, prefix=None):
-  camera_files = transpose_structs(filenames)
+def detect_images(board, camera_names, filenames, show=False, j=4, prefix=None):
   pool = Pool(processes=j)                                                        
  
   def detect_camera(k, image_files):
@@ -80,7 +45,7 @@ def detect_images(board, filenames, show=False, j=4, prefix=None):
     return struct(points=detections, image_size=(width, height), images=images)
 
   detections = [detect_camera(k, image_files) 
-    for k, image_files in camera_files.items()]
+    for k, image_files in zip(camera_names, filenames)]
 
   return transpose_structs(detections)
 

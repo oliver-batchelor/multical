@@ -51,19 +51,21 @@ class Calibration(parameters.Parameters):
     return tables.valid_points(self.pose_estimates, self.point_table) 
  
   @cached_property
+  def pose_table(self):
+    return tables.expand_poses(self.pose_estimates)
+
+  @cached_property
   def projected(self):
     """ Projected points from multiplying out poses and then projecting to each image. 
     Returns a table of points corresponding to point_table"""
-    pose_table = tables.expand_poses(self.pose_estimates)
-
     board_points = self.board.adjusted_points.astype(np.float64)
     camera_points = matrix.transform_homog(
-      t      = np.expand_dims(pose_table.poses, 2),
+      t      = np.expand_dims(self.pose_table.poses, 2),
       points = np.expand_dims(board_points, [0, 1])
     )
 
     image_points = [camera.project(p) for camera, p in zip(self.cameras, camera_points)]
-    valid_poses = np.repeat(np.expand_dims(pose_table.valid_poses, axis=2), self.size.points, axis=2)
+    valid_poses = np.repeat(np.expand_dims(self.pose_table.valid_poses, axis=2), self.size.points, axis=2)
 
     return Table.create(points=np.stack(image_points), valid_points=valid_poses)
 
@@ -75,6 +77,7 @@ class Calibration(parameters.Parameters):
   def reprojection_inliers(self):
     inlier_table = self.point_table._extend(valid_points=self.inliers)
     return tables.valid_reprojection_error(self.projected, inlier_table)
+
 
 
 
@@ -234,24 +237,22 @@ class Calibration(parameters.Parameters):
 
   def display(self, images):
     """ Display images with poses and reprojections from original detections """
-    pose_table = tables.expand_poses(self.pose_estimates)
-    display_pose_projections(self.point_table, pose_table, self.board,
+    display_pose_projections(self.point_table, self.pose_table, self.board,
        self.cameras, images, inliers=self.inliers)    
 
 
   def report(self, stage):
-    def stats(errors):
-      mse = np.square(errors).mean()
-      return struct(mse = mse, rms = np.sqrt(mse), n = errors.size)
-
-    errors = stats(self.reprojection_error)
-    inliers = stats(self.reprojection_inliers)
-    
-    print(f"{stage}: reprojection RMS={errors.rms} n={errors.n}, inlier RMS={inliers.rms} n={inliers.n}")
+    report_errors(stage, self.reprojection_inliers)
 
 
+def error_stats(errors):  
+  mse = np.square(errors).mean()
+  quantiles = np.array([np.quantile(errors, n) for n in [0, 0.25, 0.5, 0.75, 1]])
+  return struct(mse = mse, rms = np.sqrt(mse), quantiles=quantiles, n = errors.size)
 
-
+def report_errors(stage, errors):
+  stats = error_stats(errors)
+  print(f"{stage}: reprojection RMS={stats.rms}, n={stats.n}, quantiles={stats.quantiles}")
 
 
 

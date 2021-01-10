@@ -115,6 +115,12 @@ class Camera(Parameters):
       return self.copy(intrinsic = intrinsic)
 
 
+    @cached_property
+    def undistort_map(self):
+      m, _ = cv2.initUndistortRectifyMap(self.intrinsic, self.dist, None, 
+        self.intrinsic, self.image_size, cv2.CV_32FC2)
+      return m
+
     def undistort_points(self, points):
       undistorted = cv2.undistortPoints(points.reshape(-1, 1, 2), self.intrinsic, self.dist, P=self.intrinsic)
       return undistorted.reshape(*points.shape[:-1], 2)

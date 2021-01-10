@@ -4,7 +4,8 @@ import numpy as np
 import argparse
 import cv2
 
-from multical import tables, detect, io
+
+from multical import tables, image, io
 from multical.optimization.calibration import Calibration
 
 from multical.camera import Camera
@@ -13,6 +14,10 @@ from multical.board import CharucoBoard
 from structs.struct import struct
 from structs.numpy import shape, Table
 from pprint import pprint
+
+from multical.interface import visualize
+
+
 
 
 def main(): 
@@ -39,15 +44,15 @@ def main():
     print(args)
 
     cameras = args.cameras.split(",") if args.cameras is not None else None
-    camera_names, image_dicts = detect.find_images(args.input, cameras)
-    print("Found camera directories {} with {} matching images".format(str(camera_names), len(image_dicts)))
+    camera_names, image_names, filenames = image.find.find_images(args.input, cameras)
+    print("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
 
     board = CharucoBoard.create(size=(16, 22), square_length=0.025, 
                      marker_length=0.01875, aruco_dict='4X4_1000')
 
 
-    loaded = detect.detect_images(board, image_dicts, j=args.j, prefix=args.input)   
+    loaded = image.detect.detect_images(board, camera_names, filenames, j=args.j, prefix=args.input)   
 
 
     cameras = []   
@@ -64,20 +69,23 @@ def main():
     calib = Calibration.initialise(cameras, board, point_table,  min_corners=20)
 
     calib.report("initialisation")
-    
-    calib = calib.bundle_adjust()
-    calib.report("optimised")
 
-    calib = calib.enable_board().enable_intrinsics().bundle_adjust()
+
+    vis = visualize(calib, loaded.images, camera_names, image_names)
+    
+    # calib = calib.bundle_adjust()
+    # calib.report("optimised")
+
+    # calib = calib.enable_board().enable_intrinsics().bundle_adjust()
     # calib = calib.adjust_outliers(iterations=args.iter, quantile=0.99)
     # calib.report("optimised")
 
-    save = args.save or path.join(args.input, "calibration.json")
-    print("writing calibration to:", save)
+    # save = args.save or path.join(args.input, "calibration.json")
+    # print("writing calibration to:", save)
     
-    io.export(save, calib, camera_names, image_dicts)
-    calib.plot_errors()
-    calib.display(loaded.images)
+    # io.export(save, calib, camera_names, image_names)
+    # calib.plot_errors()
+    # calib.display(loaded.images)
 
 
 if __name__ == '__main__':

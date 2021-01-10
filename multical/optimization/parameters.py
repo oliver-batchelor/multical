@@ -30,8 +30,6 @@ class Parameters(object):
   def with_param_vec(self, param_vec):
     updated = split(param_vec, self.params)
     return self.with_params(updated)
-  
-
 
 
 

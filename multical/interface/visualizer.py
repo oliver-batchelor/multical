@@ -5,13 +5,11 @@ import PyQt5.QtWidgets as QtWidgets
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
 
-
-import numpy as np
-from .vtk_tools import *
-
 from multical import image
 
-from .viewer import Viewer
+from .vtk_tools import *
+from .viewer_3d import Viewer3D
+from .viewer_image import ViewerImage, annotate_images
 from .moving_cameras import MovingCameras
 
 def visualize(calib, images, camera_names, image_names):
@@ -19,7 +17,7 @@ def visualize(calib, images, camera_names, image_names):
 
   vis = Visualizer()
 
-  vis.update(calib, images, camera_names, image_names)
+  vis.set_calibration(calib, images, camera_names, image_names)
   vis.showMaximized()
 
   app.exec_()
@@ -30,24 +28,31 @@ class Visualizer(QtWidgets.QMainWindow):
     super(Visualizer, self).__init__()
     uic.loadUi('multical/interface/visualizer.ui', self)
 
+    self.setFocusPolicy(Qt.StrongFocus)
     self.grabKeyboard()
 
-    self.viewer = Viewer(self)
-    self.view_frame.setLayout(h_layout(self.viewer))
+    self.viewer_3d = Viewer3D(self)
+    self.viewer_image = ViewerImage(self)
+
+    self.view_frame.setLayout(h_layout(self.viewer_3d))
+    self.image_frame.setLayout(h_layout(self.viewer_image))
+    
     self.scene = None
     self.sizes = struct(camera=0, frame=0)
     self.controller = None
 
-    self.connect_ui()
     self.setDisabled(True)
     
-  def update(self, calib, images, camera_names, image_names):
+  def set_calibration(self, calib, images, camera_names, image_names):
     self.image_names = image_names
     self.calib = calib
     self.images = images
     self.undistorted = image.undistort.undistort_images(images, calib.cameras)
 
-    self.viewer.clear()
+    self.blockSignals(True)
+    self.viewer_3d.clear()
+
+    self.annotated_images = annotate_images(calib, images)
 
     self.camera_combo.clear()
     self.camera_combo.addItems(camera_names)
@@ -56,24 +61,25 @@ class Visualizer(QtWidgets.QMainWindow):
     self.sizes = struct(frame=len(image_names), camera=len(camera_names))
    
     self.controllers = struct(
-      moving_cameras = MovingCameras(self.viewer, calib),
-      moving_board = MovingBoard(self.viewer, calib),
-      camera_view = CameraView(self.viewer, calib, self.undistorted)
+      moving_cameras = MovingCameras(self.viewer_3d, calib),
+      moving_board = MovingBoard(self.viewer_3d, calib),
+      camera_view = CameraView(self.viewer_3d, calib, self.undistorted)
     )
 
-    self.viewer.fix_camera()
+    self.viewer_3d.fix_camera()
     self.update_controller()
+    self.update_frame()
     
     self.setDisabled(False)
+    self.blockSignals(False)
 
-
-  @property
-  def camera_size(self):
-    return self.camera_size_slider.value() / 500.0
+    self.connect_ui()
 
 
 
   def keyPressEvent(self, event):
+    print(event.key())
+
     if event.key() == Qt.Key.Key_Left:
       self.move_frame(-1)
     elif event.key() == Qt.Key.Key_Right:
@@ -90,8 +96,11 @@ class Visualizer(QtWidgets.QMainWindow):
       self.point_size_slider.setValue(self.point_size_slider.value() - 1)
       self.line_size_slider.setValue(self.line_size_slider.value() - 1)
 
+    self.update()
 
-
+  @property
+  def camera_size(self):
+    return self.camera_size_slider.value() / 500.0
 
   @property
   def state(self):
@@ -99,6 +108,11 @@ class Visualizer(QtWidgets.QMainWindow):
       frame=self.frame_slider.sliderPosition(), 
       camera=self.camera_combo.currentIndex(),
       scale=self.camera_size)
+
+  @property
+  def image(self):
+    return self.images[self.state.camera][self.state.frame]
+
 
   def move_frame(self, d_frame=0):
     frame_index = (self.frame_slider.sliderPosition() + d_frame) % self.sizes.frame
@@ -112,6 +126,9 @@ class Visualizer(QtWidgets.QMainWindow):
     if self.controller is not None:
       self.controller.update(self.state)
 
+    annotated_image = self.annotated_images[self.state.camera][self.state.frame]
+    self.viewer_image.setImage(annotated_image)
+ 
   def update_controller(self):
     if self.controller is not None:
       self.controller.disable()
@@ -132,8 +149,8 @@ class Visualizer(QtWidgets.QMainWindow):
     self.camera_combo.currentIndexChanged.connect(self.update_frame)
 
 
-    self.point_size_slider.valueChanged.connect(self.viewer.set_point_size)
-    self.line_size_slider.valueChanged.connect(self.viewer.set_line_size)
+    self.point_size_slider.valueChanged.connect(self.viewer_3d.set_point_size)
+    self.line_size_slider.valueChanged.connect(self.viewer_3d.set_line_size)
 
     self.view_mode.buttonClicked.connect(self.update_controller)
 

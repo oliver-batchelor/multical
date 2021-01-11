@@ -29,19 +29,23 @@ class CameraView(object):
     self.projections = [[add_image_projection(viewer, camera, pose, image) for image, pose in zip(cam_images, frame_poses._sequence())]
       for camera, frame_poses, cam_images in zip(self.cameras, self.view_poses._sequence(), undistorted_images)]
 
-    self.show(False)
+    self.hide()
 
 
-  def show(self, is_shown):
-    self.board.SetVisibility(is_shown)
-    # for frames in self.projections:
-    #   for proj in frames:
-    #     proj.SetVisibility(False)
+  def hide(self):
+    self.board.SetVisibility(False)
+    for frames in self.projections:
+      for proj in frames:
+        proj.SetVisibility(False)
 
   def update(self, state):
+    self.hide()
 
     pose = self.view_poses._index[state.camera, state.frame]
-    self.show(pose.valid_poses)
+    self.board.SetVisibility(pose.valid_poses)
+
+    proj = self.projections[state.camera][state.frame]
+    proj.SetVisibility(True)
 
     viewport = self.viewer.camera_viewport(
         self.cameras[state.camera], np.linalg.inv(pose.poses))
@@ -56,7 +60,7 @@ class CameraView(object):
     self.update(state)
 
   def disable(self):
-    self.show(False)
+    self.hide()
     self.viewer.enable(True)
     if self.saved_camera is not None:
       self.viewer.set_viewport(self.saved_camera)

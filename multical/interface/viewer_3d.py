@@ -9,7 +9,7 @@ import pyvista as pv
 from .vtk_tools import *
 
 
-class Viewer(QtWidgets.QWidget):
+class Viewer3D(QtWidgets.QWidget):
   def __init__(self, parent):
     super().__init__(parent)
 
@@ -24,7 +24,6 @@ class Viewer(QtWidgets.QWidget):
       self.plotter.clear_events_for_key(key)
 
     self.clear()    
-
     self.setLayout(layout)
 
 

@@ -87,5 +87,5 @@ def board_mesh(board):
 
 def board_object(viewer, board, transform=None):
   mesh = board_mesh(board)
-  return viewer.add_mesh(mesh, style="wireframe", ambient=0.5, 
+  return viewer.add_mesh(mesh, style="wireframe", lighting=False, 
     transform=transform, color=(1, 0, 0), show_edges=True)

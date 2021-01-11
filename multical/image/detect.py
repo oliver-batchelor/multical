@@ -1,3 +1,4 @@
+from functools import partial
 import os
 import os.path as path
 import cv2
@@ -5,49 +6,47 @@ from natsort.natsort import natsorted
 from structs.numpy import shape
 
 from tqdm import tqdm
-from multiprocessing import Pool                                                
+from multiprocessing.pool import ThreadPool                                                
 
 import numpy as np
 from multical.camera import  stereo_calibrate
 
-from structs.struct import transpose_structs, struct, filter_none
+from structs.struct import concat_lists, transpose_structs, struct, filter_none, split_list, map_list
 
 
-def load_image(filename):
+def load_detect(board, filename):
   assert path.isfile(filename), f"load_image: file {filename} does not exist"
 
   image = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
   assert image is not None, f"load_image: could not read {filename}"
   
-  return image
+  return struct(images=image, points=board.detect(image))
 
 
-def detect_images(board, camera_names, filenames, show=False, j=4, prefix=None):
-  pool = Pool(processes=j)                                                        
- 
-  def detect_camera(k, image_files):
-    print(f"Detecting boards in camera {k}")
-    if prefix is not None:
-      image_files = [path.join(prefix, file) for file in image_files]
+def common_image_size(images):
+  image_shape = images[0].shape
+  h, w, *_ = image_shape
 
-    image_shape = None
-    detections = []
-    images = []
+  assert all([image.shape == image_shape for image in images])
+  return (w, h)
 
-    loader = pool.imap(load_image, image_files, chunksize=j)
-    for image in tqdm(loader, total=len(image_files)):
-      if image_shape is None:
-        image_shape = image.shape
-      detections.append(board.detect(image))
-      images.append(image) 
+def detect_images(board, filenames, prefix=None, j=len(os.sched_getaffinity(0)) // 2, chunksize=1):
+  pool = ThreadPool(processes=j)                                                        
 
-    height, width = image_shape
-    return struct(points=detections, image_size=(width, height), images=images)
+  cam_lengths = map_list(len, filenames)
+  flat_files = concat_lists(filenames)
 
-  detections = [detect_camera(k, image_files) 
-    for k, image_files in zip(camera_names, filenames)]
+  if prefix is not None:
+    flat_files = [path.join(prefix, file) for file in flat_files]
+  
+  loader = pool.imap(partial(load_detect, board), flat_files, chunksize=chunksize)
+  results = list(tqdm(loader, total=len(flat_files)))
 
-  return transpose_structs(detections)
+  results = transpose_structs(results)._map(split_list, cam_lengths)
+  
+  return results._extend(image_size = map_list(common_image_size, results.images))
+
+
 
 
 def intersect_detections(board, d1, d2):

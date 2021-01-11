@@ -13,12 +13,12 @@ def camera_markers(viewer, camera_poses, cameras, scale=1.0):
  
 
 def board_objects(viewer, board, pose_estimates):
+  mesh = board_mesh(board)
 
   def add_board(pose):
-    mesh = board_mesh(board)
 
     if pose.valid_poses:
-      return viewer.add_mesh(mesh, style="wireframe", ambient=0.5,
+      return viewer.add_mesh(mesh.copy(), style="wireframe", ambient=0.5,
         transform=pose.poses, color=(1, 0, 0), show_edges=True)
 
   return [add_board(pose) for pose in pose_estimates.rig._sequence()]

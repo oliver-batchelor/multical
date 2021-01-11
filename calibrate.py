@@ -1,5 +1,6 @@
 import math
 from os import path
+import os
 import numpy as np
 import argparse
 import cv2
@@ -18,8 +19,6 @@ from pprint import pprint
 from multical.interface import visualize
 
 
-
-
 def main(): 
     np.set_printoptions(precision=3, suppress=True)
 
@@ -28,7 +27,7 @@ def main():
 
     parser.add_argument('--save', default=None, help='save calibration as json default: input/calibration.json')
 
-    parser.add_argument('--j', default=4, type=int, help='concurrent jobs')
+    parser.add_argument('--j', default=len(os.sched_getaffinity(0)) // 2, type=int, help='concurrent jobs')
     parser.add_argument('--show', default=False, action="store_true", help='show detections')
 
     parser.add_argument('--min_corners', default=5, type=int, help='minimum visible points to use estimated pose')
@@ -38,22 +37,16 @@ def main():
 
     parser.add_argument('--fix_aspect', default=False, action="store_true", help='set same focal length ')
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
-
-
+ 
     args = parser.parse_args()
-    print(args)
+    print(args) 
 
     cameras = args.cameras.split(",") if args.cameras is not None else None
     camera_names, image_names, filenames = image.find.find_images(args.input, cameras)
     print("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
-
-    board = CharucoBoard.create(size=(16, 22), square_length=0.025, 
-                     marker_length=0.01875, aruco_dict='4X4_1000')
-
-
-    loaded = image.detect.detect_images(board, camera_names, filenames, j=args.j, prefix=args.input)   
-
+    board = CharucoBoard.create(size=(16, 22), square_length=0.025, marker_length=0.01875, aruco_dict='4X4_1000')
+    loaded = image.detect.detect_images(board, filenames, j=args.j, prefix=args.input)   
 
     cameras = []   
     for name, points, image_size in zip(camera_names, loaded.points, loaded.image_size):

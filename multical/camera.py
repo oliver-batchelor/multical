@@ -173,3 +173,4 @@ class Camera(Parameters):
           dist = self.dist, fix_aspect=self.fix_aspect, model=self.model)
         d.update(k)
         return Camera(**d)
+        

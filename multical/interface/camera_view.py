@@ -1,12 +1,23 @@
 
 import numpy as np
-from multical.interface.marker import board_object
+from multical.interface.marker import board_object, image_projection
 
 import multical.tables as tables
+import pyvista as pv
 
+import cv2
+
+def add_image_projection(viewer, camera, pose, image):
+  mesh = image_projection(camera)
+
+  if image.ndim == 3:
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+  texture = pv.numpy_to_texture(image)
+  return viewer.add_mesh(mesh, texture=texture, lighting=False, transform=np.linalg.inv(pose.poses))
 
 class CameraView(object):
-  def __init__(self, viewer, calib):
+  def __init__(self, viewer, calib, undistorted_images):
     self.viewer = viewer
     self.saved_camera=None
 
@@ -14,11 +25,18 @@ class CameraView(object):
       calib.pose_estimates.camera, calib.pose_estimates.rig)
     self.cameras = calib.cameras
     self.board = board_object(self.viewer, calib.board)
+
+    self.projections = [[add_image_projection(viewer, camera, pose, image) for image, pose in zip(cam_images, frame_poses._sequence())]
+      for camera, frame_poses, cam_images in zip(self.cameras, self.view_poses._sequence(), undistorted_images)]
+
     self.show(False)
 
 
   def show(self, is_shown):
     self.board.SetVisibility(is_shown)
+    # for frames in self.projections:
+    #   for proj in frames:
+    #     proj.SetVisibility(False)
 
   def update(self, state):
 

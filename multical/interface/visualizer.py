@@ -58,7 +58,7 @@ class Visualizer(QtWidgets.QMainWindow):
     self.controllers = struct(
       moving_cameras = MovingCameras(self.viewer, calib),
       moving_board = MovingBoard(self.viewer, calib),
-      camera_view = CameraView(self.viewer, calib)
+      camera_view = CameraView(self.viewer, calib, self.undistorted)
     )
 
     self.viewer.fix_camera()

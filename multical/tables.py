@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as np
 
 from structs.struct import transpose_structs, lens
@@ -138,7 +139,7 @@ def estimate_transform(table, i, j, axis=0):
   return t
 
 
-def estimate_poses(table, axis=0, hop_penalty=0.9):
+def estimate_relative_poses(table, axis=0, hop_penalty=0.9):
   n = table._prefix[axis]
   overlaps = pattern_overlaps(table, axis=axis)
   master, pairs = graph.select_pairs(overlaps, hop_penalty)
@@ -156,16 +157,9 @@ def estimate_poses(table, axis=0, hop_penalty=0.9):
   return Table.create(poses=values, valid_poses=mask), master
 
 
-def multiply_masked(poses1, poses2):
-  return Table.create(
-      poses=np.expand_dims(poses1.poses, 1) @ np.expand_dims(poses2.poses, 0),
-      valid_poses=np.expand_dims(
-          poses1.valid_poses, 1) & np.expand_dims(poses2.valid_poses, 0)
-  )
 
 
-def expand_poses(estimates):
-  return multiply_masked(estimates.camera, estimates.rig)
+
 
 
 def valid_points(estimates, point_table):
@@ -201,29 +195,60 @@ def inverse(table):
   return struct(poses=np.linalg.inv(table.poses), valid_poses=table.valid_poses)
 
 
-def pre_multiply(table, t):
+def post_multiply(table, t):
   return struct(poses=table.poses @ t, valid_poses=table.valid_poses)
 
+def pre_multiply(t, table):
+  return struct(poses=t @ table.poses, valid_poses=table.valid_poses)
 
-def stereo_calibrate(points, board, cameras, i, j, **kwargs):
-  matching = matching_points(points, board, i, j)
-  return stereo_calibrate((cameras[i], cameras[j]), matching, **kwargs)
+
+
+def multiply_tables(table1, table2):
+  assert table1._prefix == table2._prefix,\
+     f"multiply_tables: table shapes don't match {table1._prefix} vs {table2._prefix}"
+
+  return Table.create(
+    poses=table1.poses @ table2.poses,
+    valid_poses= table1.valid_poses & table2.valid_poses
+  )
+
+def multiply_expand(table1, dims1, table2, dims2):
+  return multiply_tables(expand(table1, dims1), expand(table2, dims2))  
+
+
+
+def expand(table, dims):
+  return table._map(partial(np.expand_dims, axis=dims))
+
+
+def expand_poses(estimates):
+  return multiply_expand(estimates.camera, 1, estimates.rig, 0)  
+
+
+  
 
 
 def initialise_poses(pose_table):
 
     # Find relative transforms between cameras and rig poses
-  camera, cam_master = estimate_poses(pose_table, axis=0)
-  rig, rig_master = estimate_poses(pose_table, axis=1)
+  camera, _ = estimate_relative_poses(pose_table, axis=0)
 
-  # Initialise relative camera poses and rig poses
-  relative = struct(camera=camera, rig=rig)
+  # solve for the rig transforms cam @ rig = pose
+  camera_relative = multiply_tables(expand( inverse(camera), [1, 2]), pose_table)
 
+
+
+  assert False
 
   # Given relative transforms, find the absolute transform t
   # camera @ rig @ t = pose
-  t = relative_between_inv(expand_poses(relative), pose_table)
   # t = pose_table._index[cam_master, rig_master].poses
 
   # adjust rig poses to give original poses back
   return lens.rig.poses.set(relative, rig.poses @ t)
+
+
+
+def stereo_calibrate(points, board, cameras, i, j, **kwargs):
+  matching = matching_points(points, board, i, j)
+  return stereo_calibrate((cameras[i], cameras[j]), matching, **kwargs)

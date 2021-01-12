@@ -1,7 +1,9 @@
 
+from functools import partial
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap
 from PyQt5.QtCore import QLineF, QPointF, QRectF, Qt
+from cached_property import cached_property
 
 import cv2
 import numpy as np
@@ -27,6 +29,15 @@ def costmetic_pen(color):
     pen.setCosmetic(True)
     pen.setWidth(2)
     return pen
+
+
+class Lazy(object):
+  def __init__(self, f, *args, **kwargs):
+    self.compute = partial(f, *args, **kwargs)
+
+  @cached_property
+  def value(self):
+    return self.compute()
 
 
 def annotate_image(board, image, camera, image_table, radius=10.0):
@@ -58,7 +69,7 @@ def annotate_image(board, image, camera, image_table, radius=10.0):
 def annotate_images(calib, images, radius=10.0):
   table = calib.point_table._merge(calib.pose_table)._extend(inliers = calib.inliers)
 
-  return [[annotate_image(calib.board, image, camera, image_table, radius=radius) 
+  return [[Lazy(annotate_image, calib.board, image, camera, image_table, radius=radius) 
       for image, image_table in zip(cam_images, image_table._sequence())]
         for camera, cam_images, image_table in zip(calib.cameras, images, table._sequence())]
 
@@ -84,7 +95,7 @@ class ViewerImage(QtWidgets.QGraphicsView):
     self.zoom_range = (-10, 25)
 
   def setImage(self, scene):  
-    self.setScene(scene)
+    self.setScene(scene.value)
     self.update()
 
 

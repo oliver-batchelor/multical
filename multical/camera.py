@@ -94,7 +94,7 @@ class Camera(Parameters):
 
 
     @staticmethod
-    def calibrate(board, detections, image_size, max_iter=60, eps=1e-6, 
+    def calibrate(board, detections, image_size, max_iter=30, eps=1e-4, 
         model='standard', fix_aspect=False, flags=0, min_points=20):
       points = calibration_points(board.points, detections, min_points=min_points)
       

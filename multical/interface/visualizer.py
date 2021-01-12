@@ -17,7 +17,10 @@ def visualize(calib, images, camera_names, image_names):
 
   vis = Visualizer()
 
-  vis.set_calibration(calib, images, camera_names, image_names)
+  print("Undistorting images...")
+  undistorted = image.undistort.undistort_images(images, calib.cameras)
+
+  vis.set_calibration(calib, images, undistorted, camera_names, image_names)
   vis.showMaximized()
 
   app.exec_()
@@ -43,12 +46,13 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.setDisabled(True)
     
-  def set_calibration(self, calib, images, camera_names, image_names):
+  def set_calibration(self, calib, images, undistorted, camera_names, image_names):
     self.image_names = image_names
     self.calib = calib
     self.images = images
-    self.undistorted = image.undistort.undistort_images(images, calib.cameras)
 
+    self.undistorted = undistorted
+    
     self.blockSignals(True)
     self.viewer_3d.clear()
 
@@ -78,7 +82,6 @@ class Visualizer(QtWidgets.QMainWindow):
 
 
   def keyPressEvent(self, event):
-    print(event.key())
 
     if event.key() == Qt.Key.Key_Left:
       self.move_frame(-1)

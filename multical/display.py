@@ -5,7 +5,7 @@ from .transform import rtvec
 from . import tables
 
 from structs.struct import transpose_lists, choose
-
+from .image.display import display_stacked
 
 def annotate_points(image, points):
   detections = tables.sparse_points(points)

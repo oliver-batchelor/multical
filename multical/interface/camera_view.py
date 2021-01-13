@@ -21,8 +21,8 @@ class CameraView(object):
     self.viewer = viewer
     self.saved_camera=None
 
-    self.view_poses = tables.multiply_masked(
-      calib.pose_estimates.camera, calib.pose_estimates.rig)
+    self.view_poses = tables.expand_poses(calib.pose_estimates)
+      
     self.cameras = calib.cameras
     self.board = board_object(self.viewer, calib.board)
 

@@ -74,7 +74,6 @@ def annotate_images(calib, images, radius=10.0):
         for camera, cam_images, image_table in zip(calib.cameras, images, table._sequence())]
 
 
-
 class ViewerImage(QtWidgets.QGraphicsView):
 
   def __init__(self, parent):
@@ -92,7 +91,7 @@ class ViewerImage(QtWidgets.QGraphicsView):
 
     self.zoom = 0
     self.zoom_factor = 0.95
-    self.zoom_range = (-10, 25)
+    self.zoom_range = (-10, 40)
 
   def setImage(self, scene):  
     self.setScene(scene.value)

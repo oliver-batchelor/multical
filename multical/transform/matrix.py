@@ -56,14 +56,14 @@ def center_translation(m):
   return x.transpose(1, 0, 2).reshape(3, -1)
 
 def align_transforms_mean(m1, m2):
+  return mean_robust(relative_to(m1, m2))
+
+
+def mean_robust(m):
   from . import rtvec
-  
-  ts = relative_to(m1, m2)
-  rtvecs = rtvec.from_matrix(ts)
 
+  rtvecs = rtvec.from_matrix(m)
   return rtvec.to_matrix(rtvec.mean_robust(rtvecs))
-
-
 
 def align_transforms_ls(m1, m2):
   """ Least squares solution for XA = B for aligning a collection of

@@ -2,7 +2,7 @@ from functools import partial
 import numpy as np
 
 from structs.struct import transpose_structs, lens
-from structs.numpy import struct, Table, shape
+from structs.numpy import shape_info, struct, Table, shape
 
 from .transform import rtvec, matrix
 from . import graph
@@ -139,26 +139,26 @@ def estimate_transform(table, i, j, axis=0):
   return t
 
 
+def fill_poses(pose_dict, n):
+  valid_ids = sorted(pose_dict)
+  pose_table = np.array([pose_dict[k] for k in valid_ids])
+
+  values, mask = fill_sparse_tile(n, pose_table, valid_ids, np.eye(4))
+  return Table.create(poses=values, valid_poses=mask)
+
+
 def estimate_relative_poses(table, axis=0, hop_penalty=0.9):
-  n = table._prefix[axis]
+  n = table._shape[axis]
   overlaps = pattern_overlaps(table, axis=axis)
   master, pairs = graph.select_pairs(overlaps, hop_penalty)
 
-  poses = {master: np.eye(4)}
+  pose_dict = {master: np.eye(4)}
 
   for parent, child in pairs:
     t = estimate_transform(table, parent, child, axis=axis)
-    poses[child] = t @ poses[parent]
+    pose_dict[child] = t @ pose_dict[parent]
 
-  valid_ids = sorted(poses)
-  pose_table = np.array([poses[k] for k in valid_ids])
-
-  values, mask = fill_sparse_tile(n, pose_table, valid_ids, np.eye(4))
-  return Table.create(poses=values, valid_poses=mask), master
-
-
-
-
+  return fill_poses(pose_dict, n), master
 
 
 
@@ -192,20 +192,23 @@ def relative_between_inv(table1, table2):
 
 
 def inverse(table):
-  return struct(poses=np.linalg.inv(table.poses), valid_poses=table.valid_poses)
-
+  return table._extend(poses=np.linalg.inv(table.poses))
 
 def post_multiply(table, t):
-  return struct(poses=table.poses @ t, valid_poses=table.valid_poses)
+  return table._extend(poses=table.poses @ t)
 
 def pre_multiply(t, table):
-  return struct(poses=t @ table.poses, valid_poses=table.valid_poses)
+  return table._extend(poses=t @ table.poses)
 
+
+def can_broadcast(shape1, shape2):
+  return  len(shape1) == len(shape2) and all(
+      [n1 == n2 or n1 == 1 or n2 == 1 for n1, n2 in zip(shape1, shape2)])
 
 
 def multiply_tables(table1, table2):
-  assert table1._prefix == table2._prefix,\
-     f"multiply_tables: table shapes don't match {table1._prefix} vs {table2._prefix}"
+  assert can_broadcast(table1._shape, table2._shape),\
+     f"multiply_tables: table shapes must broadcast {table1._shape} vs {table2._shape}"
 
   return Table.create(
     poses=table1.poses @ table2.poses,
@@ -216,36 +219,43 @@ def multiply_expand(table1, dims1, table2, dims2):
   return multiply_tables(expand(table1, dims1), expand(table2, dims2))  
 
 
-
 def expand(table, dims):
-  return table._map(partial(np.expand_dims, axis=dims))
+  f = partial(np.expand_dims, axis=dims)
+  return table._map(f)
 
 
 def expand_poses(estimates):
   return multiply_expand(estimates.camera, 1, estimates.rig, 0)  
+ 
 
 
-  
+def means_robust(pose_table, axis=0):
+  def f(poses):
 
+    if not np.any(poses.valid_poses):
+      return invalid_pose
+    else:
+      return struct(
+        poses = matrix.mean_robust(poses.poses[poses.valid_poses]),
+        valid_poses = True
+      )
+
+  mean_poses = [f(poses) for poses in pose_table._sequence(axis)]
+  return Table.stack(mean_poses)
 
 def initialise_poses(pose_table):
-
     # Find relative transforms between cameras and rig poses
   camera, _ = estimate_relative_poses(pose_table, axis=0)
 
   # solve for the rig transforms cam @ rig = pose
-  camera_relative = multiply_tables(expand( inverse(camera), [1, 2]), pose_table)
+  camera_relative = multiply_tables(expand( inverse(camera), [1]), pose_table)
+  
+  return struct(
+    rig = means_robust(camera_relative, axis=1),
+    camera = camera
+  )
 
-
-
-  assert False
-
-  # Given relative transforms, find the absolute transform t
-  # camera @ rig @ t = pose
-  # t = pose_table._index[cam_master, rig_master].poses
-
-  # adjust rig poses to give original poses back
-  return lens.rig.poses.set(relative, rig.poses @ t)
+  
 
 
 

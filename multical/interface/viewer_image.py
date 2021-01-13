@@ -65,7 +65,6 @@ def annotate_image(board, image, camera, image_table, radius=10.0):
   return scene
 
 
-
 def annotate_images(calib, images, radius=10.0):
   table = calib.point_table._merge(calib.pose_table)._extend(inliers = calib.inliers)
 
@@ -74,29 +73,7 @@ def annotate_images(calib, images, radius=10.0):
         for camera, cam_images, image_table in zip(calib.cameras, images, table._sequence())]
 
 
-# void MyItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *item, QWidget *widget)
-# {
-#     QTransform t = painter->transform();
-#     qreal m11 = t.m11(), m22 = t.m22();
-#     painter->save(); // save painter state
-#     painter->setTransform(QTransform(m11, t.m12(), t.m13(),
-#                                      t.m21(), 1, t.m23(), t.m31(),
-#                                      t.m32(), t.m33()));
-#     int x = 0, y = 0; // item's coordinates
-#     painter->drawText(x*m11, y*m22, "Text"); // the text itself will not be scaled, but when the scene is transformed, this text will still anchor correctly
-#     painter->restore(); // restore painter state
-# }
-
-# class CircleMarker(QtWidgets.QGraphicsItem):
-
-#   def paint(self, painter, style, widget):
-#     t = painter.transform
-
-
-
-
 class ViewerImage(QtWidgets.QGraphicsView):
-
   def __init__(self, parent):
     super(ViewerImage, self).__init__(parent)
 

@@ -33,9 +33,10 @@ def sparse_points(points):
   ids = np.flatnonzero(points.valid_points)
   return struct(corners=points.points[ids], ids=ids)
 
-
 invalid_pose = struct(poses=np.eye(4), num_points=0, valid_poses=False)
-identity_pose = struct(poses=np.eye(4), num_points=0, valid_poses=True)
+
+def valid_pose(t):
+  return struct(poses=t, valid_poses=True)
 
 
 def extract_pose(points, board, camera, min_corners=20):
@@ -43,7 +44,7 @@ def extract_pose(points, board, camera, min_corners=20):
   poses = board.estimate_pose_points(
       camera, detections, min_corners=min_corners)
 
-  return struct(poses=rtvec.to_matrix(poses), num_points=len(detections.ids), valid_poses=True)\
+  return valid_pose(rtvec.to_matrix(poses))._extend(num_points=len(detections.ids))\
       if poses is not None else invalid_pose
 
 
@@ -111,7 +112,7 @@ def matching_points(points, board, cam1, cam2):
 
 def common_entries(row1, row2, mask_key):
   valid = np.nonzero(row1[mask_key] & row2[mask_key])
-  return row1._index[valid], row2._index[valid], valid
+  return row1._index[valid], row2._index[valid], valid[0]
 
 
 def pattern_overlaps(table, axis=0):
@@ -133,10 +134,7 @@ def pattern_overlaps(table, axis=0):
 def estimate_transform(table, i, j, axis=0):
   poses_i = table._index_select(i, axis=axis).poses
   poses_j = table._index_select(j, axis=axis).poses
-
-  t, errs, inliers = matrix.align_transforms_robust(poses_i, poses_j)
-
-  return t
+  return matrix.align_transforms_robust(poses_i, poses_j)[0]
 
 
 def fill_poses(pose_dict, n):
@@ -179,18 +177,6 @@ def reprojection_error(points1, points2):
   return error, mask
 
 
-def relative_between(table1, table2):
-  common1, common2, _ = common_entries(table1, table2, mask_key='valid_poses')
-  t, errs, inliers = matrix.align_transforms_robust(
-      common1.poses, common2.poses)
-
-  return t
-
-
-def relative_between_inv(table1, table2):
-  return np.linalg.inv(relative_between(inverse(table1), inverse(table2)))
-
-
 def inverse(table):
   return table._extend(poses=np.linalg.inv(table.poses))
 
@@ -205,6 +191,12 @@ def can_broadcast(shape1, shape2):
   return  len(shape1) == len(shape2) and all(
       [n1 == n2 or n1 == 1 or n2 == 1 for n1, n2 in zip(shape1, shape2)])
 
+
+def broadcast_to(table1, table2):
+  assert can_broadcast(table1._shape, table2._shape),\
+     f"broadcast_to: table shapes must broadcast {table1._shape} vs {table2._shape}"
+
+  return table1._zipWith(lambda t1, t2: np.broadcast_to(t1, t2.shape), table2)
 
 def multiply_tables(table1, table2):
   assert can_broadcast(table1._shape, table2._shape),\
@@ -227,31 +219,54 @@ def expand(table, dims):
 def expand_poses(estimates):
   return multiply_expand(estimates.camera, 1, estimates.rig, 0)  
  
-
-
-def means_robust(pose_table, axis=0):
+def mean_robust_n(pose_table, axis=0):
   def f(poses):
-
     if not np.any(poses.valid_poses):
       return invalid_pose
     else:
-      return struct(
-        poses = matrix.mean_robust(poses.poses[poses.valid_poses]),
-        valid_poses = True
-      )
+      return valid_pose(matrix.mean_robust(poses.poses[poses.valid_poses]))
 
   mean_poses = [f(poses) for poses in pose_table._sequence(axis)]
   return Table.stack(mean_poses)
+
+
+def relative_between(table1, table2):
+  common1, common2, valid = common_entries(table1, table2, mask_key='valid_poses')
+  print(valid.size)
+
+  if valid.size == 0:
+    return invalid_pose
+  else:
+    t, _ = matrix.align_transforms_robust(common1.poses, common2.poses)
+    return valid_pose(t)
+
+def relative_between_inv(table1, table2):
+  return inverse(relative_between(inverse(table1), inverse(table2)))
+
+
+def relative_between_n(table1, table2, axis=0, inv=False):
+
+  f = relative_between_inv if inv else relative_between 
+  relative_poses = [f(poses1, poses2) for poses1, poses2 
+    in zip(table1._sequence(axis), table2._sequence(axis))]
+
+  return Table.stack(relative_poses)
+
+
+
 
 def initialise_poses(pose_table):
     # Find relative transforms between cameras and rig poses
   camera, _ = estimate_relative_poses(pose_table, axis=0)
 
   # solve for the rig transforms cam @ rig = pose
-  camera_relative = multiply_tables(expand( inverse(camera), [1]), pose_table)
+  # camera_relative = multiply_tables(expand( inverse(camera), 1), pose_table)
   
+  expanded = broadcast_to(expand(camera, 1), pose_table)
+  rig = relative_between_n(expanded, pose_table, axis=1, inv=True)
+
   return struct(
-    rig = means_robust(camera_relative, axis=1),
+    rig = rig,
     camera = camera
   )
 

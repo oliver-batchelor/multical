@@ -83,26 +83,24 @@ def align_transforms_ls(m1, m2):
 
   return join(r, t)
 
-def test_outlier(errs, threshold=1.5):
+def test_outlier(errs, threshold=2.0):
   median = np.quantile(errs, 0.5)
+
+  # print(median, errs)
   return errs < median * threshold
 
 
-def align_transforms_robust(m1, m2, threshold=1.5):
+def align_transforms_robust(m1, m2, threshold=2.0):
   """ As align_transforms, with outlier rejection.
-
     threshold (float): proportion of IQR above upper quartile to be determined as an outlier.
   """
   m = align_transforms_mean(m1, m2)
   errs = error_transform(m, m1, m2)
 
   inliers = test_outlier(errs, threshold)
-
-
   m = align_transforms_mean(m1[inliers], m2[inliers])
-  errs2 = error_transform(m, m1, m2)
-
-  return m, errs2, inliers
+  
+  return m, inliers
 
 
   

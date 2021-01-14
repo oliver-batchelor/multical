@@ -12,7 +12,7 @@ from .viewer_3d import Viewer3D
 from .viewer_image import ViewerImage, annotate_images
 from .moving_cameras import MovingCameras
 
-def visualize(calib, images, camera_names, image_names, detected_poses=None):
+def visualize(calib, images, camera_names, image_names):
   app = QtWidgets.QApplication([])
 
   vis = Visualizer()
@@ -20,7 +20,7 @@ def visualize(calib, images, camera_names, image_names, detected_poses=None):
   print("Undistorting images...")
   undistorted = image.undistort.undistort_images(images, calib.cameras)
 
-  vis.set_calibration(calib, images, undistorted, camera_names, image_names, detected_poses=None)
+  vis.set_calibration(calib, images, undistorted, camera_names, image_names)
   vis.showMaximized()
 
   app.exec_()
@@ -46,16 +46,15 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.setDisabled(True)
     
-  def set_calibration(self, calib, images, undistorted, camera_names, image_names, detected_poses):
+  def set_calibration(self, calib, images, undistorted, camera_names, image_names):
 
     self.calib = calib
     self.images = images
     self.camera_names = camera_names
     self.image_names = image_names
+    
     self.undistorted = undistorted
 
-    self.detected_poses = detected_poses
-    
     self.blockSignals(True)
     self.viewer_3d.clear()
 

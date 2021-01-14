@@ -30,7 +30,8 @@ def create_dict(name, offset):
 
 
 class CharucoBoard(Parameters):
-  def __init__(self, board, dict_desc, adjusted_points=None, aruco_params=None):
+  def __init__(self, board, dict_desc, min_rows=3, min_points=20, 
+    adjusted_points=None, aruco_params=None):
     
     self.board = board
     self.dict_desc = dict_desc
@@ -39,10 +40,12 @@ class CharucoBoard(Parameters):
       if adjusted_points is not None else self.points)
       
     self.aruco_params = aruco_params or default_aruco_params()
+    self.min_rows = min_rows
+    self.min_points = min_points
 
   @staticmethod
   def create(size, square_length, marker_length, 
-    aruco_dict='4X4_100', aruco_offset=0, aruco_params=None):
+    aruco_dict='4X4_100', aruco_offset=0, aruco_params=None, min_rows=3, min_points=20):
       width, height = size
     
       dict_desc = struct(name=aruco_dict, offset=aruco_offset)
@@ -51,7 +54,8 @@ class CharucoBoard(Parameters):
       board = cv2.aruco.CharucoBoard_create(width, height,
          square_length, marker_length, aruco_dict)
 
-      return CharucoBoard(board, dict_desc, aruco_params=aruco_params)
+      return CharucoBoard(board, dict_desc, aruco_params=aruco_params, 
+        min_rows=min_rows, min_points=min_points)
 
   def export(self):
     return struct(
@@ -97,9 +101,15 @@ class CharucoBoard(Parameters):
     return struct(corners = corners.squeeze(1), ids = ids.squeeze(1))
 
 
+  def has_min_detections(self, detections):
+    w, h = self.size
+    dims = np.unravel_index(detections.ids, shape=(h, w)) 
 
-  def estimate_pose_points(self, camera, detections, min_corners=20):
-      if len(detections.corners) < min_corners:
+    has_rows = [np.unique(d).size >= self.min_rows for d in dims]
+    return detections.ids.size >= self.min_points and all(has_rows)
+
+  def estimate_pose_points(self, camera, detections):
+      if not self.has_min_detections(detections):
           return None
 
       undistorted = camera.undistort_points(detections.corners)      
@@ -130,6 +140,7 @@ class CharucoBoard(Parameters):
 
   def copy(self, **k):
       d = dict(board=self.board, adjusted_points=self.adjusted_points, 
-        aruco_params=self.aruco_params, dict_desc=self.dict_desc)
+        aruco_params=self.aruco_params, dict_desc=self.dict_desc, 
+        min_rows=self.min_rows, min_points=self.min_points)
       d.update(k)
       return CharucoBoard(**d)

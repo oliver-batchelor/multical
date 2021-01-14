@@ -96,7 +96,7 @@ def align_transforms_robust(m1, m2, threshold=2.0):
 
   inliers = test_outlier(errs, threshold)
   m = align_transforms_mean(m1[inliers], m2[inliers])
-  
+
   return m, inliers
 
 

@@ -69,11 +69,13 @@ def annotate_image(board, image, camera, image_table, radius=10.0):
 
   detected = []
   refined = []
-  
-  projected_points = camera.project(board.adjusted_points, image_table.poses).astype(np.float32)
+  pose = []
 
-  for proj, corner, valid, inlier in\
-    zip(projected_points, image_table.points, image_table.valid_points, image_table.inliers):
+  projected_points = camera.project(board.adjusted_points, image_table.poses).astype(np.float32)
+  projected_pose = camera.project(board.points, image_table.pose_detections).astype(np.float32)
+
+  for proj, corner, valid, pose_point, inlier in\
+    zip(projected_points, image_table.points, image_table.valid_points, projected_pose,  image_table.inliers):
 
       color = (255, 255, 0) if not valid\
         else (0, 255, 0) if inlier else (255, 0, 0) 
@@ -82,9 +84,11 @@ def annotate_image(board, image, camera, image_table, radius=10.0):
         refined.append(line(proj, corner, costmetic_pen( (255, 0, 0) ) ))
         detected.append( cross(corner, radius, costmetic_pen( (0, 0, 255) )))
 
-      refined.append(cross(proj, radius, costmetic_pen(color)))        
+      refined.append(cross(proj, radius, costmetic_pen(color)))  
+      pose.append(cross(pose_point, radius, costmetic_pen( (255, 192, 0 ) )))        
+      
 
-  layers = struct(detected = group(detected), refined = group(refined))
+  layers = struct(detected = group(detected), refined = group(refined), pose=group(pose))
   for layer in layers.values():
     scene.addItem(layer)
 
@@ -96,6 +100,10 @@ def annotate_image(board, image, camera, image_table, radius=10.0):
 
 def annotate_images(calib, images, radius=10.0):
   table = calib.point_table._merge(calib.pose_table)._extend(inliers = calib.inliers)
+
+  table = table._extend(
+     pose_detections = calib.pose_detections.poses, 
+     valid_detection = calib.pose_detections.valid_poses)
 
   return [[Lazy(annotate_image, calib.board, image, camera, image_table, radius=radius) 
       for image, image_table in zip(cam_images, image_table._sequence())]

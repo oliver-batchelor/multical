@@ -16,13 +16,15 @@ from cached_property import cached_property
 
 
 class Calibration(parameters.Parameters):
-  def __init__(self, cameras, board, point_table, pose_estimates, inliers=None, 
+  def __init__(self, cameras, board, point_table, pose_estimates, pose_detections, inliers=None, 
       optimize_intrinsics=False, optimize_board=False):
 
     self.cameras = cameras
     self.board = board
 
+    self.pose_detections = pose_detections
     self.point_table = point_table
+
     self.pose_estimates = pose_estimates
     self.optimize_intrinsics = optimize_intrinsics
     self.optimize_board = optimize_board
@@ -35,11 +37,11 @@ class Calibration(parameters.Parameters):
     assert pose_estimates.rig._shape[0] == self.size.rig_poses
 
   @staticmethod
-  def initialise(cameras, board, point_table, min_corners=20):
-      pose_table = tables.make_pose_table(point_table, board, cameras, min_corners=min_corners)
-      pose_estimates = tables.initialise_poses(pose_table)
+  def initialise(cameras, board, point_table):
+      pose_detections = tables.make_pose_table(point_table, board, cameras)
+      pose_estimates = tables.initialise_poses(pose_detections)
 
-      return Calibration(cameras, board, point_table, pose_estimates)
+      return Calibration(cameras, board, point_table, pose_estimates, pose_detections)
    
   @cached_property 
   def size(self):
@@ -177,7 +179,7 @@ class Calibration(parameters.Parameters):
   def copy(self, **k):
     """Copy calibration environment and change some parameters (no mutation)"""
     d = dict(cameras=self.cameras, board=self.board, point_table=self.point_table, 
-      pose_estimates=self.pose_estimates, inliers=self.inliers, 
+      pose_estimates=self.pose_estimates, pose_detections=self.pose_detections, inliers=self.inliers, 
       optimize_intrinsics=self.optimize_intrinsics, optimize_board=self.optimize_board)
 
     d.update(k)
@@ -188,10 +190,10 @@ class Calibration(parameters.Parameters):
     threshold = np.quantile(self.reprojection_error, quantile)
     return self.reject_outliers(threshold=threshold)
 
-  def reject_outliers_median(self, median_factor=2.5):
-    """ Set inliers based on factor of the median """
-    median = np.quantile(self.reprojection_error, 0.5)
-    return self.reject_outliers(threshold=median * median_factor)
+  def reject_outliers_upper(self, upper_factor=2.5):
+    """ Set inliers based on factor of the upper quartile """
+    upper_quartile = np.quantile(self.reprojection_error, 0.75)
+    return self.reject_outliers(threshold=upper_quartile * upper_factor)
 
   def reject_outliers(self, threshold):
     """ Set outlier threshold """
@@ -207,11 +209,17 @@ class Calibration(parameters.Parameters):
 
     return self.copy(inliers = inliers)
 
-  def adjust_outliers(self, iterations=4, quantile=0.99):
+  def adjust_outliers(self, iterations=4, quantile=None, upper_quartile=None):
+    assert quantile is not None or upper_quartile is not None
+
     for i in range(iterations):
       self.report(f"adjust_outliers: iteration-{i}")
-      self = self.reject_outliers_quantile(quantile).bundle_adjust()
-    
+
+      if quantile is not None:
+        self = self.reject_outliers_quantile(quantile).bundle_adjust()
+      else:
+        self = self.reject_outliers_upper(upper_quartile).bundle_adjust()
+
     return self
 
 

@@ -39,7 +39,6 @@ def main():
     parser.add_argument('--j', default=len(os.sched_getaffinity(0)), type=int, help='concurrent jobs')
     parser.add_argument('--show', default=False, action="store_true", help='show detections')
 
-    parser.add_argument('--min_corners', default=5, type=int, help='minimum visible points to use estimated pose')
     parser.add_argument('--cameras', default=None, help="comma separated list of camera directories")
     
     parser.add_argument('--iter', default=3, help="iterations of bundle adjustment/outlier rejection")
@@ -54,7 +53,8 @@ def main():
     camera_names, image_names, filenames = image.find.find_images(args.input, cameras)
     print("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
-    board = CharucoBoard.create(size=(16, 22), square_length=0.025, marker_length=0.01875, aruco_dict='4X4_1000')
+    board = CharucoBoard.create(size=(16, 22), square_length=0.025, marker_length=0.01875, 
+      aruco_dict='4X4_1000', min_rows=3, min_points=20)
 
     print("Detecting patterns..")
     loaded = image.detect.detect_images(board, filenames, j=args.j, prefix=args.input)   
@@ -69,18 +69,20 @@ def main():
     
     
     point_table = tables.make_point_table(loaded.points, board)
-    calib = Calibration.initialise(cameras, board, point_table,  min_corners=20)
+    calib = Calibration.initialise(cameras, board, point_table)
 
     calib.report("initialisation")
 
+    
+    calib = calib.bundle_adjust()
+    calib.report("optimised")
+
+    calib = calib.enable_board().enable_intrinsics()
+    calib = calib.adjust_outliers(iterations=args.iter, upper_quartile=2.0)
+    calib.report("optimised")
+
     vis = visualize(calib, loaded.images, camera_names, image_names)
     
-    # calib = calib.bundle_adjust()
-    # calib.report("optimised")
-
-    # calib = calib.enable_board().enable_intrinsics().bundle_adjust()
-    # calib = calib.adjust_outliers(iterations=args.iter, quantile=0.99)
-    # calib.report("optimised")
 
     # save = args.save or path.join(args.input, "calibration.json")
     # print("writing calibration to:", save)

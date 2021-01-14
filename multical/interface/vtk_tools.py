@@ -51,16 +51,13 @@ def camera_viewport(intrinsic, extrinsic, window_size):
 
     w, h = window_size
     
-    wcx = -2.0*(c[0] - w / 2.0) / w
-    wcy = 2.0*(c[1] - h / 2.0) / h
-
-    angle = 180 / np.pi * 2.0 * np.arctan2(h / 2.0, f[1])
+    angle_x = 180 / np.pi * 2.0 * np.arctan2(w / 2.0, f[0])
 
     return struct(
         position = (0, 0, 0),
         focal_point = (0, 0, 1),
         up = (0, -1, 0),
         transform = vtk_matrix(extrinsic),
-        center = (wcx, wcy),
-        angle = angle
+        center = (0, 0),
+        angle = angle_x
     )  

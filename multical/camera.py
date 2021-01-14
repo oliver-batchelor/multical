@@ -16,13 +16,13 @@ def attributes(obj, keys):
   return {k:getattr(obj, k) for k in keys}
 
 
-def calibration_points(board_points, detections, min_points=20):
-  non_empty = [d for d in detections if len(d.ids) > min_points]
+def calibration_points(board, detections):
+  non_empty = [d for d in detections if board.has_min_detections(d)]
   assert len(non_empty) > 0, "calibration_points: no points detected"
 
   detections = transpose_structs(non_empty)
   return detections._extend(
-    object_points = [board_points[ids] for ids in detections.ids]
+    object_points = [board.points[ids] for ids in detections.ids]
   )
 
 
@@ -95,8 +95,9 @@ class Camera(Parameters):
 
     @staticmethod
     def calibrate(board, detections, image_size, max_iter=30, eps=1e-4, 
-        model='standard', fix_aspect=False, flags=0, min_points=20):
-      points = calibration_points(board.points, detections, min_points=min_points)
+        model='standard', fix_aspect=False, flags=0):
+
+      points = calibration_points(board, detections)
       
       # termination criteria
       criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, eps)

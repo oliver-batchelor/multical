@@ -39,18 +39,17 @@ def valid_pose(t):
   return struct(poses=t, valid_poses=True)
 
 
-def extract_pose(points, board, camera, min_corners=20):
+def extract_pose(points, board, camera):
   detections = sparse_points(points)
-  poses = board.estimate_pose_points(
-      camera, detections, min_corners=min_corners)
+  poses = board.estimate_pose_points(camera, detections)
 
   return valid_pose(rtvec.to_matrix(poses))._extend(num_points=len(detections.ids))\
       if poses is not None else invalid_pose
 
 
-def make_pose_table(point_table, board, cameras, min_corners=20):
+def make_pose_table(point_table, board, cameras):
 
-  poses = [[extract_pose(points, board, camera, min_corners)
+  poses = [[extract_pose(points, board, camera)
             for points in points_camera._sequence()]
            for points_camera, camera in zip(point_table._sequence(), cameras)]
 

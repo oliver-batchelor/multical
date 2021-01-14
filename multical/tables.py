@@ -232,8 +232,6 @@ def mean_robust_n(pose_table, axis=0):
 
 def relative_between(table1, table2):
   common1, common2, valid = common_entries(table1, table2, mask_key='valid_poses')
-  print(valid.size)
-
   if valid.size == 0:
     return invalid_pose
   else:

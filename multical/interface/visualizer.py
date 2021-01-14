@@ -12,7 +12,7 @@ from .viewer_3d import Viewer3D
 from .viewer_image import ViewerImage, annotate_images
 from .moving_cameras import MovingCameras
 
-def visualize(calib, images, camera_names, image_names):
+def visualize(calib, images, camera_names, image_names, detected_poses=None):
   app = QtWidgets.QApplication([])
 
   vis = Visualizer()
@@ -20,7 +20,7 @@ def visualize(calib, images, camera_names, image_names):
   print("Undistorting images...")
   undistorted = image.undistort.undistort_images(images, calib.cameras)
 
-  vis.set_calibration(calib, images, undistorted, camera_names, image_names)
+  vis.set_calibration(calib, images, undistorted, camera_names, image_names, detected_poses=None)
   vis.showMaximized()
 
   app.exec_()
@@ -46,12 +46,15 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.setDisabled(True)
     
-  def set_calibration(self, calib, images, undistorted, camera_names, image_names):
-    self.image_names = image_names
+  def set_calibration(self, calib, images, undistorted, camera_names, image_names, detected_poses):
+
     self.calib = calib
     self.images = images
-
+    self.camera_names = camera_names
+    self.image_names = image_names
     self.undistorted = undistorted
+
+    self.detected_poses = detected_poses
     
     self.blockSignals(True)
     self.viewer_3d.clear()
@@ -101,21 +104,23 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.update()
 
-  @property
   def camera_size(self):
     return self.camera_size_slider.value() / 500.0
 
-  @property
   def state(self):
+    frame=self.frame_slider.sliderPosition()
+    camera=self.camera_combo.currentIndex()
+
     return struct(
-      frame=self.frame_slider.sliderPosition(), 
-      camera=self.camera_combo.currentIndex(),
-      scale=self.camera_size)
+      frame=frame, 
+      camera=camera,
+      scale=self.camera_size(),
+      camera_name = self.camera_names[camera],
+      image_name = self.image_names[frame],
+      image = self.images[camera][frame]
 
-  @property
-  def image(self):
-    return self.images[self.state.camera][self.state.frame]
-
+    )
+  
 
   def move_frame(self, d_frame=0):
     frame_index = (self.frame_slider.sliderPosition() + d_frame) % self.sizes.frame
@@ -126,30 +131,49 @@ class Visualizer(QtWidgets.QMainWindow):
     self.camera_combo.setCurrentIndex(camera_index)
 
   def update_frame(self):
+    state = self.state()
     if self.controller is not None:
-      self.controller.update(self.state)
+      self.controller.update(state)
 
-    annotated_image = self.annotated_images[self.state.camera][self.state.frame]
-    self.viewer_image.setImage(annotated_image)
+    self.statusBar().showMessage(f"{state.camera_name} {state.image_name}")   
+    self.update_image()
  
+  def update_image(self):
+    state = self.state()
+    annotated_image = self.annotated_images[state.camera][state.frame]
+    image_layers = struct(
+        refined = self.show_refined_check.isChecked(), 
+        detected = self.show_detected_check.isChecked(),
+        ids = self.show_ids_check.isChecked(),
+        pose = self.show_pose_check.isChecked()
+      )
+
+    self.viewer_image.update_image(annotated_image, image_layers)
+
+
   def update_controller(self):
     if self.controller is not None:
       self.controller.disable()
 
-    if self.moving_cameras.isChecked():
+    if self.moving_cameras_radio.isChecked():
       self.controller = self.controllers.moving_cameras
-    elif self.moving_board.isChecked():
+    elif self.moving_board_radio.isChecked():
       self.controller = self.controllers.moving_board
     else:
       self.controller = self.controllers.camera_view
 
-    self.controller.enable(self.state)
+    self.controller.enable(self.state())
 
   def connect_ui(self):
     self.camera_size_slider.valueChanged.connect(self.update_frame)
 
     self.frame_slider.valueChanged.connect(self.update_frame)
     self.camera_combo.currentIndexChanged.connect(self.update_frame)
+
+    for layer_check in [self.show_refined_check, self.show_detected_check, self.show_ids_check, self.show_pose_check]:
+      layer_check.toggled.connect(self.update_image)
+
+    self.marker_size_slider.valueChanged.connect(self.update_image)
 
 
     self.point_size_slider.valueChanged.connect(self.viewer_3d.set_point_size)

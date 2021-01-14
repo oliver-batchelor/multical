@@ -43,9 +43,7 @@ def error_transform(t, source, dest):
   return np.linalg.norm(t @ source - dest, axis=(1, 2)) 
 
 
-def transform_points(points, t):
-  print(points.shape)
-  
+ 
 
 
 def center_translation(m):
@@ -86,7 +84,6 @@ def align_transforms_ls(m1, m2):
 def test_outlier(errs, threshold=2.0):
   median = np.quantile(errs, 0.5)
 
-  # print(median, errs)
   return errs < median * threshold
 
 

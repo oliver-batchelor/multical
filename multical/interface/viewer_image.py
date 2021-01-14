@@ -8,7 +8,7 @@ from cached_property import cached_property
 import cv2
 import numpy as np
 
-from structs.struct import choose, transpose_lists
+from structs.struct import choose, struct, transpose_lists
 
 def qt_image(image):
   assert image.ndim in [2, 3], f"qt_image: unsupported image dimensions {image.ndim}"
@@ -40,29 +40,58 @@ class Lazy(object):
     return self.compute()
 
 
+def group(items):
+  itemGroup = QtWidgets.QGraphicsItemGroup()
+  for item in items:
+    itemGroup.addToGroup(item)
+  return itemGroup
+
+def line(p1, p2, pen):
+  line = QtWidgets.QGraphicsLineItem(*p1, *p2)
+  line.setPen(pen)
+  return line
+
+
+def cross(point, radius, pen):
+  x, y = point
+  return group([
+    line([x - radius, y], [x + radius, y], pen), 
+    line([x, y - radius], [x, y + radius], pen)
+  ])
+
+
+
 def annotate_image(board, image, camera, image_table, radius=10.0):
   scene = QtWidgets.QGraphicsScene()
 
   pixmap = QPixmap(qt_image(image))
   scene.addPixmap(pixmap)
 
-  projected = camera.project(board.adjusted_points, image_table.poses).astype(np.float32)
+  detected = []
+  refined = []
+  
+  projected_points = camera.project(board.adjusted_points, image_table.poses).astype(np.float32)
 
   for proj, corner, valid, inlier in\
-    zip(projected, image_table.points, image_table.valid_points, image_table.inliers):
+    zip(projected_points, image_table.points, image_table.valid_points, image_table.inliers):
 
       color = (255, 255, 0) if not valid\
         else (0, 255, 0) if inlier else (255, 0, 0) 
 
-      x, y = proj
-      scene.addEllipse(x - radius, y - radius, radius*2, radius*2, costmetic_pen(color))
       if valid:
-        scene.addLine(QLineF(QPointF(x, y), QPointF(*corner)), costmetic_pen((255, 255, 0)))
+        refined.append(line(proj, corner, costmetic_pen( (255, 0, 0) ) ))
+        detected.append( cross(corner, radius, costmetic_pen( (0, 0, 255) )))
+
+      refined.append(cross(proj, radius, costmetic_pen(color)))        
+
+  layers = struct(detected = group(detected), refined = group(refined))
+  for layer in layers.values():
+    scene.addItem(layer)
 
   h, w, *_ = image.shape
-  scene.setSceneRect(-w / 2, -h / 2, 2 * w, 2 * h)
+  scene.setSceneRect(-w / 2, -h / 2, 2 * w, 2 * h)    
 
-  return scene
+  return struct(scene = scene, layers = layers)
 
 
 def annotate_images(calib, images, radius=10.0):
@@ -91,8 +120,12 @@ class ViewerImage(QtWidgets.QGraphicsView):
     self.zoom_factor = 0.95
     self.zoom_range = (-10, 40)
 
-  def setImage(self, scene):  
-    self.setScene(scene.value)
+  def update_image(self, lazy_scene, layers):  
+    scene = lazy_scene.value
+    for name, layer in scene.layers.items():
+      layer.setVisible(layers[name])
+
+    self.setScene(scene.scene)
     self.update()
 
 

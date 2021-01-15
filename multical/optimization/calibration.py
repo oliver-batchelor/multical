@@ -247,13 +247,11 @@ class Calibration(parameters.Parameters):
     inliers = error_stats(self.reprojection_inliers)
 
     if self.inlier_mask is not None:
-      print(f"{stage}: reprojection RMS={inliers.rms:.3f} ({overall.rms:.3f}), n={inliers.n} ({overall.n}), quantiles={inliers.quantiles}({overall.quantiles})")
+      print(f"{stage}: reprojection RMS={inliers.rms:.3f} ({overall.rms:.3f}), n={inliers.n} ({overall.n}), quantiles={overall.quantiles}")
     else:
       print(f"{stage}: reprojection RMS={overall.rms:.3f}, n={overall.n}, quantiles={overall.quantiles}")
 
 
-  def error_breakdown(self, inliers = False):
-    error, _ = tables.reprojection_error(self.projected, self.point_table)
 
 
 
@@ -263,7 +261,6 @@ def error_stats(errors):
   return struct(mse = mse, rms = np.sqrt(mse), quantiles=quantiles, n = errors.size)
 
 
-def error_breakdown(errors, valid_points):
 
 
 

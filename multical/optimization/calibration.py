@@ -185,15 +185,11 @@ class Calibration(parameters.Parameters):
     d.update(k)
     return Calibration(**d)
 
-  def reject_outliers_quantile(self, quantile=0.95):
+  def reject_outliers_quantile(self, quantile=0.95, factor=1.0):
     """ Set inliers based on quantile  """
     threshold = np.quantile(self.reprojection_error, quantile)
-    return self.reject_outliers(threshold=threshold)
+    return self.reject_outliers(threshold=threshold * factor)
 
-  def reject_outliers_upper(self, upper_factor=2.5):
-    """ Set inliers based on factor of the upper quartile """
-    upper_quartile = np.quantile(self.reprojection_error, 0.75)
-    return self.reject_outliers(threshold=upper_quartile * upper_factor)
 
   def reject_outliers(self, threshold):
     """ Set outlier threshold """
@@ -209,17 +205,11 @@ class Calibration(parameters.Parameters):
 
     return self.copy(inliers = inliers)
 
-  def adjust_outliers(self, iterations=4, quantile=None, upper_quartile=None):
-    assert quantile is not None or upper_quartile is not None
-
+  def adjust_outliers(self, iterations=4, quantile=0.75, factor=2):
     for i in range(iterations):
       self.report(f"adjust_outliers: iteration-{i}")
-
-      if quantile is not None:
-        self = self.reject_outliers_quantile(quantile).bundle_adjust()
-      else:
-        self = self.reject_outliers_upper(upper_quartile).bundle_adjust()
-
+      self = self.reject_outliers_quantile(quantile, factor).bundle_adjust()
+ 
     return self
 
 

@@ -74,12 +74,14 @@ def main():
     calib.report("initialisation")
 
     
-    calib = calib.bundle_adjust()
+    calib = calib.bundle_adjust(loss='huber')
+    
+    calib.reject_outliers_quantile(quantile=0.75, factor=2)
     calib.report("optimised")
 
-    calib = calib.enable_board().enable_intrinsics()
-    calib = calib.adjust_outliers(iterations=args.iter, upper_quartile=2.0)
-    calib.report("optimised")
+    # calib = calib.enable_board().enable_intrinsics()
+    # calib = calib.adjust_outliers(iterations=args.iter, upper_quartile=2.0)
+    # calib.report("optimised")
 
     vis = visualize(calib, loaded.images, camera_names, image_names)
     

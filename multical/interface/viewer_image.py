@@ -126,7 +126,7 @@ class ViewerImage(QtWidgets.QGraphicsView):
 
     self.zoom = 0
     self.zoom_factor = 0.95
-    self.zoom_range = (-10, 40)
+    self.zoom_range = (-30, 40)
 
   def update_image(self, lazy_scene, layers):  
     scene = lazy_scene.value

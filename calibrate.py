@@ -72,11 +72,9 @@ def main():
     calib = Calibration.initialise(cameras, board, point_table)
 
     calib.report("initialisation")
+    calib = calib.bundle_adjust()   
 
-    
-    calib = calib.bundle_adjust(loss='huber')
-    
-    calib.reject_outliers_quantile(quantile=0.75, factor=2)
+    calib = calib.reject_outliers_quantile(quantile=0.75, factor=2)   
     calib.report("optimised")
 
     # calib = calib.enable_board().enable_intrinsics()

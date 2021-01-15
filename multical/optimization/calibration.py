@@ -16,7 +16,7 @@ from cached_property import cached_property
 
 
 class Calibration(parameters.Parameters):
-  def __init__(self, cameras, board, point_table, pose_estimates, pose_detections, inliers=None, 
+  def __init__(self, cameras, board, point_table, pose_estimates, pose_detections, inlier_mask=None, 
       optimize_intrinsics=False, optimize_board=False):
 
     self.cameras = cameras
@@ -29,12 +29,13 @@ class Calibration(parameters.Parameters):
     self.optimize_intrinsics = optimize_intrinsics
     self.optimize_board = optimize_board
     
-    self.inliers = choose(inliers, self.valid_points)
-
+    self.inlier_mask = inlier_mask
     
     assert len(self.cameras) == self.size.cameras
     assert pose_estimates.camera._shape[0] == self.size.cameras
     assert pose_estimates.rig._shape[0] == self.size.rig_poses
+
+
 
   @staticmethod
   def initialise(cameras, board, point_table):
@@ -57,6 +58,10 @@ class Calibration(parameters.Parameters):
     return tables.expand_poses(self.pose_estimates)
 
   @cached_property
+  def inliers(self):
+    return choose(self.inlier_mask, self.valid_points)
+
+  @cached_property
   def projected(self):
     """ Projected points from multiplying out poses and then projecting to each image. 
     Returns a table of points corresponding to point_table"""
@@ -77,10 +82,8 @@ class Calibration(parameters.Parameters):
 
   @cached_property
   def reprojection_inliers(self):
-    inlier_table = self.point_table._extend(valid_points=self.inliers)
+    inlier_table = self.point_table._extend(valid_points=choose(self.inliers, self.valid_points))
     return tables.valid_reprojection_error(self.projected, inlier_table)
-
-
 
 
   @cached_property
@@ -179,7 +182,7 @@ class Calibration(parameters.Parameters):
   def copy(self, **k):
     """Copy calibration environment and change some parameters (no mutation)"""
     d = dict(cameras=self.cameras, board=self.board, point_table=self.point_table, 
-      pose_estimates=self.pose_estimates, pose_detections=self.pose_detections, inliers=self.inliers, 
+      pose_estimates=self.pose_estimates, pose_detections=self.pose_detections, inlier_mask=self.inlier_mask, 
       optimize_intrinsics=self.optimize_intrinsics, optimize_board=self.optimize_board)
 
     d.update(k)
@@ -203,7 +206,7 @@ class Calibration(parameters.Parameters):
     print(f"""Rejecting {num_outliers} outliers with error > {threshold:.2f} pixels,
           keeping {inliers.sum()} / {valid.sum()} inliers, ({inlier_percent:.2f}%)""")
 
-    return self.copy(inliers = inliers)
+    return self.copy(inlier_mask = inliers)
 
   def adjust_outliers(self, iterations=4, quantile=0.75, factor=2):
     for i in range(iterations):
@@ -240,7 +243,18 @@ class Calibration(parameters.Parameters):
 
 
   def report(self, stage):
-    report_errors(stage, self.reprojection_inliers)
+    overall = error_stats(self.reprojection_error)
+    inliers = error_stats(self.reprojection_inliers)
+
+    if self.inlier_mask is not None:
+      print(f"{stage}: reprojection RMS={inliers.rms:.3f} ({overall.rms:.3f}), n={inliers.n} ({overall.n}), quantiles={inliers.quantiles}({overall.quantiles})")
+    else:
+      print(f"{stage}: reprojection RMS={overall.rms:.3f}, n={overall.n}, quantiles={overall.quantiles}")
+
+
+  def error_breakdown(self, inliers = False):
+    error, _ = tables.reprojection_error(self.projected, self.point_table)
+
 
 
 def error_stats(errors):  
@@ -248,11 +262,8 @@ def error_stats(errors):
   quantiles = np.array([np.quantile(errors, n) for n in [0, 0.25, 0.5, 0.75, 1]])
   return struct(mse = mse, rms = np.sqrt(mse), quantiles=quantiles, n = errors.size)
 
-def report_errors(stage, errors):
-  stats = error_stats(errors)
-  print(f"{stage}: reprojection RMS={stats.rms}, n={stats.n}, quantiles={stats.quantiles}")
 
-
+def error_breakdown(errors, valid_points):
 
 
 

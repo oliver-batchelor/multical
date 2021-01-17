@@ -76,6 +76,8 @@ class Calibration(parameters.Parameters):
 
     return Table.create(points=np.stack(image_points), valid_points=valid_poses)
 
+  
+
   @cached_property
   def reprojection_error(self):
     return tables.valid_reprojection_error(self.projected, self.point_table)

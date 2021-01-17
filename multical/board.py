@@ -87,8 +87,13 @@ class CharucoBoard(Parameters):
   def marker_length(self):
     return self.board.getMarkerLength()
 
+  @property 
+  def ids(self):
+    return np.arange(self.num_points)
+
   def draw(self, image_size):
       return self.board.draw(tuple(image_size))
+
 
 
   def detect(self, image):    

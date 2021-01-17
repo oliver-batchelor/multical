@@ -54,27 +54,34 @@ def line(p1, p2, pen):
 
 def cross(point, radius, pen):
   x, y = point
-  return group([
-    line([x - radius, y], [x + radius, y], pen), 
-    line([x, y - radius], [x, y + radius], pen)
+  item = group([
+    line([-radius, 0], [radius, 0], pen), 
+    line([0, -radius], [0, radius], pen)
   ])
+  item.setPos(x, y)
+  # item.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations )
+
+  return item
 
 def id_marker(id, point, radius, color, font):
   item = QtWidgets.QGraphicsTextItem(str(id))
-
-  x, y = point
-  item.setPos(QPointF(x + radius / 2, y + radius / 2))
   item.setDefaultTextColor(QColor(*color))
   item.setFont(font)
+  # item.setPos(0, radius / 4)
+  
+  container = group([item])
+  container.setPos(QPointF(*point))
+  # item.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
+
+  return container
 
 
-
-annotation_colors = struct(
+colors = struct(
   error_line = (255, 255, 0),
-  detected = (0, 0, 255),
+  detected = (0, 128, 255),
   outlier = (255, 0, 0),
-  inlier = (255, 0, 0),
-  invalid = (128, 128, 128),
+  inlier = (0, 255, 0),
+  invalid = (128, 128, 0),
   pose = (0, 192, 255))
 
 def annotate_image(board, image, camera, image_table, radius=10.0):
@@ -88,22 +95,23 @@ def annotate_image(board, image, camera, image_table, radius=10.0):
   pose = []
   ids = []
   
-  pens = annotation_colors._map(cosmetic_pen)
+  pens = colors._map(cosmetic_pen)
   marker_font = QFont()
-  marker_font.setPixelSize(radius / 2)
+  marker_font.setPixelSize(radius)
 
   projected_points = camera.project(board.adjusted_points, image_table.poses).astype(np.float32)
   projected_pose = camera.project(board.points, image_table.pose_detections).astype(np.float32)
 
-  for proj, corner, valid, pose_point, inlier in\
-    zip(projected_points, image_table.points, image_table.valid_points, projected_pose,  image_table.inliers):
+  iter =  zip(projected_points, image_table.points, image_table.valid_points, 
+    projected_pose,  image_table.inliers, board.ids)
 
+  for proj, corner, valid, pose_point, inlier, id in iter:
       if valid:
         refined.append(line(proj, corner, pens.error_line))
         detected.append( cross(corner, radius, pens.detected))
-        # ids.append(id_marker(corner, radius, annotation_colors.detected))
+        ids.append(id_marker(id, corner, radius, colors.detected, marker_font))
 
-      proj_pen = pens.invalid if not valid else pens.inlier if inlier else pens.outlier
+      proj_pen = pens.invalid if not valid else (pens.inlier if inlier else pens.outlier)
       refined.append(cross(proj, radius, proj_pen))  
       pose.append(cross(pose_point, radius, pens.pose))        
 
@@ -115,7 +123,7 @@ def annotate_image(board, image, camera, image_table, radius=10.0):
     scene.addItem(layer)
 
   h, w, *_ = image.shape
-  scene.setSceneRect(-w / 2, -h / 2, 2 * w, 2 * h)    
+  scene.setSceneRect(-w, -h, 3 * w, 3 * h)    
 
   return struct(scene=scene, layers=layers, pens=pens)
 

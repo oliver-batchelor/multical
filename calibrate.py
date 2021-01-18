@@ -81,9 +81,9 @@ def main():
     calib = calib.adjust_outliers(iterations=args.iter, quantile=0.75, factor=3, loss='soft_l1')
     calib.report("optimised")
 
-    calib = calib.enable_board().enable_intrinsics()
-    calib = calib.adjust_outliers(iterations=args.iter, quantile=0.75, factor=3, loss='soft_l1')
-    calib.report("optimised(intrinsics, board)")
+    # calib = calib.enable_board().enable_intrinsics()
+    # calib = calib.adjust_outliers(iterations=args.iter, quantile=0.75, factor=3, loss='soft_l1')
+    # calib.report("optimised(intrinsics, board)")
 
     vis = visualize(calib, loaded.images, camera_names, image_names)
     

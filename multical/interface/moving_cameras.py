@@ -1,17 +1,18 @@
 
 import numpy as np
 from multical.interface.marker import board_object, View
-
+from multical import tables
 
 def view_markers(viewer, pose_estimates, cameras, scale=1.0):
-  def add_view(camera_pose, frame_pose, camera):
-    if camera_pose.valid_poses and frame_pose.valid_poses:
-        pose = camera_pose.poses @ frame_pose.poses
-        return View(viewer, camera, np.linalg.inv(pose), scale)
+  view_poses = tables.inverse(tables.expand_poses(pose_estimates))
+
+  def add_view(view_pose, camera):
+    if view_pose.valid_poses:
+      return View(viewer, camera, view_pose.poses, scale)
          
-  return [[add_view(camera_pose, frame_pose, camera)
-    for camera_pose, camera in zip(pose_estimates.camera._sequence(), cameras)]
-        for frame_pose in pose_estimates.rig._sequence()]
+  return [[add_view(view_pose, camera)
+    for view_pose, camera in zip(camera_poses._sequence(), cameras)]
+        for camera_poses in view_poses._sequence(1)]
 
 
 class MovingCameras(object):

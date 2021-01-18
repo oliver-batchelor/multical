@@ -2,6 +2,7 @@ import math
 from multical.interface import view_table
 from multical.interface.moving_board import MovingBoard
 from multical.interface.camera_view import CameraView
+from multical.interface import camera_params
 import PyQt5.QtWidgets as QtWidgets
 
 from PyQt5 import uic, QtCore
@@ -13,6 +14,7 @@ from .vtk_tools import *
 from .viewer_3d import Viewer3D
 from .viewer_image import ViewerImage, annotate_images
 from .moving_cameras import MovingCameras
+
 
 
 def visualize(calib, images, camera_names, image_names):
@@ -80,6 +82,9 @@ class Visualizer(QtWidgets.QMainWindow):
         moving_board=MovingBoard(self.viewer_3d, calib),
         camera_view=CameraView(self.viewer_3d, calib, self.undistorted)
     )
+
+    params_layout = camera_params.params_viewer(self, calib, camera_names)
+    self.param_scroll.setLayout(params_layout)
 
     self.viewer_3d.fix_camera()
     self.update_controller()

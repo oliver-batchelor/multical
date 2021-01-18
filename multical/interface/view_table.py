@@ -87,7 +87,7 @@ class ViewModel(QAbstractTableModel):
       outlier_t =  min(outlier_rate * 4, 1.0)
       color = interpolate_hsl(outlier_t, self.colors.inliers, self.colors.outliers)
 
-      color.set_luminance(max(1 - detection_rate, 0.5))
+      color.set_luminance(max(1 - detection_rate, 0.6))
       return color
 
 

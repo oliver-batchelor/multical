@@ -173,6 +173,8 @@ def valid_reprojection_error(points1, points2):
 def reprojection_error(points1, points2):
   mask = points1.valid_points & points2.valid_points
   error = np.linalg.norm(points1.points - points2.points, axis=-1)
+  error[~mask] = 0
+  
   return error, mask
 
 

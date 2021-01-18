@@ -187,6 +187,7 @@ class Visualizer(QtWidgets.QMainWindow):
     inlier_only = self.inliers_check.isChecked()
     metric_selected = self.metric_combo.currentIndex()
 
+    self.view_model.set_metric(metric_selected, inlier_only)
 
 
   def connect_ui(self):

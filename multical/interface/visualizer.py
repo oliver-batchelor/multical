@@ -46,7 +46,7 @@ class Visualizer(QtWidgets.QMainWindow):
     self.scene = None
     self.sizes = struct(camera=0, frame=0)
     self.controller = None
-    self.splitter.setStretchFactor(0, 20)
+    self.splitter.setStretchFactor(0, 10)
     self.splitter.setStretchFactor(1, 1)
 
     self.setDisabled(True)
@@ -65,6 +65,8 @@ class Visualizer(QtWidgets.QMainWindow):
     self.annotated_images = annotate_images(calib, images)
 
     self.view_model = view_table.ViewModel(calib, camera_names, image_names)
+    self.metric_combo.clear()
+    self.metric_combo.addItems(self.view_model.metric_labels)
 
     self.view_table.setSelectionMode(
         QtWidgets.QAbstractItemView.SingleSelection)
@@ -90,13 +92,13 @@ class Visualizer(QtWidgets.QMainWindow):
 
   def keyPressEvent(self, event):
 
-    if event.key() == Qt.Key.Key_Left:
+    if event.key() == Qt.Key.Key_Up:
       self.move_frame(-1)
-    elif event.key() == Qt.Key.Key_Right:
-      self.move_frame(1)
-    elif event.key() == Qt.Key.Key_Up:
-      self.move_camera(-1)
     elif event.key() == Qt.Key.Key_Down:
+      self.move_frame(1)
+    elif event.key() == Qt.Key.Key_Left:
+      self.move_camera(-1)
+    elif event.key() == Qt.Key.Key_Right:
       self.move_camera(1)
     elif event.key() == Qt.Key.Key_Plus:
       self.point_size_slider.setValue(self.point_size_slider.value() + 1)
@@ -176,9 +178,18 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.controller.enable(self.state())
 
+  def update_table(self):
+    inlier_only = self.inliers_check.isChecked()
+    metric_selected = self.metric_combo.currentIndex()
+
+
+
   def connect_ui(self):
     self.camera_size_slider.valueChanged.connect(self.update_frame)
     self.view_table.selectionModel().selectionChanged.connect(self.update_frame)
+
+    self.inliers_check.toggled.connect(self.update_table)
+    self.metric_combo.currentIndexChanged.connect(self.update_table)
 
     for layer_check in [self.show_refined_check, self.show_detected_check, self.show_ids_check, self.show_pose_check]:
       layer_check.toggled.connect(self.update_image)

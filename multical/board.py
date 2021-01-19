@@ -1,10 +1,19 @@
+from pprint import pformat
+from typing import Tuple
 from cached_property import cached_property
 import cv2
 import numpy as np
 
-from structs.struct import struct
+from omegaconf.errors import ValidationError
+from omegaconf.omegaconf import MISSING
+
+
+from structs.struct import pluck, struct, split_dict
 from .transform import rtvec
 from .optimization.parameters import Parameters
+
+from omegaconf import OmegaConf
+from dataclasses import dataclass
 
 def default_aruco_params():
   params = cv2.aruco.DetectorParameters_create()
@@ -95,6 +104,13 @@ class CharucoBoard(Parameters):
       return self.board.draw(tuple(image_size))
 
 
+  def __str__(self):
+      d = self.export()
+      return "CharucoBoard " + pformat(d)
+
+  def __repr__(self):
+      return self.__str__()      
+
 
   def detect(self, image):    
     corners, ids, _ = cv2.aruco.detectMarkers(image, self.board.dictionary, parameters=self.aruco_params)     
@@ -149,3 +165,39 @@ class CharucoBoard(Parameters):
         min_rows=self.min_rows, min_points=self.min_points)
       d.update(k)
       return CharucoBoard(**d)
+
+
+@dataclass 
+class CharucoConfig:
+  _type_: str = "charuco"
+  size : Tuple[int, int] = MISSING
+
+  square_length : float = MISSING
+  marker_length : float = MISSING
+  
+  aruco_dict : str = MISSING
+  aruco_offset : int = 0
+  min_rows : int = 3
+  min_points : int = 10
+
+
+def load_config(yaml_file):
+  config = OmegaConf.load(yaml_file)
+  
+  boards = {k:OmegaConf.merge(config.common, board) for k, board in config.boards.items()} if 'common' in config\
+    else config.boards
+
+  schema = OmegaConf.structured(CharucoConfig)
+  board_names, configs = split_dict(boards)
+
+  def instantiate_board(config):
+    if config._type_ == "charuco":
+
+      merged = OmegaConf.merge(schema, config)
+      merged = struct(**merged)._without('_type_')
+      return CharucoBoard.create(**merged)
+    else:
+      assert False, f"unknown board type: {config._type_}"
+
+
+  return board_names, [instantiate_board(board) for board in configs]

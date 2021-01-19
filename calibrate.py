@@ -9,11 +9,10 @@ import cv2
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-from multical import tables, image, io
+from multical import tables, image, io, board
 from multical.optimization.calibration import Calibration
 
 from multical.camera import Camera
-from multical.board import CharucoBoard
 
 from structs.struct import struct, transpose_lists
 from structs.numpy import shape, Table
@@ -45,6 +44,7 @@ def main():
 
     parser.add_argument('--fix_aspect', default=False, action="store_true", help='set same focal length ')
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
+    parser.add_argument('--boards', help='configuration file (YAML) for calibration boards')
  
     args = parser.parse_args()
     print(args) 
@@ -53,23 +53,29 @@ def main():
     camera_names, image_names, filenames = image.find.find_images(args.input, cameras)
     print("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
-    board = CharucoBoard.create(size=(16, 22), square_length=0.025, marker_length=0.01875, 
-      aruco_dict='4X4_1000', min_rows=3, min_points=20)
+    boards = board.load_config(args.boards)
+    print(boards)
+
+    assert False
+
 
     print("Detecting patterns..")
-    loaded = image.detect.detect_images(board, filenames, j=args.j, prefix=args.input)   
+    loaded = image.detect.detect_images(boards, filenames, j=args.j, prefix=args.input)   
 
     print("Calibrating cameras..")
-    cameras, errs = calibrate_cameras(board, loaded.points, loaded.image_size, model=args.model, fix_aspect=args.fix_aspect)
+    cameras, errs = calibrate_cameras(boards, loaded.points, loaded.image_size, model=args.model, fix_aspect=args.fix_aspect)
 
     for name, camera, err in zip(camera_names, cameras, errs):
       print(f"Calibrated {name}, with RMS={err:.2f}")
       print(camera)
       print("---------------")
     
+
     
-    point_table = tables.make_point_table(loaded.points, board)
-    calib = Calibration.initialise(cameras, board, point_table)
+
+
+    point_table = tables.make_point_table(loaded.points, boards)
+    calib = Calibration.initialise(cameras, boards, point_table)
 
     calib.report("initialisation")
     # calib = calib.reject_outliers_quantile(quantile=0.75, factor=4).bundle_adjust()   

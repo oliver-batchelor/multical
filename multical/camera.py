@@ -1,8 +1,10 @@
+from functools import reduce
+import operator
 from cached_property import cached_property
 import numpy as np
 import cv2
 
-from structs.struct import transpose_structs
+from structs.struct import transpose_structs, transpose_lists
 from structs.numpy import shape
 
 from pprint import pformat
@@ -16,7 +18,16 @@ def attributes(obj, keys):
   return {k:getattr(obj, k) for k in keys}
 
 
-def calibration_points(board, detections):
+def calibration_points(boards, detections):
+  board_detections = transpose_lists(detections)
+  points = [board_points(board, detections) for board, detections 
+    in zip(boards, board_detections)]
+
+  print(shape(points[1]))
+
+  return reduce(operator.add, points)
+
+def board_points(board, detections):
   non_empty = [d for d in detections if board.has_min_detections(d)]
   assert len(non_empty) > 0, "calibration_points: no points detected"
 
@@ -94,10 +105,10 @@ class Camera(Parameters):
 
 
     @staticmethod
-    def calibrate(board, detections, image_size, max_iter=30, eps=1e-4, 
+    def calibrate(boards, detections, image_size, max_iter=20, eps=1e-3, 
         model='standard', fix_aspect=False, flags=0):
 
-      points = calibration_points(board, detections)
+      points = calibration_points(boards, detections)
       
       # termination criteria
       criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, eps)

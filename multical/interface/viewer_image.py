@@ -8,6 +8,8 @@ from cached_property import cached_property
 import cv2
 import numpy as np
 
+import palettable.cartocolors.qualitative as palettes
+
 from structs.struct import choose, struct, transpose_lists
 
 def qt_image(image):
@@ -78,54 +80,66 @@ def id_marker(id, point, radius, color, font):
 
 colors = struct(
   error_line = (255, 255, 0),
-  detected = (0, 128, 255),
   outlier = (255, 0, 0),
   inlier = (0, 255, 0),
   invalid = (128, 128, 0),
   pose = (0, 192, 255))
 
-def annotate_image(board, image, camera, image_table, radius=10.0):
-  scene = QtWidgets.QGraphicsScene()
+def detection_layers(boards, image_table, radius=10.0):
+  ids, detected = [], []
 
-  pixmap = QPixmap(qt_image(image))
-  scene.addPixmap(pixmap)
-
-  detected = []
-  refined = []
-  pose = []
-  ids = []
-  
-  pens = colors._map(cosmetic_pen)
   marker_font = QFont()
   marker_font.setPixelSize(radius)
+
+  n_colors = min(len(boards), 4)
+  palette = getattr(palettes, f"Vivid_{n_colors}").colors
+
+  for board, color, board_points in zip(boards, palette, image_table._sequence(0)):
+    pen = cosmetic_pen(color)
+    for corner, valid, id in\
+      zip(board_points.points, board_points.valid_points, board.ids):
+        if valid:
+          detected.append( cross(corner, radius, pen))
+          ids.append(id_marker(id, corner, radius, colors.detected, marker_font))
+
+  return struct(detected = group(detected), ids=group(ids))
+
+
+def calibrated_layers(camera, boards, image_table, radius=10):
+  refined, pose = [], []
+  pens = colors._map(cosmetic_pen)
 
   projected_points = camera.project(board.adjusted_points, image_table.poses).astype(np.float32)
   projected_pose = camera.project(board.points, image_table.pose_detections).astype(np.float32)
 
-  iter =  zip(projected_points, image_table.points, image_table.valid_points, 
-    projected_pose,  image_table.inliers, board.ids)
+  iter =  zip(projected_points, image_table.valid_points, projected_pose, image_table.inliers)
 
   for proj, corner, valid, pose_point, inlier, id in iter:
       if valid:
         refined.append(line(proj, corner, pens.error_line))
-        detected.append( cross(corner, radius, pens.detected))
-        ids.append(id_marker(id, corner, radius, colors.detected, marker_font))
 
       proj_pen = pens.invalid if not valid else (pens.inlier if inlier else pens.outlier)
       refined.append(cross(proj, radius, proj_pen))  
       pose.append(cross(pose_point, radius, pens.pose))        
 
+  return struct(refined = group(refined), pose=group(pose))
 
-  layers = struct(detected = group(detected), refined = group(refined), 
-    pose=group(pose), ids=group(ids))
-  
+
+
+def annotate_image(boards, image, camera, image_table, radius=10.0):
+  scene = QtWidgets.QGraphicsScene()
+
+  pixmap = QPixmap(qt_image(image))
+  scene.addPixmap(pixmap)
+
+  layers = detection_layers(boards, image_table, radius)
   for layer in layers.values():
     scene.addItem(layer)
 
   h, w, *_ = image.shape
   scene.setSceneRect(-w, -h, 3 * w, 3 * h)    
 
-  return struct(scene=scene, layers=layers, pens=pens)
+  return struct(scene=scene, layers=layers)
 
 
 def annotate_images(calib, images, radius=10.0):

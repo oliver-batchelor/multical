@@ -56,23 +56,29 @@ def make_pose_table(point_table, board, cameras):
   return make_2d_table(poses)
 
 
-def make_point_table(detections, board):
-  def extract_points(frame_dets):
-    
+def make_point_table(detections, boards):
+  num_points = np.max([board.num_points for board in boards])
+
+  def extract_points(frame_dets):    
     points, mask = fill_sparse(
-        board.num_points, frame_dets.corners, frame_dets.ids)
+        num_points, frame_dets.corners, frame_dets.ids)
     return struct(points=points, valid_points=mask)
 
-  points = [[extract_points(d) for d in cam_dets]
-            for cam_dets in detections]
+  points = [[[extract_points(d) for d in frame_dets]
+            for frame_dets in cam_dets]
+              for cam_dets in detections]
 
-  return make_2d_table(points)
 
+  table = make_nd_table(points, n = 3)
+  return table._map(np.swapaxes, 1, 2)
+  
 
-def make_2d_table(items):
-  rows = [Table.stack(row) for row in items]
-  return Table.stack(rows)
-
+def make_nd_table(items, n):
+  if n > 1:
+    rows = [make_nd_table(row, n - 1) for row in items]
+    return Table.stack(rows)
+  else:
+    return Table.stack(items)
 
 dimensions = struct(
     camera=0,
@@ -174,7 +180,7 @@ def reprojection_error(points1, points2):
   mask = points1.valid_points & points2.valid_points
   error = np.linalg.norm(points1.points - points2.points, axis=-1)
   error[~mask] = 0
-  
+
   return error, mask
 
 

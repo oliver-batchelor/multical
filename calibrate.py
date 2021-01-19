@@ -9,7 +9,7 @@ import cv2
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-from multical import tables, image, io, board
+from multical import tables, image, io, board, display
 from multical.optimization.calibration import Calibration
 
 from multical.camera import Camera
@@ -21,9 +21,9 @@ from pprint import pprint
 from multical.interface import visualize
 
 
-def calibrate_cameras(board, points, image_sizes, **kwargs):
+def calibrate_cameras(boards, points, image_sizes, **kwargs):
   pool = ThreadPool()
-  f = partial(Camera.calibrate, board, **kwargs) 
+  f = partial(Camera.calibrate, boards, **kwargs) 
   return transpose_lists(pool.starmap(f, zip(points, image_sizes)))
 
 
@@ -53,26 +53,29 @@ def main():
     camera_names, image_names, filenames = image.find.find_images(args.input, cameras)
     print("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
-    boards = board.load_config(args.boards)
-    print(boards)
+    board_names, boards = board.load_config(args.boards)
 
-    assert False
+    print("Using boards:")
+    for name, b in zip(board_names, boards):
+      print(name, b)
 
+    # display.display_boards(boards)
 
     print("Detecting patterns..")
     loaded = image.detect.detect_images(boards, filenames, j=args.j, prefix=args.input)   
 
-    print("Calibrating cameras..")
+    point_table = tables.make_point_table(loaded.points, boards)
+
+    print("Calibrating single cameras..")
     cameras, errs = calibrate_cameras(boards, loaded.points, loaded.image_size, model=args.model, fix_aspect=args.fix_aspect)
+
 
     for name, camera, err in zip(camera_names, cameras, errs):
       print(f"Calibrated {name}, with RMS={err:.2f}")
       print(camera)
       print("---------------")
-    
 
-    
-
+    assert False    
 
     point_table = tables.make_point_table(loaded.points, boards)
     calib = Calibration.initialise(cameras, boards, point_table)

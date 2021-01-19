@@ -33,8 +33,7 @@ def create_dict(name, offset):
   dict_id = getattr(cv2.aruco, f'DICT_{name}')
   aruco_dict=cv2.aruco.getPredefinedDictionary(dict_id)
 
-  if offset > 0:
-    aruco_dict.bytesList=aruco_dict.bytesList[offset:]
+  aruco_dict.bytesList=aruco_dict.bytesList[offset:]
   return aruco_dict
 
 
@@ -100,8 +99,9 @@ class CharucoBoard(Parameters):
   def ids(self):
     return np.arange(self.num_points)
 
-  def draw(self, image_size):
-      return self.board.draw(tuple(image_size))
+  def draw(self, square_length=50, margin=20):
+    image_size = [dim * square_length for dim in self.size]
+    return self.board.draw(tuple(image_size), marginSize=margin)
 
 
   def __str__(self):

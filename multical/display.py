@@ -68,4 +68,7 @@ def display_points(point_table, images):
     display_stacked(annotated)
 
 
+def display_boards(boards, square_length=50):
       
+  board_images = [board.draw(square_length=square_length) for board in boards]
+  display_stacked(board_images)

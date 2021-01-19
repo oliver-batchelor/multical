@@ -14,13 +14,14 @@ from multical.camera import  stereo_calibrate
 from structs.struct import concat_lists, transpose_structs, struct, filter_none, split_list, map_list
 
 
-def load_detect(board, filename):
+def load_detect(boards, filename):
   assert path.isfile(filename), f"load_image: file {filename} does not exist"
 
   image = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
   assert image is not None, f"load_image: could not read {filename}"
   
-  return struct(images=image, points=board.detect(image))
+  points = [board.detect(image) for board in boards]
+  return struct(images=image, points=points)
 
 
 def common_image_size(images):
@@ -30,7 +31,7 @@ def common_image_size(images):
   assert all([image.shape == image_shape for image in images])
   return (w, h)
 
-def detect_images(board, filenames, prefix=None, j=len(os.sched_getaffinity(0)) // 2, chunksize=1):
+def detect_images(boards, filenames, prefix=None, j=len(os.sched_getaffinity(0)) // 2, chunksize=1):
   pool = ThreadPool(processes=j)                                                        
 
   cam_lengths = map_list(len, filenames)
@@ -39,7 +40,7 @@ def detect_images(board, filenames, prefix=None, j=len(os.sched_getaffinity(0)) 
   if prefix is not None:
     flat_files = [path.join(prefix, file) for file in flat_files]
   
-  loader = pool.imap(partial(load_detect, board), flat_files, chunksize=chunksize)
+  loader = pool.imap(partial(load_detect, boards), flat_files, chunksize=chunksize)
   results = list(tqdm(loader, total=len(flat_files)))
 
   results = transpose_structs(results)._map(split_list, cam_lengths)

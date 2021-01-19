@@ -3,7 +3,7 @@ common:
   size: [10, 10]
   aruco_dict: '5X5_1000'
   square_length: 40
-  marker_length: 30
+  marker_length: 32
 
   min_rows: 3
   min_points: 9
@@ -13,7 +13,7 @@ boards:
     aruco_offset: 0
 
   board1:
-    aruco_offset: 25
+    aruco_offset: 100
 
   board2:
     aruco_offset: 50

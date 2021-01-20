@@ -8,7 +8,7 @@ from omegaconf.errors import ValidationError
 from omegaconf.omegaconf import MISSING
 
 
-from structs.struct import pluck, struct, split_dict
+from structs.struct import pluck, struct, split_dict, choose
 from .transform import rtvec
 from .optimization.parameters import Parameters
 
@@ -44,8 +44,8 @@ class CharucoBoard(Parameters):
     self.board = board
     self.dict_desc = dict_desc
 
-    self.adjusted_points = (adjusted_points 
-      if adjusted_points is not None else self.points)
+    self.adjusted_points = choose(adjusted_points, self.points) 
+ 
       
     self.aruco_params = aruco_params or default_aruco_params()
     self.min_rows = min_rows

@@ -42,14 +42,16 @@ class Workspace:
     self.point_table = tables.make_point_table(loaded.points, self.boards)
 
     self.images = loaded.images
-    self.image_sizes = loaded.image_sizes
+    self.image_size = loaded.image_size
 
 
   def calibrate_single(self, camera_model, fix_aspect=False):
     assert self.detected_points is not None
 
     print("Calibrating single cameras..")
-    self.cameras, errs = calibrate_cameras(self.boards, self.detected_points, self.image_sizes, model=camera_model, fix_aspect=fix_aspect)
+    self.cameras, errs = calibrate_cameras(self.boards, self.detected_points, 
+      self.image_size, model=camera_model, fix_aspect=fix_aspect)
+    
     for name, camera, err in zip(self.camera_names, self.cameras, errs):
       print(f"Calibrated {name}, with RMS={err:.2f}")
       print(camera)
@@ -76,6 +78,9 @@ class Workspace:
 
   def has_calibrations(self):
     return len(self.calibrations) > 0
+
+  def get_calibrations(self):
+    return self.calibrations
 
   def get_camera_sets(self):
       if self.has_calibrations():

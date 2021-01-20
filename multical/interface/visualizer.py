@@ -14,15 +14,15 @@ from PyQt5.QtCore import Qt
 from multical import image, tables
 
 from .viewer_image import ViewerImage, annotate_images
-from structs.struct import struct
+from structs.struct import struct, split_dict
 
 
-def visualize(calib, images, camera_names, image_names):
+def visualize(workspace):
   app = QtWidgets.QApplication([])
 
   vis = Visualizer()
 
-  vis.init(calib, images, camera_names, image_names)
+  vis.update_workspace(workspace)
   vis.showMaximized()
 
   app.exec_()
@@ -42,24 +42,34 @@ class Visualizer(QtWidgets.QMainWindow):
     self.view_frame.setLayout(h_layout(self.viewer_3d))
     self.image_frame.setLayout(h_layout(self.viewer_image))
 
-    self.scene = None
-    self.frame_sizes = struct(camera=0, frame=0)
-
     self.controller = None
     self.splitter.setStretchFactor(0, 10)
     self.splitter.setStretchFactor(1, 1)
 
     self.setDisabled(True)
 
+  def update_calibrations(self, calibrations):
+    self.tab_3d.setDisabled(len(calibrations) == 0)
+    self.viewer_3d.clear()
+    self.controllers = None
+    self.calibration = None
+
+    if len(calibrations) > 0:
+      names, calibs = split_dict(calibrations)
+      self.calibration = calibs[-1]
+
+      self.controllers = struct(
+          moving_cameras=MovingCameras(self.viewer_3d, self.calibration),
+          moving_board=MovingBoard(self.viewer_3d, self.calibration)
+      )
+
+      self.viewer_3d.fix_camera()
+      self.update_controller()    
 
   def update_workspace(self, workspace):
 
     self.workspace = workspace
-
     self.blockSignals(True)
-    self.viewer_3d.clear()
-
-    self.annotated_images = annotate_images(self.workspace)
 
     self.view_model = view_table.ViewModel(self.workspace)
     self.metric_combo.clear()
@@ -70,28 +80,18 @@ class Visualizer(QtWidgets.QMainWindow):
     self.view_table.setModel(self.view_model)
     self.select(0, 0)
 
-
-    if workspace.calib:
-      
-      self.controllers = struct(
-          moving_cameras=MovingCameras(self.viewer_3d, workspace.calib),
-          moving_board=MovingBoard(self.viewer_3d, workspace.calib)
-      )
-    else:
-      self.controllers = None
-
     camera_sets = workspace.get_camera_sets()
     params_layout = camera_params.params_viewer(self, camera_sets, workspace.camera_names)
-
     self.param_scroll.setLayout(params_layout)
 
-    self.viewer_3d.fix_camera()
-    self.update_controller()
-    self.update_frame()
+    calibrations = self.workspace.get_calibrations()
+    self.update_calibrations(calibrations)
 
+    # self.annotated_images = annotate_images(self.workspace, self.calibration)
+
+    self.update_frame()
     self.setDisabled(False)
     self.blockSignals(False)
-
     self.connect_ui()
 
   def keyPressEvent(self, event):
@@ -151,7 +151,7 @@ class Visualizer(QtWidgets.QMainWindow):
 
   def update_image(self):
     state = self.state()
-    annotated_image = self.annotated_images[state.camera][state.frame]
+    # annotated_image = self.annotated_images[state.camera][state.frame]
     image_layers = struct(
         refined=self.show_refined_check.isChecked(),
         detected=self.show_detected_check.isChecked(),
@@ -159,7 +159,7 @@ class Visualizer(QtWidgets.QMainWindow):
         pose=self.show_pose_check.isChecked()
     )
 
-    self.viewer_image.update_image(annotated_image, image_layers)
+    # self.viewer_image.update_image(annotated_image, image_layers)
 
   def update_controller(self):
     if self.controller is not None:

@@ -1,6 +1,6 @@
 
 import numpy as np
-from multical.interface.marker import board_object, image_projection
+from .marker import board_object, image_projection
 
 import multical.tables as tables
 import pyvista as pv

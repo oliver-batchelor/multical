@@ -9,16 +9,16 @@ import cv2
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-from multical import tables, image, io, board, display
-from multical.optimization.calibration import Calibration
+from multical import tables, image, io, board, display, workspace
 
 from multical.camera import Camera
 
-from structs.struct import struct, transpose_lists
+from structs.struct import struct, transpose_lists, map_none
 from structs.numpy import shape, Table
 from pprint import pprint
 
 from multical.interface import visualize
+from logging import warning, info
 
 
 def calibrate_cameras(boards, points, image_sizes, **kwargs):
@@ -31,7 +31,7 @@ def main():
     np.set_printoptions(precision=3, suppress=True)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('input', help='input path')
+    parser.add_argument('image_path', help='input image path')
 
     parser.add_argument('--save', default=None, help='save calibration as json default: input/calibration.json')
 
@@ -47,20 +47,22 @@ def main():
     parser.add_argument('--boards', help='configuration file (YAML) for calibration boards')
  
     args = parser.parse_args()
-    print(args) 
+    info(args) 
 
-    cameras = args.cameras.split(",") if args.cameras is not None else None
 
     board_names, boards = board.load_config(args.boards)
-
-    print("Using boards:")
+    info("Using boards:")
     for name, b in zip(board_names, boards):
-      print(name, b)
+      info(name, b)
 
-    # display.display_boards(boards)
+    ws = workspace.Workspace()
+
+    cameras = map_none(str.split, args.cameras, ",")
+    ws.find_images(args.image_path, cameras)
+    ws.load_detect(boards, j=args.j)
 
 
-
+    visualize(ws)
 
     assert False    
 

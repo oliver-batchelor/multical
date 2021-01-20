@@ -1,6 +1,6 @@
 
 import numpy as np
-from multical.interface.marker import View, board_mesh
+from .marker import View, board_mesh
 
 
 def camera_markers(viewer, camera_poses, cameras, scale=1.0):

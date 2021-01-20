@@ -1,4 +1,4 @@
-from multical.interface.vtk_tools import vtk_transform
+from .vtk_tools import vtk_transform
 import numpy as np
 
 from multical.transform import matrix

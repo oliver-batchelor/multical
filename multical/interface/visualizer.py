@@ -1,8 +1,11 @@
 import math
-from multical.interface import view_table
-from multical.interface.moving_board import MovingBoard
-from multical.interface.camera_view import CameraView
-from multical.interface import camera_params
+
+from .viewer_3d.viewer_3d import Viewer3D
+from .viewer_3d.moving_board import MovingBoard
+from .viewer_3d.camera_view import CameraView
+from .viewer_3d.moving_cameras import MovingCameras
+
+from . import camera_params, view_table
 import PyQt5.QtWidgets as QtWidgets
 
 from PyQt5 import uic, QtCore
@@ -10,11 +13,8 @@ from PyQt5.QtCore import Qt
 
 from multical import image, tables
 
-from .vtk_tools import *
-from .viewer_3d import Viewer3D
 from .viewer_image import ViewerImage, annotate_images
-from .moving_cameras import MovingCameras
-
+from structs.struct import struct
 
 
 def visualize(calib, images, camera_names, image_names):
@@ -22,10 +22,7 @@ def visualize(calib, images, camera_names, image_names):
 
   vis = Visualizer()
 
-  print("Undistorting images...")
-  undistorted = image.undistort.undistort_images(images, calib.cameras)
-
-  vis.init(calib, images, undistorted, camera_names, image_names)
+  vis.init(calib, images, camera_names, image_names)
   vis.showMaximized()
 
   app.exec_()
@@ -46,27 +43,25 @@ class Visualizer(QtWidgets.QMainWindow):
     self.image_frame.setLayout(h_layout(self.viewer_image))
 
     self.scene = None
-    self.sizes = struct(camera=0, frame=0)
+    self.frame_sizes = struct(camera=0, frame=0)
+
     self.controller = None
     self.splitter.setStretchFactor(0, 10)
     self.splitter.setStretchFactor(1, 1)
 
     self.setDisabled(True)
 
-  def init(self, calib, images, undistorted, camera_names, image_names):
 
-    self.calib = calib
-    self.images = images
-    self.camera_names = camera_names
-    self.image_names = image_names
-    self.undistorted = undistorted
+  def update_workspace(self, workspace):
+
+    self.workspace = workspace
 
     self.blockSignals(True)
     self.viewer_3d.clear()
 
-    self.annotated_images = annotate_images(calib, images)
+    self.annotated_images = annotate_images(self.workspace)
 
-    self.view_model = view_table.ViewModel(calib, camera_names, image_names)
+    self.view_model = view_table.ViewModel(self.workspace)
     self.metric_combo.clear()
     self.metric_combo.addItems(self.view_model.metric_labels)
 
@@ -75,15 +70,19 @@ class Visualizer(QtWidgets.QMainWindow):
     self.view_table.setModel(self.view_model)
     self.select(0, 0)
 
-    self.sizes = struct(frame=len(image_names), camera=len(camera_names))
 
-    self.controllers = struct(
-        moving_cameras=MovingCameras(self.viewer_3d, calib),
-        moving_board=MovingBoard(self.viewer_3d, calib),
-        camera_view=CameraView(self.viewer_3d, calib, self.undistorted)
-    )
+    if workspace.calib:
+      
+      self.controllers = struct(
+          moving_cameras=MovingCameras(self.viewer_3d, workspace.calib),
+          moving_board=MovingBoard(self.viewer_3d, workspace.calib)
+      )
+    else:
+      self.controllers = None
 
-    params_layout = camera_params.params_viewer(self, calib, camera_names)
+    camera_sets = workspace.get_camera_sets()
+    params_layout = camera_params.params_viewer(self, camera_sets, workspace.camera_names)
+
     self.param_scroll.setLayout(params_layout)
 
     self.viewer_3d.fix_camera()
@@ -105,14 +104,6 @@ class Visualizer(QtWidgets.QMainWindow):
       self.move_camera(-1)
     elif event.key() == Qt.Key.Key_Right:
       self.move_camera(1)
-    elif event.key() == Qt.Key.Key_Plus:
-      self.point_size_slider.setValue(self.point_size_slider.value() + 1)
-      self.line_size_slider.setValue(self.line_size_slider.value() + 1)
-
-    elif event.key() == Qt.Key.Key_Minus:
-      self.point_size_slider.setValue(self.point_size_slider.value() - 1)
-      self.line_size_slider.setValue(self.line_size_slider.value() - 1)
-
     self.update()
 
   def camera_size(self):
@@ -174,10 +165,8 @@ class Visualizer(QtWidgets.QMainWindow):
     if self.controller is not None:
       self.controller.disable()
 
-    if self.moving_cameras_radio.isChecked():
+    if self.moving_cameras_check.isChecked():
       self.controller = self.controllers.moving_cameras
-    elif self.moving_board_radio.isChecked():
-      self.controller = self.controllers.moving_board
     else:
       self.controller = self.controllers.camera_view
 
@@ -201,10 +190,7 @@ class Visualizer(QtWidgets.QMainWindow):
       layer_check.toggled.connect(self.update_image)
 
     self.marker_size_slider.valueChanged.connect(self.update_image)
-
-    self.point_size_slider.valueChanged.connect(self.viewer_3d.set_point_size)
     self.line_size_slider.valueChanged.connect(self.viewer_3d.set_line_size)
-
     self.view_mode.buttonClicked.connect(self.update_controller)
 
 

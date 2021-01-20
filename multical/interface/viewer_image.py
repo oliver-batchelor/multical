@@ -9,7 +9,6 @@ import cv2
 import numpy as np
 
 import palettable.cartocolors.qualitative as palettes
-
 from structs.struct import choose, struct, transpose_lists
 
 def qt_image(image):

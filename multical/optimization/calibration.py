@@ -16,13 +16,12 @@ from cached_property import cached_property
 
 
 class Calibration(parameters.Parameters):
-  def __init__(self, cameras, board, point_table, pose_estimates, pose_detections, inlier_mask=None, 
+  def __init__(self, cameras, board, point_table, pose_estimates, inlier_mask=None, 
       optimize_intrinsics=False, optimize_board=False):
 
     self.cameras = cameras
     self.board = board
 
-    self.pose_detections = pose_detections
     self.point_table = point_table
 
     self.pose_estimates = pose_estimates
@@ -35,14 +34,6 @@ class Calibration(parameters.Parameters):
     assert pose_estimates.camera._shape[0] == self.size.cameras
     assert pose_estimates.rig._shape[0] == self.size.rig_poses
 
-
-
-  @staticmethod
-  def initialise(cameras, board, point_table):
-      pose_detections = tables.make_pose_table(point_table, board, cameras)
-      pose_estimates = tables.initialise_poses(pose_detections)
-
-      return Calibration(cameras, board, point_table, pose_estimates, pose_detections)
    
   @cached_property 
   def size(self):
@@ -181,10 +172,13 @@ class Calibration(parameters.Parameters):
   def enable_board(self, enabled=True):
     return self.copy(optimize_board=enabled)    
 
+  
+
+
   def copy(self, **k):
     """Copy calibration environment and change some parameters (no mutation)"""
     d = dict(cameras=self.cameras, board=self.board, point_table=self.point_table, 
-      pose_estimates=self.pose_estimates, pose_detections=self.pose_detections, inlier_mask=self.inlier_mask, 
+      pose_estimates=self.pose_estimates, inlier_mask=self.inlier_mask, 
       optimize_intrinsics=self.optimize_intrinsics, optimize_board=self.optimize_board)
 
     d.update(k)

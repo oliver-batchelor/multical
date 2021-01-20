@@ -142,7 +142,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="views_tab">
         <attribute name="title">
@@ -216,97 +216,7 @@
             <string>3D View</string>
            </property>
            <layout class="QGridLayout" name="gridLayout">
-            <item row="0" column="0" colspan="2">
-             <widget class="QRadioButton" name="moving_cameras_radio">
-              <property name="text">
-               <string>Moving cameras</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-              <attribute name="buttonGroup">
-               <string notr="true">view_mode</string>
-              </attribute>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_4">
-              <property name="text">
-               <string>Camera Size</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="1">
-             <widget class="QSlider" name="point_size_slider">
-              <property name="minimum">
-               <number>1</number>
-              </property>
-              <property name="maximum">
-               <number>8</number>
-              </property>
-              <property name="singleStep">
-               <number>1</number>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0" colspan="2">
-             <widget class="QRadioButton" name="camera_view_radio">
-              <property name="text">
-               <string>Camera view</string>
-              </property>
-              <attribute name="buttonGroup">
-               <string notr="true">view_mode</string>
-              </attribute>
-             </widget>
-            </item>
-            <item row="6" column="1">
-             <widget class="QSlider" name="line_size_slider">
-              <property name="minimum">
-               <number>1</number>
-              </property>
-              <property name="maximum">
-               <number>8</number>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0" colspan="2">
-             <widget class="Line" name="line">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0" colspan="2">
-             <widget class="QRadioButton" name="moving_board_radio">
-              <property name="text">
-               <string>Moving board</string>
-              </property>
-              <attribute name="buttonGroup">
-               <string notr="true">view_mode</string>
-              </attribute>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <widget class="QLabel" name="label_5">
-              <property name="text">
-               <string>Line Size</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="label">
-              <property name="text">
-               <string>Point Size</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="1">
+            <item row="1" column="1">
              <widget class="QSlider" name="camera_size_slider">
               <property name="minimum">
                <number>1</number>
@@ -334,6 +244,43 @@
               </property>
              </widget>
             </item>
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="moving_cameras_check">
+              <property name="text">
+               <string>Moving cameras</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_5">
+              <property name="text">
+               <string>Line Size</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_4">
+              <property name="text">
+               <string>Camera Size</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSlider" name="line_size_slider">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>8</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>
@@ -349,52 +296,52 @@
             <string>Image view</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_3">
-            <item row="0" column="0" colspan="2">
-             <widget class="QCheckBox" name="show_detected_check">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label">
               <property name="text">
-               <string>Detected points</string>
+               <string>Layer</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="0" colspan="2">
-             <widget class="QCheckBox" name="show_refined_check">
+            <item row="0" column="1">
+             <widget class="QComboBox" name="comboBox">
+              <item>
+               <property name="text">
+                <string>Detections</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Detected poses</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Initialisation</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Calibration: xyz</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="show_ids_check">
               <property name="text">
-               <string>Refined points</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
+               <string>Show point IDs</string>
               </property>
              </widget>
             </item>
             <item row="2" column="0">
-             <widget class="QCheckBox" name="show_ids_check">
-              <property name="text">
-               <string>Point IDs</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0" colspan="2">
-             <widget class="QCheckBox" name="show_pose_check">
-              <property name="text">
-               <string>Detected pose</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0" colspan="2">
-             <widget class="Line" name="line_2">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0" rowspan="2">
              <widget class="QLabel" name="label_8">
               <property name="text">
                <string>Marker size</string>
               </property>
              </widget>
             </item>
-            <item row="6" column="1">
+            <item row="2" column="1">
              <widget class="QSlider" name="marker_size_slider">
               <property name="minimum">
                <number>1</number>
@@ -410,7 +357,14 @@
               </property>
              </widget>
             </item>
-            <item row="7" column="1">
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_9">
+              <property name="text">
+               <string>Line width</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
              <widget class="QSlider" name="line_width_slider">
               <property name="minimum">
                <number>1</number>
@@ -423,13 +377,6 @@
               </property>
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="0">
-             <widget class="QLabel" name="label_9">
-              <property name="text">
-               <string>Line width</string>
               </property>
              </widget>
             </item>
@@ -453,7 +400,7 @@
        </widget>
        <widget class="QWidget" name="param_tab">
         <attribute name="title">
-         <string>Parameters</string>
+         <string>Cameras</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_4">
          <property name="leftMargin">

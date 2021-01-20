@@ -50,8 +50,6 @@ def main():
     print(args) 
 
     cameras = args.cameras.split(",") if args.cameras is not None else None
-    camera_names, image_names, filenames = image.find.find_images(args.input, cameras)
-    print("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
     board_names, boards = board.load_config(args.boards)
 
@@ -61,19 +59,8 @@ def main():
 
     # display.display_boards(boards)
 
-    print("Detecting patterns..")
-    loaded = image.detect.detect_images(boards, filenames, j=args.j, prefix=args.input)   
-
-    point_table = tables.make_point_table(loaded.points, boards)
-
-    print("Calibrating single cameras..")
-    cameras, errs = calibrate_cameras(boards, loaded.points, loaded.image_size, model=args.model, fix_aspect=args.fix_aspect)
 
 
-    for name, camera, err in zip(camera_names, cameras, errs):
-      print(f"Calibrated {name}, with RMS={err:.2f}")
-      print(camera)
-      print("---------------")
 
     assert False    
 

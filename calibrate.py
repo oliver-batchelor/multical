@@ -1,4 +1,5 @@
 
+import logging
 import math
 from os import path
 import os
@@ -46,9 +47,12 @@ def main():
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
     parser.add_argument('--boards', help='configuration file (YAML) for calibration boards')
  
+    parser.add_argument('--log_level', default='DEBUG', help='logging level for output to terminal')
+ 
     args = parser.parse_args()
     info(args) 
 
+    logging.basicConfig(filename='example.log', filemode='w', level=getattr(logging, args.log_level))
 
     boards = board.load_config(args.boards)
     info("Using boards:")
@@ -62,8 +66,9 @@ def main():
     ws.find_images(args.image_path, cameras)
     ws.load_detect(boards, j=args.j)
 
+    ws.calibrate_single(args.model, args.fix_aspect)
 
-    visualize(ws)
+    # visualize(ws)
 
     assert False    
 

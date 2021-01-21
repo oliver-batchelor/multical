@@ -265,7 +265,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="label_5">
               <property name="text">
-               <string>Line Size</string>
+               <string>Line width</string>
               </property>
              </widget>
             </item>
@@ -283,6 +283,9 @@
               </property>
               <property name="maximum">
                <number>8</number>
+              </property>
+              <property name="value">
+               <number>2</number>
               </property>
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
@@ -439,8 +442,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>100</width>
-              <height>30</height>
+              <width>596</width>
+              <height>648</height>
              </rect>
             </property>
            </widget>

@@ -16,14 +16,14 @@ from omegaconf import OmegaConf
 from dataclasses import dataclass
 
 def default_aruco_params():
-  params = cv2.aruco.DetectorParameters_create()
+  return cv2.aruco.DetectorParameters_create()
 
-  # params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_CONTOUR
-  # params.adaptiveThreshWinSizeMin = 100
-  # params.adaptiveThreshWinSizeMax = 700
-  # params.adaptiveThreshWinSizeStep = 50
-  # params.adaptiveThreshConstant = 0  
-  return params
+def aruco_config(attrs):
+  config = default_aruco_params()
+  for k, v in attrs.items():
+    assert hasattr(config, k), f"aruco_config: no such detector parameter {k}"
+    setattr(config, k, v)  
+  return config
 
 empty_detection = struct(corners=np.zeros([0, 2]), ids=np.zeros(0, dtype=np.int))
 empty_matches = struct(points1=[], points2=[], ids=[], object_points=[])
@@ -32,7 +32,6 @@ empty_matches = struct(points1=[], points2=[], ids=[], object_points=[])
 def create_dict(name, offset):
   dict_id = getattr(cv2.aruco, f'DICT_{name}')
   aruco_dict=cv2.aruco.getPredefinedDictionary(dict_id)
-
   aruco_dict.bytesList=aruco_dict.bytesList[offset:]
   return aruco_dict
 
@@ -46,7 +45,6 @@ class CharucoBoard(Parameters):
 
     self.adjusted_points = choose(adjusted_points, self.points) 
  
-      
     self.aruco_params = aruco_params or default_aruco_params()
     self.min_rows = min_rows
     self.min_points = min_points
@@ -183,6 +181,7 @@ class CharucoConfig:
 
 def load_config(yaml_file):
   config = OmegaConf.load(yaml_file)
+  aruco_params = aruco_config(config.get('aruco_params', {}))
   
   boards = {k:OmegaConf.merge(config.common, board) for k, board in config.boards.items()} if 'common' in config\
     else config.boards
@@ -194,7 +193,7 @@ def load_config(yaml_file):
 
       merged = OmegaConf.merge(schema, config)
       merged = struct(**merged)._without('_type_')
-      return CharucoBoard.create(**merged)
+      return CharucoBoard.create(aruco_params=aruco_params, **merged)
     else:
       assert False, f"unknown board type: {config._type_}"
 

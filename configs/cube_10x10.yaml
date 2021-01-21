@@ -13,10 +13,13 @@ boards:
     aruco_offset: 0
 
   board1:
-    aruco_offset: 25
-
-  board2:
     aruco_offset: 50
 
+  board2:
+    aruco_offset: 100
 
 
+
+aruco_params:
+  adaptiveThreshWinSizeMax: 400
+  adaptiveThreshWinSizeStep: 100

@@ -23,8 +23,6 @@ def calibration_points(boards, detections):
   points = [board_points(board, detections) for board, detections 
     in zip(boards, board_detections)]
 
-  print(shape(points[1]))
-
   return reduce(operator.add, points)
 
 def board_points(board, detections):
@@ -105,7 +103,7 @@ class Camera(Parameters):
 
 
     @staticmethod
-    def calibrate(boards, detections, image_size, max_iter=20, eps=1e-3, 
+    def calibrate(boards, detections, image_size, max_iter=10, eps=1e-3, 
         model='standard', fix_aspect=False, flags=0):
 
       points = calibration_points(boards, detections)

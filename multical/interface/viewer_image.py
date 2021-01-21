@@ -8,8 +8,9 @@ from cached_property import cached_property
 import cv2
 import numpy as np
 
-import palettable.cartocolors.qualitative as palettes
+import palettable.colorbrewer.qualitative as palettes
 from structs.struct import choose, struct, transpose_lists
+from structs.numpy import shape
 
 def qt_image(image):
   assert image.ndim in [2, 3], f"qt_image: unsupported image dimensions {image.ndim}"
@@ -25,10 +26,10 @@ def qt_image(image):
     return QImage(image.data, width, height, bytesPerLine, QImage.Format.Format_Grayscale8)
   
 
-def cosmetic_pen(color):
+def cosmetic_pen(color, width=2):
     pen = QPen(QColor(*color))
     pen.setCosmetic(True)
-    pen.setWidth(2)
+    pen.setWidth(width)
     return pen
 
 
@@ -60,20 +61,15 @@ def cross(point, radius, pen):
     line([0, -radius], [0, radius], pen)
   ])
   item.setPos(x, y)
-  # item.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations )
-
   return item
 
 def id_marker(id, point, radius, color, font):
   item = QtWidgets.QGraphicsTextItem(str(id))
   item.setDefaultTextColor(QColor(*color))
   item.setFont(font)
-  # item.setPos(0, radius / 4)
   
   container = group([item])
   container.setPos(QPointF(*point))
-  # item.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
-
   return container
 
 
@@ -81,80 +77,83 @@ colors = struct(
   error_line = (255, 255, 0),
   outlier = (255, 0, 0),
   inlier = (0, 255, 0),
-  invalid = (128, 128, 0),
-  pose = (0, 192, 255))
+  invalid = (128, 128, 0))
 
-def detection_layers(boards, image_table, radius=10.0):
-  ids, detected = [], []
-
-  marker_font = QFont()
-  marker_font.setPixelSize(radius)
-
+def board_colors(boards):
   n_colors = min(len(boards), 4)
-  palette = getattr(palettes, f"Vivid_{n_colors}").colors
-
-  for board, color, board_points in zip(boards, palette, image_table._sequence(0)):
-    pen = cosmetic_pen(color)
-    for corner, valid, id in\
-      zip(board_points.points, board_points.valid_points, board.ids):
-        if valid:
-          detected.append( cross(corner, radius, pen))
-          ids.append(id_marker(id, corner, radius, colors.detected, marker_font))
-
-  return struct(detected = group(detected), ids=group(ids))
+  return getattr(palettes, f"Set1_{n_colors}").colors
+  
 
 
-def calibrated_layers(camera, boards, image_table, radius=10):
-  refined, pose = [], []
-  pens = colors._map(cosmetic_pen)
+def add_detections(scene, boards, image_table, options):
+  marker_font = QFont()
+  marker_font.setPixelSize(options.marker_size)
+  palette = board_colors(boards)
 
-  projected_points = camera.project(board.adjusted_points, image_table.poses).astype(np.float32)
-  projected_pose = camera.project(board.points, image_table.pose_detections).astype(np.float32)
+  for board, color, detected in zip(boards, palette, image_table._sequence(0)):
+    pen = cosmetic_pen(color, options.line_width)
+    corners = detected.points[detected.valid_points]
+    ids = board.ids[detected.valid_points]
 
-  iter =  zip(projected_points, image_table.valid_points, projected_pose, image_table.inliers)
+    for corner, id in zip(corners, ids):
+      scene.addItem(cross(corner, options.marker_size, pen))
 
-  for proj, corner, valid, pose_point, inlier, id in iter:
-      if valid:
-        refined.append(line(proj, corner, pens.error_line))
-
-      proj_pen = pens.invalid if not valid else (pens.inlier if inlier else pens.outlier)
-      refined.append(cross(proj, radius, proj_pen))  
-      pose.append(cross(pose_point, radius, pens.pose))        
-
-  return struct(refined = group(refined), pose=group(pose))
+    if options.show_ids:
+      for corner, id in zip(corners, ids):
+        scene.addItem(id_marker(id, corner, options.marker_size, color, marker_font))
 
 
 
-def annotate_image(boards, image, camera, image_table, radius=10.0):
+# def calibrated_layers(camera, boards, image_table, radius=10):
+#   refined, pose = [], []
+#   pens = colors._map(cosmetic_pen)
+
+#   projected_points = camera.project(board.adjusted_points, image_table.poses).astype(np.float32)
+#   projected_pose = camera.project(board.points, image_table.pose_detections).astype(np.float32)
+
+#   iter =  zip(projected_points, image_table.valid_points, projected_pose, image_table.inliers)
+
+#   for proj, corner, valid, pose_point, inlier, id in iter:
+#       if valid:
+#         refined.append(line(proj, corner, pens.error_line))
+
+#       proj_pen = pens.invalid if not valid else (pens.inlier if inlier else pens.outlier)
+#       refined.append(cross(proj, radius, proj_pen))  
+#       pose.append(cross(pose_point, radius, pens.pose))        
+
+#   return struct(refined = group(refined), pose=group(pose))
+
+
+def annotate_image(workspace, calibration, layer, state, options):
+
+  image = state.image
+
   scene = QtWidgets.QGraphicsScene()
-
   pixmap = QPixmap(qt_image(image))
   scene.addPixmap(pixmap)
 
-  layers = detection_layers(boards, image_table, radius)
-  for layer in layers.values():
-    scene.addItem(layer)
+  if layer == "detections":
+    detections = workspace.point_table._index[state.camera, state.frame]
+    add_detections(scene, workspace.boards, detections, options)
+  else:
+    assert False, f"unknown layer {layer}"
+
+  # if layer == "reprojection":
+  #   assert calibration is not None
+  #   camera = workspace.cameras[state.camera]
+
+  #   detected = workspace.pose_detections._index[state.camera, state.frame]
+  #   initial = workspace.pose_estimates[state.camera, state.frame]
+  #   calibrated = calibration.pose_table[state.camera, state.frame]
+
+  #   annotate_image()
+
 
   h, w, *_ = image.shape
-  scene.setSceneRect(-w, -h, 3 * w, 3 * h)    
+  scene.setSceneRect(-w, -h, 3 * w, 3 * h)  
+  return scene  
 
-  return struct(scene=scene, layers=layers)
 
-
-def annotate_images(workspace, calib=None, radius=10.0):
-  total_views = workspace.size.cameras * workspace.size.frames
-  table = Table.create(view_index = np.arange(total_views) )
-
-  if calib is not None:
-    table = calib.point_table._merge(calib.pose_table)._extend(inliers = calib.inliers)
-
-    table = table._extend(
-      pose_detections = calib.pose_detections.poses, 
-      valid_detection = calib.pose_detections.valid_poses)
-
-  return [[Lazy(annotate_image, workspace.boards, image, camera, image_table, radius=radius) 
-      for image, image_table in zip(cam_images, image_table._sequence())]
-        for camera, cam_images, image_table in zip(cameras, workspace.images, table._sequence())]
 
 
 class ViewerImage(QtWidgets.QGraphicsView):
@@ -175,12 +174,8 @@ class ViewerImage(QtWidgets.QGraphicsView):
     self.zoom_factor = 0.95
     self.zoom_range = (-30, 40)
 
-  def update_image(self, lazy_scene, layers):  
-    scene = lazy_scene.value
-    for name, layer in scene.layers.items():
-      layer.setVisible(layers[name])
-
-    self.setScene(scene.scene)
+  def update_image(self, scene): 
+    self.setScene(scene)
     self.update()
 
 

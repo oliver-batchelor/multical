@@ -13,7 +13,7 @@ from PyQt5.QtCore import Qt
 
 from multical import image, tables
 
-from .viewer_image import ViewerImage, annotate_images
+from .viewer_image import ViewerImage, annotate_image
 from structs.struct import struct, split_dict
 
 
@@ -63,6 +63,10 @@ class Visualizer(QtWidgets.QMainWindow):
       self.set_calibration(calibs[-1])
 
     self.setup_view_table(self.calibration)
+
+    _, layer_labels = self.image_layers()
+    self.layer_combo.clear()
+    self.layer_combo.addItems(layer_labels)
       
   def set_calibration(self, calibration):
     self.calibration = calibration
@@ -105,8 +109,6 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.calibrations = self.workspace.get_calibrations()
     self.update_calibrations(self.calibrations)
-
-    self.annotated_images = annotate_images(self.workspace, self.calibration)
 
     self.update_frame()
     self.setDisabled(False)
@@ -154,12 +156,16 @@ class Visualizer(QtWidgets.QMainWindow):
     )
 
   def move_frame(self, d_frame=0):
+    sizes = self.workspace.sizes 
+
     frame, camera = self.selection()
-    self.select((frame + d_frame) % self.sizes.frame, camera)
+    self.select((frame + d_frame) % sizes.image, camera)
   
   def move_camera(self, d_camera=0):
+    sizes = self.workspace.sizes 
+
     frame, camera = self.selection()
-    self.select(frame, (camera + d_camera) % self.sizes.camera)
+    self.select(frame, (camera + d_camera) % sizes.camera)
 
   def update_frame(self):
     state = self.state()
@@ -169,20 +175,33 @@ class Visualizer(QtWidgets.QMainWindow):
     self.statusBar().showMessage(f"{state.camera_name} {state.image_name}")
     self.update_image()
 
+  def image_layers(self):
+    layers = struct(detections="Detections")
+    if self.calibration is not None:
+      layers.reprojection = "Reprojection"
+    
+    if self.workspace.detected_poses is not None:
+      layers.detected_poses = "Detected poses"
+      
+    return split_dict(layers)
+
   def update_image(self):
     state = self.state()
-    # annotated_image = self.annotated_images[state.camera][state.frame]
-    
-    layer_index = self.layer_combo.currentIndex()
-    marker_size = self.marker_size_slider.value()
+    layer_names, _ = self.image_layers()
 
-    enabled = struct(
-        ids=self.show_ids_check.isChecked(),
+
+    layer_name = layer_names[self.layer_combo.currentIndex()]
+
+    options = struct(
+      marker_size = self.marker_size_slider.value(),
+      line_width = self.line_width_slider.value(),
+      show_ids=self.show_ids_check.isChecked()
     )
 
+    annotated_image = annotate_image(self.workspace, self.calibration, 
+      layer_name, state, options=options)
 
-    # self.viewer_image.update_image(annotated_image, layer_index, enabled=ids, marker_size=marker_size)
-
+    self.viewer_image.update_image(annotated_image)
 
   def update_controller(self):
     if self.controller is not None:
@@ -217,6 +236,8 @@ class Visualizer(QtWidgets.QMainWindow):
       layer_check.toggled.connect(self.update_image)
     self.layer_combo.currentIndexChanged.connect(self.update_image)
     self.marker_size_slider.valueChanged.connect(self.update_image)
+    self.line_width_slider.valueChanged.connect(self.update_image)
+
 
     self.line_size_slider.valueChanged.connect(self.viewer_3d.set_line_size)
     self.moving_cameras_check.toggled.connect(self.update_controller)

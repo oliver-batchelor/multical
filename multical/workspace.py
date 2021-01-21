@@ -5,6 +5,11 @@ from multical.optimization.calibration import Calibration
 from structs.struct import split_dict, struct
 from . import tables, image
 
+from logging import getLogger, info, warning, debug
+
+
+
+
 class Workspace:
   def __init__(self):
 
@@ -17,12 +22,12 @@ class Workspace:
     self.image_sizes = None
     self.images = None
 
-    self.pose_detections = None
+    self.detected_poses = None
 
 
   def find_images(self, image_path, camera_dirs=None):
     camera_names, image_names, filenames = image.find.find_images(image_path, camera_dirs)
-    print("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
+    info("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
     self.names = self.names._extend(camera = camera_names, image = image_names)
     self.filenames = filenames
@@ -32,7 +37,8 @@ class Workspace:
 
   def load_detect(self, boards, j=len(os.sched_getaffinity(0))):
     assert self.filenames is not None 
-    self.names.board, self.boards = split_dict(boards)
+    board_names, self.boards = split_dict(boards)
+    self.names = self.names._extend(board = board_names)
     
     print("Detecting patterns..")
     loaded = image.detect.detect_images(self.boards, self.filenames, j=j, prefix=self.image_path)   
@@ -51,7 +57,7 @@ class Workspace:
     self.cameras, errs = calibrate_cameras(self.boards, self.detected_points, 
       self.image_size, model=camera_model, fix_aspect=fix_aspect)
     
-    for name, camera, err in zip(self.camera_names, self.cameras, errs):
+    for name, camera, err in zip(self.names.camera, self.cameras, errs):
       print(f"Calibrated {name}, with RMS={err:.2f}")
       print(camera)
       print("---------------")
@@ -60,9 +66,10 @@ class Workspace:
   def initialise_poses(self):
     assert self.cameras is not None
 
-    self.pose_detections = tables.make_pose_table(self.point_table, self.boards, self.cameras)
-    self.pose_estimates = tables.initialise_poses(self.pose_detections)
-    calib = Calibration(self.cameras, self.boards, self.point_table, self.pose_estimates, self.pose_detections)
+    self.detected_poses = tables.make_pose_table(self.point_table, self.boards, self.cameras)
+    
+    pose_initialisation = tables.initialise_poses(self.detected_poses)
+    calib = Calibration(self.cameras, self.boards, self.point_table, pose_initialisation)
     self.calibrations['initialisation'] = calib
 
     return calib
@@ -74,6 +81,10 @@ class Workspace:
 
     self.calibrations[name] = calib
     return calib
+
+  @property
+  def sizes(self):
+    return self.names._map(len)
 
   def has_calibrations(self):
     return len(self.calibrations) > 0

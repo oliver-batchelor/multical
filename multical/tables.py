@@ -69,8 +69,8 @@ def make_point_table(detections, boards):
               for cam_dets in detections]
 
 
-  table = make_nd_table(points, n = 3)
-  return table._map(np.swapaxes, 1, 2)
+  return make_nd_table(points, n = 3)
+  
   
 
 def make_nd_table(items, n):

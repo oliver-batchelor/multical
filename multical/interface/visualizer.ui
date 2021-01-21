@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>772</width>
-    <height>697</height>
+    <width>998</width>
+    <height>737</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -142,7 +142,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="views_tab">
         <attribute name="title">
@@ -151,6 +151,13 @@
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QCheckBox" name="inliers_check">
+             <property name="text">
+              <string>Inliers only</string>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QComboBox" name="metric_combo">
              <property name="sizePolicy">
@@ -163,7 +170,7 @@
               <enum>QComboBox::AdjustToContents</enum>
              </property>
              <property name="minimumContentsLength">
-              <number>22</number>
+              <number>12</number>
              </property>
              <item>
               <property name="text">
@@ -173,24 +180,25 @@
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="inliers_check">
-             <property name="text">
-              <string>Inliers</string>
+            <widget class="QComboBox" name="boards_combo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
              </property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+             <property name="minimumContentsLength">
+              <number>12</number>
+             </property>
+             <item>
+              <property name="text">
+               <string>All boards</string>
+              </property>
+             </item>
             </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>532</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
            </item>
           </layout>
          </item>
@@ -304,7 +312,7 @@
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QComboBox" name="comboBox">
+             <widget class="QComboBox" name="layer_combo">
               <item>
                <property name="text">
                 <string>Detections</string>
@@ -398,7 +406,7 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="param_tab">
+       <widget class="QWidget" name="cameras_tab">
         <attribute name="title">
          <string>Cameras</string>
         </attribute>
@@ -431,8 +439,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>493</width>
-              <height>608</height>
+              <width>100</width>
+              <height>30</height>
              </rect>
             </property>
            </widget>
@@ -450,7 +458,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>772</width>
+     <width>998</width>
      <height>20</height>
     </rect>
    </property>

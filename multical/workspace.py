@@ -1,7 +1,8 @@
+from structs.numpy import shape
 from calibrate import calibrate_cameras
 import os
 from multical.optimization.calibration import Calibration
-from structs.struct import struct
+from structs.struct import split_dict, struct
 from . import tables, image
 
 class Workspace:
@@ -11,8 +12,7 @@ class Workspace:
     self.detections = None
     self.boards = None
 
-    self.image_names = None
-    self.camera_names = None
+    self.names = struct()
 
     self.image_sizes = None
     self.images = None
@@ -24,8 +24,7 @@ class Workspace:
     camera_names, image_names, filenames = image.find.find_images(image_path, camera_dirs)
     print("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
-    self.camera_names = camera_names
-    self.image_names = image_names
+    self.names = self.names._extend(camera = camera_names, image = image_names)
     self.filenames = filenames
 
     self.image_path = image_path
@@ -33,8 +32,8 @@ class Workspace:
 
   def load_detect(self, boards, j=len(os.sched_getaffinity(0))):
     assert self.filenames is not None 
-    self.boards = boards
-
+    self.names.board, self.boards = split_dict(boards)
+    
     print("Detecting patterns..")
     loaded = image.detect.detect_images(self.boards, self.filenames, j=j, prefix=self.image_path)   
 

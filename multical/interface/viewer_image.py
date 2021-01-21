@@ -141,16 +141,20 @@ def annotate_image(boards, image, camera, image_table, radius=10.0):
   return struct(scene=scene, layers=layers)
 
 
-def annotate_images(calib, images, radius=10.0):
-  table = calib.point_table._merge(calib.pose_table)._extend(inliers = calib.inliers)
+def annotate_images(workspace, calib=None, radius=10.0):
+  total_views = workspace.size.cameras * workspace.size.frames
+  table = Table.create(view_index = np.arange(total_views) )
 
-  table = table._extend(
-     pose_detections = calib.pose_detections.poses, 
-     valid_detection = calib.pose_detections.valid_poses)
+  if calib is not None:
+    table = calib.point_table._merge(calib.pose_table)._extend(inliers = calib.inliers)
 
-  return [[Lazy(annotate_image, calib.board, image, camera, image_table, radius=radius) 
+    table = table._extend(
+      pose_detections = calib.pose_detections.poses, 
+      valid_detection = calib.pose_detections.valid_poses)
+
+  return [[Lazy(annotate_image, workspace.boards, image, camera, image_table, radius=radius) 
       for image, image_table in zip(cam_images, image_table._sequence())]
-        for camera, cam_images, image_table in zip(calib.cameras, images, table._sequence())]
+        for camera, cam_images, image_table in zip(cameras, workspace.images, table._sequence())]
 
 
 class ViewerImage(QtWidgets.QGraphicsView):

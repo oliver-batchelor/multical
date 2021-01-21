@@ -51,8 +51,7 @@ def detection_tables(point_table):
   valid = point_table.valid_points
   def f(axis): return np.sum(valid, axis=axis)
 
-  axes = struct(overall=None, views=(2, 3), cameras=(
-      1, 2, 3), frames=(0, 2, 3), boards=(0, 1, 3))
+  axes = struct(overall=None, views=3, boards=(0, 1, 3), cameras=(1, 2, 3), frames=(0, 2, 3))
   return axes._map(f)
 
 
@@ -63,15 +62,14 @@ def interpolate_hsl(t, color1, color2):
 
 
 class ViewModelCalibrated(QAbstractTableModel):
-  def __init__(self, calib, camera_names, image_names):
+  def __init__(self, calib, names):
     super(ViewModelCalibrated, self).__init__()
 
     self.calib = calib
     self.reprojection_table = reprojection_tables(calib)
     self.inlier_table = reprojection_tables(calib, inlier_only=True)
 
-    self.camera_names = camera_names
-    self.image_names = image_names
+    self.names = names
 
     self.metrics = dict(
         detected='Detected (Outliers)',
@@ -80,11 +78,6 @@ class ViewModelCalibrated(QAbstractTableModel):
         max='Maximum',
         rms='Root Mean Square',
         mse='Mean Square Error'
-    )
-
-    self.colors = struct(
-        inliers=Color(rgb=(0, 1, 0)),
-        outliers=Color(rgb=(1, 0, 0))
     )
 
     self.metric = 'detected'
@@ -105,7 +98,7 @@ class ViewModelCalibrated(QAbstractTableModel):
 
     outlier_t = min(outlier_rate * 5, 1.0)
     color = interpolate_hsl(
-        outlier_t, self.colors.inliers, self.colors.outliers)
+        outlier_t, Color("green"), Color("red"))
 
     color.set_luminance(max(1 - detection_rate, 0.7))
     return color
@@ -146,7 +139,7 @@ class ViewModelCalibrated(QAbstractTableModel):
       if orientation == Qt.Horizontal:
         return self.camera_names[index]
       else:
-        return path.splitext(self.image_names[index])[0]
+        return path.splitext(self.names.image[index])[0]
 
   def rowCount(self, index):
     return self.view_table._shape[1]
@@ -156,26 +149,17 @@ class ViewModelCalibrated(QAbstractTableModel):
 
 
 class ViewModelDetections(QAbstractTableModel):
-  def __init__(self, point_table, camera_names, image_names):
+  def __init__(self, point_table, names):
     super(ViewModelDetections, self).__init__()
 
     self.point_table = point_table
-    self.camera_names = camera_names
-    self.image_names = image_names
+    self.names = names
 
     self.detection_table = detection_tables(point_table)
-    self.quantiles = np.quantile(self.detection_table.views.flatten(), [0, 0.25, 0.5, 0.75, 1.0]) 
-
-    self.metrics = dict(
-        total='Total'
-    )
-
-    self.colors = struct(
-        detected=Color(rgb=(0, 1, 0))
-    )
-
-    self.metric = 'total'
-
+    
+    self.metrics = dict(detections='Detections')
+    self.set_metric(0, None)
+    
   @property
   def metric_labels(self):
     return list(self.metrics.values())
@@ -185,52 +169,50 @@ class ViewModelDetections(QAbstractTableModel):
     return self.detection_table.views
 
   def cell_color(self, detection_count):
-    color = self.colors.detected
-    detection_rate = min(detection_count / self.quantiles[3], 1)
+    detection_rate = min(detection_count / self.quantiles[4], 1)
 
-    color.set_luminance(max(1 - detection_rate, 0.7))
+    color = Color("lime")
+    color.set_luminance(0.4 + (1 - detection_rate) * 0.6 )
     return color
 
-  def set_metric(self, metric, inlier_only=False):
+  def set_metric(self, metric, board, inlier_only=False):
+    assert metric < len(self.metrics)
+    assert board is None or board < len(self.names.board) 
+    
+    self.board = board
+    board_table = self.detection_table.views.sum(axis=2)
+    if board is not None:
+      board_table = self.detection_table.views[:, :, board]
 
-    if isinstance(metric, str):
-      assert metric in self.metrics
-      self.metric = metric
-    else:
-      assert isinstance(metric, int)
-      metric_list = list(self.metrics.keys())
-      self.metric = metric_list[metric]
-
-    self.inlier_only = inlier_only
+    self.quantiles = np.quantile(board_table, [0, 0.25, 0.5, 0.75, 1.0]) 
     self.modelReset.emit()
+   
+
+  def get_count(self, camera, frame):
+    if self.board is None:
+      return self.view_table[camera, frame].sum()
+    else:
+      return self.view_table[camera, frame, self.board]
+ 
 
   def data(self, index, role):
-
+    count = self.get_count(index.column(), index.row())
     if role == Qt.DisplayRole:
-      view_stats = self.view_table._index[index.column(), index.row()]
-
-      if self.metric == "detected":
-        return f"{view_stats.detected} ({view_stats.outliers})"
-      else:
-        return f"{view_stats[self.metric]:.2f}"
+      return f"{count}"
 
     if role == Qt.BackgroundRole:
-      view_table = self.reprojection_table.views
-      view_stats = view_table._index[index.column(), index.row()]
-
-      rgb = np.array(self.cell_color(view_stats).get_rgb()) * 255
-
+      rgb = np.array(self.cell_color(count).get_rgb()) * 255
       return QBrush(QColor(*rgb))
 
   def headerData(self, index, orientation, role):
     if role == Qt.DisplayRole:
       if orientation == Qt.Horizontal:
-        return self.camera_names[index]
+        return self.names.camera[index]
       else:
-        return path.splitext(self.image_names[index])[0]
+        return path.splitext(self.names.image[index])[0]
 
   def rowCount(self, index):
-    return self.view_table._shape[1]
+    return self.view_table.shape[1]
 
   def columnCount(self, index):
-    return self.view_table._shape[0]
+    return self.view_table.shape[0]

@@ -50,14 +50,15 @@ def main():
     info(args) 
 
 
-    board_names, boards = board.load_config(args.boards)
+    boards = board.load_config(args.boards)
     info("Using boards:")
-    for name, b in zip(board_names, boards):
+    for name, b in boards.items():
       info(name, b)
 
     ws = workspace.Workspace()
 
     cameras = map_none(str.split, args.cameras, ",")
+    
     ws.find_images(args.image_path, cameras)
     ws.load_detect(boards, j=args.j)
 

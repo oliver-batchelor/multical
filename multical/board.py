@@ -188,8 +188,7 @@ def load_config(yaml_file):
     else config.boards
 
   schema = OmegaConf.structured(CharucoConfig)
-  board_names, configs = split_dict(boards)
-
+  
   def instantiate_board(config):
     if config._type_ == "charuco":
 
@@ -200,4 +199,4 @@ def load_config(yaml_file):
       assert False, f"unknown board type: {config._type_}"
 
 
-  return board_names, [instantiate_board(board) for board in configs]
+  return {k:instantiate_board(board) for k, board in boards.items()}

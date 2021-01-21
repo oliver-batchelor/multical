@@ -49,29 +49,45 @@ class Visualizer(QtWidgets.QMainWindow):
     self.setDisabled(True)
 
   def update_calibrations(self, calibrations):
-    self.tab_3d.setDisabled(len(calibrations) == 0)
+    has_calibrations = len(calibrations) > 0
+
+    self.tab_3d.setEnabled(has_calibrations)
+    self.cameras_tab.setEnabled(has_calibrations)  
+
     self.viewer_3d.clear()
     self.controllers = None
     self.calibration = None
-
-    if len(calibrations) > 0:
+ 
+    if has_calibrations:
       names, calibs = split_dict(calibrations)
-      self.calibration = calibs[-1]
+      self.set_calibration(calibs[-1])
 
-      self.controllers = struct(
-          moving_cameras=MovingCameras(self.viewer_3d, self.calibration),
-          moving_board=MovingBoard(self.viewer_3d, self.calibration)
-      )
+    self.setup_view_table(self.calibration)
+      
+  def set_calibration(self, calibration):
+    self.calibration = calibration
 
-      self.viewer_3d.fix_camera()
-      self.update_controller()    
+    params_layout = camera_params.params_viewer(self, self.calibration.cameras, self.workspace.camera_names)
+    self.param_scroll.setLayout(params_layout)
 
-  def update_workspace(self, workspace):
+    self.controllers = struct(
+        moving_cameras=MovingCameras(self.viewer_3d, self.calibration),
+        moving_board=MovingBoard(self.viewer_3d, self.calibration)
+    )
 
-    self.workspace = workspace
-    self.blockSignals(True)
+    self.viewer_3d.fix_camera()
+    self.update_controller()        
 
-    self.view_model = view_table.ViewModel(self.workspace)
+
+  def setup_view_table(self, calibration):
+    board_labels = ["All boards"] + [f"Board: {name}" for name in self.workspace.names.board]
+
+    self.boards_combo.clear()
+    self.boards_combo.addItems(board_labels)
+
+    self.view_model = view_table.ViewModelDetections(self.workspace.point_table, self.workspace.names)\
+      if calibration is None else view_table.ViewModelCalibrated(calibration, self.workspace.names) 
+
     self.metric_combo.clear()
     self.metric_combo.addItems(self.view_model.metric_labels)
 
@@ -80,14 +96,17 @@ class Visualizer(QtWidgets.QMainWindow):
     self.view_table.setModel(self.view_model)
     self.select(0, 0)
 
-    camera_sets = workspace.get_camera_sets()
-    params_layout = camera_params.params_viewer(self, camera_sets, workspace.camera_names)
-    self.param_scroll.setLayout(params_layout)
 
-    calibrations = self.workspace.get_calibrations()
-    self.update_calibrations(calibrations)
 
-    # self.annotated_images = annotate_images(self.workspace, self.calibration)
+  def update_workspace(self, workspace):
+
+    self.workspace = workspace
+    self.blockSignals(True)
+
+    self.calibrations = self.workspace.get_calibrations()
+    self.update_calibrations(self.calibrations)
+
+    self.annotated_images = annotate_images(self.workspace, self.calibration)
 
     self.update_frame()
     self.setDisabled(False)
@@ -122,15 +141,16 @@ class Visualizer(QtWidgets.QMainWindow):
 
   def state(self):
     frame, camera = self.selection()
+    names = self.workspace.names
+    images = self.workspace.images
 
     return struct(
         frame=frame,
         camera=camera,
         scale=self.camera_size(),
-        camera_name=self.camera_names[camera],
-        image_name=self.image_names[frame],
-        image=self.images[camera][frame]
-
+        camera_name=names.camera[camera],
+        image_name=names.image[frame],
+        image=images[camera][frame]
     )
 
   def move_frame(self, d_frame=0):
@@ -152,14 +172,17 @@ class Visualizer(QtWidgets.QMainWindow):
   def update_image(self):
     state = self.state()
     # annotated_image = self.annotated_images[state.camera][state.frame]
-    image_layers = struct(
-        refined=self.show_refined_check.isChecked(),
-        detected=self.show_detected_check.isChecked(),
+    
+    layer_index = self.layer_combo.currentIndex()
+    marker_size = self.marker_size_slider.value()
+
+    enabled = struct(
         ids=self.show_ids_check.isChecked(),
-        pose=self.show_pose_check.isChecked()
     )
 
-    # self.viewer_image.update_image(annotated_image, image_layers)
+
+    # self.viewer_image.update_image(annotated_image, layer_index, enabled=ids, marker_size=marker_size)
+
 
   def update_controller(self):
     if self.controller is not None:
@@ -172,26 +195,31 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.controller.enable(self.state())
 
-  def update_table(self):
+  def update_view_table(self):
     inlier_only = self.inliers_check.isChecked()
     metric_selected = self.metric_combo.currentIndex()
+    board_index = self.boards_combo.currentIndex()
+    board = None if board_index == 0 else board_index - 1
 
-    self.view_model.set_metric(metric_selected, inlier_only)
+    self.view_model.set_metric(metric_selected, board, inlier_only)
 
 
   def connect_ui(self):
     self.camera_size_slider.valueChanged.connect(self.update_frame)
     self.view_table.selectionModel().selectionChanged.connect(self.update_frame)
 
-    self.inliers_check.toggled.connect(self.update_table)
-    self.metric_combo.currentIndexChanged.connect(self.update_table)
+    self.inliers_check.toggled.connect(self.update_view_table)
+    self.metric_combo.currentIndexChanged.connect(self.update_view_table)
+    self.boards_combo.currentIndexChanged.connect(self.update_view_table)
 
-    for layer_check in [self.show_refined_check, self.show_detected_check, self.show_ids_check, self.show_pose_check]:
+
+    for layer_check in [self.show_ids_check]:
       layer_check.toggled.connect(self.update_image)
-
+    self.layer_combo.currentIndexChanged.connect(self.update_image)
     self.marker_size_slider.valueChanged.connect(self.update_image)
+
     self.line_size_slider.valueChanged.connect(self.viewer_3d.set_line_size)
-    self.view_mode.buttonClicked.connect(self.update_controller)
+    self.moving_cameras_check.toggled.connect(self.update_controller)
 
 
 def h_layout(*widgets):

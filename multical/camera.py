@@ -1,4 +1,4 @@
-from functools import reduce
+from functools import partial, reduce
 import operator
 from cached_property import cached_property
 import numpy as np
@@ -14,53 +14,12 @@ from .transform import rtvec, matrix
 from structs.struct import struct
 from .optimization.parameters import Parameters
 
-def attributes(obj, keys):
-  return {k:getattr(obj, k) for k in keys}
+from multiprocessing.pool import ThreadPool
+import cv2
+from tqdm import tqdm
+import os
 
-
-def calibration_points(boards, detections):
-  board_detections = transpose_lists(detections)
-  points = [board_points(board, detections) for board, detections 
-    in zip(boards, board_detections)]
-
-  return reduce(operator.add, points)
-
-def board_points(board, detections):
-  non_empty = [d for d in detections if board.has_min_detections(d)]
-  assert len(non_empty) > 0, "calibration_points: no points detected"
-
-  detections = transpose_structs(non_empty)
-  return detections._extend(
-    object_points = [board.points[ids] for ids in detections.ids]
-  )
-
-
-def stereo_calibrate(cameras, matches, max_iter=60, eps=1e-6,
-     fix_aspect=False, fix_intrinsic=True):
-
-    left, right = cameras
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, eps)    
-
-    assert left.image_size == right.image_size
-    assert left.model == right.model
-
-    model = left.model
-    image_size = left.image_size
-
-    flags = (Camera.flags(model, fix_aspect) | cv2.CALIB_USE_INTRINSIC_GUESS |
-      cv2.CALIB_FIX_INTRINSIC * fix_intrinsic)
-
-    err, K1, d1, K2, d2, R, T, E, F = cv2.stereoCalibrate(
-        matches.object_points, matches.points1, matches.points2,
-        left.intrinsic, left.dist, 
-        right.intrinsic, right.dist, 
-        image_size, criteria=criteria, flags= flags)
-
-    left = Camera(dist = d1, intrinsic = K1, image_size = image_size, model=model)
-    right = Camera(dist = d2, intrinsic = K2, image_size = image_size, model=model)
-
-    return left, right, matrix.join(R, T.flatten()), err
-
+from structs.struct import split_list
 
 class Camera(Parameters):
     def __init__(self, image_size, intrinsic, dist, model='standard', fix_aspect=False):
@@ -84,7 +43,7 @@ class Camera(Parameters):
     )
 
     def __str__(self):
-        d = attributes(self, ['intrinsic', 'dist', 'image_size'])
+        d = dict(intrinsic=self.intrinsic, dist=self.dist, image_size=self.image_size)
         return "Camera " + pformat(d)
 
     def __repr__(self):
@@ -183,4 +142,69 @@ class Camera(Parameters):
           dist = self.dist, fix_aspect=self.fix_aspect, model=self.model)
         d.update(k)
         return Camera(**d)
-        
+
+
+def calibration_points(boards, detections):
+  board_detections = transpose_lists(detections)
+  points = [board_points(board, detections) for board, detections 
+    in zip(boards, board_detections)]
+
+  return reduce(operator.add, points)
+
+def board_points(board, detections):
+  non_empty = [d for d in detections if board.has_min_detections(d)]
+  assert len(non_empty) > 0, "calibration_points: no points detected"
+
+  detections = transpose_structs(non_empty)
+  return detections._extend(
+    object_points = [board.points[ids] for ids in detections.ids]
+  )
+
+def calibrate_cameras(boards, points, image_sizes, **kwargs):
+  pool = ThreadPool()
+  f = partial(Camera.calibrate, boards, **kwargs) 
+  return transpose_lists(pool.starmap(f, zip(points, image_sizes)))
+
+def undistort_image(args):
+  image, undistort_map = args
+  return cv2.remap(image, undistort_map, None, cv2.INTER_CUBIC)
+
+
+def undistort_images(images, cameras, j=len(os.sched_getaffinity(0)), chunksize=4):
+  pool = ThreadPool(processes=j)                                                        
+ 
+  image_pairs = [(image, camera.undistort_map) 
+    for camera, cam_images in zip(cameras, images)
+      for image in cam_images]
+  
+  loader = pool.imap(undistort_image, image_pairs, chunksize=chunksize)
+  undistorted = list(tqdm(loader, total=len(image_pairs)))
+
+  return split_list(undistorted, [len(i) for i in images])
+
+def stereo_calibrate(cameras, matches, max_iter=60, eps=1e-6,
+     fix_aspect=False, fix_intrinsic=True):
+
+    left, right = cameras
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, eps)    
+
+    assert left.image_size == right.image_size
+    assert left.model == right.model
+
+    model = left.model
+    image_size = left.image_size
+
+    flags = (Camera.flags(model, fix_aspect) | cv2.CALIB_USE_INTRINSIC_GUESS |
+      cv2.CALIB_FIX_INTRINSIC * fix_intrinsic)
+
+    err, K1, d1, K2, d2, R, T, E, F = cv2.stereoCalibrate(
+        matches.object_points, matches.points1, matches.points2,
+        left.intrinsic, left.dist, 
+        right.intrinsic, right.dist, 
+        image_size, criteria=criteria, flags= flags)
+
+    left = Camera(dist = d1, intrinsic = K1, image_size = image_size, model=model)
+    right = Camera(dist = d2, intrinsic = K2, image_size = image_size, model=model)
+
+    return left, right, matrix.join(R, T.flatten()), err   
+    

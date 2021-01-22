@@ -1,9 +1,9 @@
 from structs.numpy import shape
-from calibrate import calibrate_cameras
 import os
 from multical.optimization.calibration import Calibration
 from structs.struct import split_dict, struct
 from . import tables, image
+from .camera import calibrate_cameras
 
 from logging import getLogger, info, warning, debug
 
@@ -40,7 +40,7 @@ class Workspace:
     board_names, self.boards = split_dict(boards)
     self.names = self.names._extend(board = board_names)
     
-    print("Detecting patterns..")
+    info("Detecting patterns..")
     loaded = image.detect.detect_images(self.boards, self.filenames, j=j, prefix=self.image_path)   
 
     self.detected_points = loaded.points
@@ -50,17 +50,17 @@ class Workspace:
     self.image_size = loaded.image_size
 
 
-  def calibrate_single(self, camera_model, fix_aspect=False):
+  def calibrate_single(self, camera_model, fix_aspect=False, max_images=None):
     assert self.detected_points is not None
 
-    print("Calibrating single cameras..")
+    info("Calibrating single cameras..")
     self.cameras, errs = calibrate_cameras(self.boards, self.detected_points, 
-      self.image_size, model=camera_model, fix_aspect=fix_aspect)
+      self.image_size, model=camera_model, fix_aspect=fix_aspect, max_images=max_images)
     
     for name, camera, err in zip(self.names.camera, self.cameras, errs):
-      print(f"Calibrated {name}, with RMS={err:.2f}")
-      print(camera)
-      print("---------------")
+      info(f"Calibrated {name}, with RMS={err:.2f}")
+      info(camera)
+      info("---------------")
 
 
   def initialise_poses(self):

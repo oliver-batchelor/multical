@@ -63,9 +63,9 @@ class Camera(Parameters):
 
     @staticmethod
     def calibrate(boards, detections, image_size, max_iter=10, eps=1e-3, 
-        model='standard', fix_aspect=False, flags=0):
+        model='standard', fix_aspect=False, flags=0, max_images=None):
 
-      points = calibration_points(boards, detections)
+      points = calibration_points(boards, detections, max_images=max_images)
       
       # termination criteria
       criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, eps)
@@ -144,7 +144,8 @@ class Camera(Parameters):
         return Camera(**d)
 
 
-def calibration_points(boards, detections):
+def calibration_points(boards, detections, max_images=None):
+  
   board_detections = transpose_lists(detections)
   points = [board_points(board, detections) for board, detections 
     in zip(boards, board_detections)]

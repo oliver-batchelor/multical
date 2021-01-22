@@ -2,17 +2,14 @@
 import logging
 import math
 from os import path
+import pathlib
 import os
+from sys import stdout
 import numpy as np
 import argparse
 import cv2
 
-from functools import partial
-from multiprocessing.pool import ThreadPool
-
-from multical import tables, image, io, board, display, workspace
-
-from multical.camera import Camera
+from multical import tables, board, workspace
 
 from structs.struct import struct, transpose_lists, map_none
 from structs.numpy import shape, Table
@@ -20,12 +17,41 @@ from pprint import pprint
 
 from multical.interface import visualize
 from logging import warning, info
+import textwrap
+
+class IndentFormatter(logging.Formatter):
+    def __init__(self, *args, **kwargs):
+        super(IndentFormatter, self).__init__(*args, **kwargs)
+
+    def format(self, record):
+      message = record.msg
+      record.msg = ''
+      header = super(IndentFormatter, self).format(record)
+      msg = textwrap.indent(message, ' ' * len(header)).strip()
+      return header + msg
 
 
-def calibrate_cameras(boards, points, image_sizes, **kwargs):
-  pool = ThreadPool()
-  f = partial(Camera.calibrate, boards, **kwargs) 
-  return transpose_lists(pool.starmap(f, zip(points, image_sizes)))
+def setup_logging(output_path, console_level='INFO'):
+
+    log_file = path.join(output_path, "calibration.log")
+
+
+    stream_handler = logging.StreamHandler(stream=stdout)
+    stream_handler.setLevel(getattr(logging, console_level))
+    stream_handler.setFormatter(IndentFormatter('%(message)s'))
+
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
+    
+    handlers = [
+      stream_handler,
+      file_handler
+    ]
+
+    logging.basicConfig(handlers=handlers, level=logging.DEBUG)
+    info(f"Logging to {log_file}")
+ 
 
 
 def main(): 
@@ -47,26 +73,33 @@ def main():
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
     parser.add_argument('--boards', help='configuration file (YAML) for calibration boards')
  
-    parser.add_argument('--log_level', default='DEBUG', help='logging level for output to terminal')
+    parser.add_argument('--intrinsic_images', default=None, help='number of images to use for initial intrinsic calibration default (unlimited)')
  
-    args = parser.parse_args()
-    info(args) 
+    parser.add_argument('--log_level', default='INFO', help='logging level for output to terminal')
+    parser.add_argument('--output_path', default=None, help='specify output path, default (image_path)')
 
-    logging.basicConfig(filename='example.log', filemode='w', level=getattr(logging, args.log_level))
+
+
+    args = parser.parse_args()
+    output_path = args.output_path or args.image_path
+    pathlib.Path(output_path).mkdir(parents=True, exist_ok=True)
+
+    setup_logging(output_path, args.log_level)
+ 
+    ws = workspace.Workspace()
+    info(args) 
 
     boards = board.load_config(args.boards)
     info("Using boards:")
     for name, b in boards.items():
-      info(name, b)
-
-    ws = workspace.Workspace()
+      info(f"{name} {b}")
 
     cameras = map_none(str.split, args.cameras, ",")
     
     ws.find_images(args.image_path, cameras)
     ws.load_detect(boards, j=args.j)
 
-    ws.calibrate_single(args.model, args.fix_aspect)
+    ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
     # visualize(ws)
 

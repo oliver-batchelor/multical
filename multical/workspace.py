@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from structs.numpy import shape
 import os
 from multical.optimization.calibration import Calibration
@@ -8,10 +9,11 @@ from .camera import calibrate_cameras
 from logging import getLogger, info, warning, debug
 
 
+
 class Workspace:
   def __init__(self):
 
-    self.calibrations = {}
+    self.calibrations = OrderedDict()
     self.detections = None
     self.boards = None
 
@@ -66,8 +68,6 @@ class Workspace:
       info("---------------")
 
 
-
-
   def initialise_poses(self):
     assert self.cameras is not None
     self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
@@ -84,16 +84,21 @@ class Workspace:
     return calib
 
 
-  def calibrate(self, name, optimize=struct(intrinsics=False, board=False), **opt_args):
-    calib = self.calib.enable_intrinsics(optimize.intrinsics).enable_board(optimize.board)
-    calib.adjust_outliers(**opt_args)
-
+  def calibrate(self, name, enable_intrinsics=False, enable_board=False, **opt_args):
+    calib = self.latest_calibration.enable_intrinsics(
+        enable_intrinsics).enable_board(enable_board)
+        
+    calib = calib.adjust_outliers(**opt_args)
     self.calibrations[name] = calib
     return calib
 
   @property
   def sizes(self):
     return self.names._map(len)
+
+  @property
+  def latest_calibration(self):
+    return list(self.calibrations.values())[-1]
 
   def has_calibrations(self):
     return len(self.calibrations) > 0

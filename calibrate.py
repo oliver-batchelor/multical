@@ -16,7 +16,7 @@ from structs.struct import struct, transpose_lists, map_none
 from structs.numpy import shape, Table
 from pprint import pprint
 
-from multical.interface import visualize
+from multical.interface import visualize, visualizer
 from logging import warning, info
 
 
@@ -68,6 +68,11 @@ def main():
     ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
     ws.initialise_poses()
+    ws.calibrate("extrinsics", loss='soft_l1')
+
+    # ws.calibrate("extrinsics", enable_intrinsics=True, enable_board=True, loss='soft_l1')
+
+    visualizer(ws)
 
     assert False    
 

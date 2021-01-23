@@ -313,7 +313,6 @@ def initialise_poses(pose_table):
   camera = estimate_relative_poses(pose_table, axis=0)
   board  = estimate_relative_poses_inv(pose_table, axis=2)
 
-
   # solve for the rig transforms cam @ rig @ board = pose
   # first take inverse of both sides by board pose  
   # cam @ rig = board_relative = pose @ board^-1
@@ -328,8 +327,6 @@ def initialise_poses(pose_table):
     camera = camera,
     board = board
   )
-
-  
 
 
 

@@ -99,13 +99,12 @@ class Calibration(parameters.Parameters):
     def get_pose_params(poses):
         return rtvec.from_matrix(poses.poses).ravel()
 
+    pose    = self.pose_estimates._map(get_pose_params)
+
     return struct(
-      pose    = struct(
-        camera = get_pose_params(self.pose_estimates.camera),
-        rig = get_pose_params(self.pose_estimates.rig)
-      ),
+      pose    = struct(camera=pose.camera, rig=pose.rig, board=pose.board),
       camera  = [camera.param_vec for camera in self.cameras] if self.optimize_intrinsics else [], 
-      board   = [self.board.param_vec] if self.optimize_board else []
+      board   = [board.param_vec for board in self.boards] if self.optimize_board else []
     )    
   
   def with_params(self, params):
@@ -114,24 +113,23 @@ class Calibration(parameters.Parameters):
     sets camera intrinsic parameters (if enabled),
     sets adjusted board points (if enabled)
     """
-    def from_pose_params(pose_params):
-      return rtvec.to_matrix(pose_params.reshape(-1, 6))
-    
-    pose_estimates = struct(
-      rig = self.pose_estimates.rig._update(poses=from_pose_params(params.pose.rig)),
-      camera = self.pose_estimates.camera._update(poses=from_pose_params(params.pose.camera))
-    )
+    def update_pose(pose_estimates, pose_params):
+      m = rtvec.to_matrix(pose_params.reshape(-1, 6))
+      return pose_estimates._update(poses=m)
+
+    pose_estimates = self.pose_estimates._zipWith(update_pose, params.pose)
 
     cameras = self.cameras
     if self.optimize_intrinsics:
       cameras = [camera.with_param_vec(p) for p, camera in 
         zip(params.camera, self.cameras)]
 
-    board = self.board
+    boards = self.boards
     if self.optimize_board:
-      board = board.with_param_vec(params.board[0])
+      boards = [board.with_param_vec(board_params) 
+        for board, board_params in zip(boards, params.board)]
 
-    return self.copy(cameras=cameras, pose_estimates=pose_estimates, board=board)
+    return self.copy(cameras=cameras, pose_estimates=pose_estimates, boards=boards)
 
   @cached_property
   def sparsity_matrix(self):
@@ -156,8 +154,10 @@ class Calibration(parameters.Parameters):
     param_mappings = (
       pose_mapping(self.pose_estimates.camera, axis=0) +
       pose_mapping(self.pose_estimates.rig, axis=1) +
+      pose_mapping(self.pose_estimates.board, axis=2) +
+
       param_indexes(0, self.params.camera) +
-      concat_lists([param_indexes(2, board.reshape(-1, 3)) 
+      concat_lists([param_indexes(3, board.reshape(-1, 3)) 
         for board in self.params.board])
     )
 
@@ -220,6 +220,7 @@ class Calibration(parameters.Parameters):
       self.report(f"adjust_outliers: iteration-{i}")
       self = self.reject_outliers_quantile(quantile, factor).bundle_adjust(**kwargs)
  
+    self.report(f"adjust_outliers: end")
     return self
 
 
@@ -259,8 +260,6 @@ class Calibration(parameters.Parameters):
     else:
       info(f"{stage}: reprojection RMS={overall.rms:.3f}, n={overall.n}, "
            f"quantiles={overall.quantiles}")
-
-
 
 
 

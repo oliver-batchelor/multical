@@ -1,3 +1,4 @@
+from logging import info
 import math
 import numpy as np
 
@@ -53,18 +54,29 @@ class Calibration(parameters.Parameters):
   def inliers(self):
     return choose(self.inlier_mask, self.valid_points)
 
+
+
   @cached_property
   def projected(self):
     """ Projected points from multiplying out poses and then projecting to each image. 
     Returns a table of points corresponding to point_table"""
-    board_points = self.board.adjusted_points.astype(np.float64)
+    
+    def pad_points(board):
+      points = board.adjusted_points.astype(np.float64)
+      return np.pad(points, [(0, self.point_table._shape[3] - points.shape[0]), (0, 0)])
+      
+    board_points = np.stack([pad_points(board) for board in self.boards], axis=0)
+
     camera_points = matrix.transform_homog(
-      t      = np.expand_dims(self.pose_table.poses, 2),
+      t      = np.expand_dims(self.pose_table.poses, 3),
       points = np.expand_dims(board_points, [0, 1])
     )
 
-    image_points = [camera.project(p) for camera, p in zip(self.cameras, camera_points)]
-    valid_poses = np.repeat(np.expand_dims(self.pose_table.valid_poses, axis=2), self.size.points, axis=2)
+    image_points = [camera.project(p) for camera, p in 
+      zip(self.cameras, camera_points)]
+    
+    valid_poses = np.repeat(np.expand_dims(self.pose_table.valid_poses, axis=3), 
+      self.size.points, axis=3)
 
     return Table.create(points=np.stack(image_points), valid_points=valid_poses)
 
@@ -174,11 +186,9 @@ class Calibration(parameters.Parameters):
     return self.copy(optimize_board=enabled)    
 
   
-
-
   def copy(self, **k):
     """Copy calibration environment and change some parameters (no mutation)"""
-    d = dict(cameras=self.cameras, board=self.board, point_table=self.point_table, 
+    d = dict(cameras=self.cameras, boards=self.boards, point_table=self.point_table, 
       pose_estimates=self.pose_estimates, inlier_mask=self.inlier_mask, 
       optimize_intrinsics=self.optimize_intrinsics, optimize_board=self.optimize_board)
 
@@ -200,8 +210,8 @@ class Calibration(parameters.Parameters):
     num_outliers = valid.sum() - inliers.sum()
     inlier_percent = 100.0 * inliers.sum() / valid.sum()
 
-    print(f"""Rejecting {num_outliers} outliers with error > {threshold:.2f} pixels,
-          keeping {inliers.sum()} / {valid.sum()} inliers, ({inlier_percent:.2f}%)""")
+    info(f"Rejecting {num_outliers} outliers with error > {threshold:.2f} pixels, "
+         f"keeping {inliers.sum()} / {valid.sum()} inliers, ({inlier_percent:.2f}%)")
 
     return self.copy(inlier_mask = inliers)
 
@@ -244,9 +254,11 @@ class Calibration(parameters.Parameters):
     inliers = error_stats(self.reprojection_inliers)
 
     if self.inlier_mask is not None:
-      print(f"{stage}: reprojection RMS={inliers.rms:.3f} ({overall.rms:.3f}), n={inliers.n} ({overall.n}), quantiles={overall.quantiles}")
+      info(f"{stage}: reprojection RMS={inliers.rms:.3f} ({overall.rms:.3f}), "
+           f"n={inliers.n} ({overall.n}), quantiles={overall.quantiles}")
     else:
-      print(f"{stage}: reprojection RMS={overall.rms:.3f}, n={overall.n}, quantiles={overall.quantiles}")
+      info(f"{stage}: reprojection RMS={overall.rms:.3f}, n={overall.n}, "
+           f"quantiles={overall.quantiles}")
 
 
 

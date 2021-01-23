@@ -152,7 +152,7 @@ def estimate_transform(table, i, j, axis=0):
 
   debug(f"Estimate transform axis={axis}, pair {(i, j)}, "
         f"inliers {inliers.sum()}/{poses_i.shape[0]}, "
-        f"error (rms) {err_inlier:.4f} ({err:.4f})")
+        f"rms frobius norm (with outlier) {err_inlier:.4f} ({err:.4f})")
   return t
 
 def fill_poses(pose_dict, n):
@@ -211,8 +211,10 @@ def estimate_relative_poses_inv(table, axis=2, hop_penalty=0.9):
 
 
 def valid_points(estimates, point_table):
-  valid_poses = np.expand_dims(estimates.camera.valid_poses, 1) & np.expand_dims(
-      estimates.rig.valid_poses, 0)
+  valid_poses = (np.expand_dims(estimates.camera.valid_poses, [1, 2]) & 
+    np.expand_dims(estimates.rig.valid_poses, [0, 2]) &
+    np.expand_dims(estimates.board.valid_poses, [0, 1]))
+
   return point_table.valid_points & np.expand_dims(valid_poses, valid_poses.ndim)
 
 
@@ -271,8 +273,9 @@ def expand(table, dims):
 
 
 def expand_poses(estimates):
-  return multiply_expand(estimates.camera, 1, estimates.rig, 0)  
- 
+  camera_rig = multiply_expand(estimates.camera, 1, estimates.rig, 0)  
+  return multiply_expand(camera_rig, 2, estimates.board, [0, 1])
+
 def mean_robust_n(pose_table, axis=0):
   def f(poses):
     if not np.any(poses.valid_poses):
@@ -303,8 +306,6 @@ def relative_between_n(table1, table2, axis=0, inv=False):
     in zip(table1._sequence(axis), table2._sequence(axis))]
 
   return Table.stack(relative_poses)
-
-
 
 
 def initialise_poses(pose_table):

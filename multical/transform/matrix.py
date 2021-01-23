@@ -43,9 +43,6 @@ def error_transform(t, source, dest):
   return np.linalg.norm(t @ source - dest, axis=(1, 2)) 
 
 
- 
-
-
 def center_translation(m):
   r, t = split(m)
   t = t - t.mean(axis=0, keepdims=True)

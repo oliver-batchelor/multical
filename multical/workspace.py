@@ -77,8 +77,10 @@ class Workspace:
 
     pose_initialisation = tables.initialise_poses(self.pose_table)
     calib = Calibration(self.cameras, self.boards, self.point_table, pose_initialisation)
-    self.calibrations['initialisation'] = calib
+    calib = calib.reject_outliers_quantile(0.75, 2)
+    calib.report(f"initialisation")
 
+    self.calibrations['initialisation'] = calib
     return calib
 
 

@@ -1,5 +1,5 @@
 from functools import partial
-from logging import info
+from logging import debug, info
 import numpy as np
 
 from structs.struct import transpose_structs, lens
@@ -137,12 +137,23 @@ def pattern_overlaps(table, axis=0):
           has_pose.astype(np.float32) * weight)
   return overlaps
 
+def rms(errors):
+  return np.sqrt(np.square(errors).mean())
 
 def estimate_transform(table, i, j, axis=0):
-  poses_i = table._index_select(i, axis=axis).poses
-  poses_j = table._index_select(j, axis=axis).poses
-  return matrix.align_transforms_robust(poses_i, poses_j)[0]
+  poses_i = table._index_select(i, axis=axis).poses.reshape(-1, 4, 4)
+  poses_j = table._index_select(j, axis=axis).poses.reshape(-1, 4, 4)
 
+  assert poses_i.shape == poses_j.shape
+
+  t, inliers = matrix.align_transforms_robust(poses_i, poses_j)
+  err = rms(matrix.error_transform(t, poses_i, poses_j))
+  err_inlier = rms(matrix.error_transform(t, poses_i[inliers], poses_j[inliers]))
+
+  debug(f"Estimate transform axis={axis}, pair {(i, j)}, "
+        f"inliers {inliers.sum()}/{poses_i.shape[0]}, "
+        f"error (rms) {err_inlier:.4f} ({err:.4f})")
+  return t
 
 def fill_poses(pose_dict, n):
   valid_ids = sorted(pose_dict)
@@ -166,7 +177,9 @@ def table_info( valid, names):
   camera_points = named_counts(names.camera, [0])
   board_points = named_counts(names.board, [2])
 
-  info(f"total: {count_valid(valid)}, cameras: {camera_points}, boards: {board_points}")
+  info(f"Total: {count_valid(valid)}, cameras: {camera_points}, " 
+       f"Boards: {board_points}")
+
   if len(names.camera) > 1 and len(names.board) > 1:
     board_points = count_valid(valid, axes=[0, 2])
     info("Camera-board matrix")
@@ -177,7 +190,12 @@ def table_info( valid, names):
 def estimate_relative_poses(table, axis=0, hop_penalty=0.9):
   n = table._shape[axis]
   overlaps = pattern_overlaps(table, axis=axis)
+
+  debug(f"Axis {axis} overlaps:")
+  debug(overlaps)
+
   master, pairs = graph.select_pairs(overlaps, hop_penalty)
+  debug(f"Selected master {master} and pairs {pairs}")
 
   pose_dict = {master: np.eye(4)}
 
@@ -185,8 +203,11 @@ def estimate_relative_poses(table, axis=0, hop_penalty=0.9):
     t = estimate_transform(table, parent, child, axis=axis)
     pose_dict[child] = t @ pose_dict[parent]
 
-  return fill_poses(pose_dict, n), master
+  return fill_poses(pose_dict, n)
 
+
+def estimate_relative_poses_inv(table, axis=2, hop_penalty=0.9):
+  return inverse(estimate_relative_poses(inverse(table), axis=axis, hop_penalty=hop_penalty))
 
 
 def valid_points(estimates, point_table):
@@ -225,13 +246,15 @@ def can_broadcast(shape1, shape2):
 
 def broadcast_to(table1, table2):
   assert can_broadcast(table1._shape, table2._shape),\
-     f"broadcast_to: table shapes must broadcast {table1._shape} vs {table2._shape}"
+     (f"broadcast_to: table shapes must broadcast "
+      f"{table1._shape} vs {table2._shape}")
 
   return table1._zipWith(lambda t1, t2: np.broadcast_to(t1, t2.shape), table2)
 
 def multiply_tables(table1, table2):
   assert can_broadcast(table1._shape, table2._shape),\
-     f"multiply_tables: table shapes must broadcast {table1._shape} vs {table2._shape}"
+     (f"multiply_tables: table shapes must broadcast "
+      f"{table1._shape} vs {table2._shape}")
 
   return Table.create(
     poses=table1.poses @ table2.poses,
@@ -286,17 +309,23 @@ def relative_between_n(table1, table2, axis=0, inv=False):
 
 def initialise_poses(pose_table):
     # Find relative transforms between cameras and rig poses
-  camera, _ = estimate_relative_poses(pose_table, axis=0)
+  camera = estimate_relative_poses(pose_table, axis=0)
+  board  = estimate_relative_poses_inv(pose_table, axis=2)
 
-  # solve for the rig transforms cam @ rig = pose
-  # camera_relative = multiply_tables(expand( inverse(camera), 1), pose_table)
+
+  # solve for the rig transforms cam @ rig @ board = pose
+  # first take inverse of both sides by board pose  
+  # cam @ rig = board_relative = pose @ board^-1
+  board_relative = multiply_tables(pose_table, expand(inverse(board), [0, 1]) )
   
-  expanded = broadcast_to(expand(camera, 1), pose_table)
-  rig = relative_between_n(expanded, pose_table, axis=1, inv=True)
+  # solve for unknown rig 
+  expanded = broadcast_to(expand(camera, [1, 2]), board_relative)
+  rig = relative_between_n(expanded, board_relative, axis=1, inv=True)
 
   return struct(
     rig = rig,
-    camera = camera
+    camera = camera,
+    board = board
   )
 
   

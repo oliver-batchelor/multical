@@ -16,11 +16,11 @@ from cached_property import cached_property
 
 
 class Calibration(parameters.Parameters):
-  def __init__(self, cameras, board, point_table, pose_estimates, inlier_mask=None, 
+  def __init__(self, cameras, boards, point_table, pose_estimates, inlier_mask=None, 
       optimize_intrinsics=False, optimize_board=False):
 
     self.cameras = cameras
-    self.board = board
+    self.boards = boards
 
     self.point_table = point_table
 
@@ -33,12 +33,13 @@ class Calibration(parameters.Parameters):
     assert len(self.cameras) == self.size.cameras
     assert pose_estimates.camera._shape[0] == self.size.cameras
     assert pose_estimates.rig._shape[0] == self.size.rig_poses
+    assert pose_estimates.board._shape[0] == self.size.boards
 
    
   @cached_property 
   def size(self):
-    cameras, rig_poses, points = self.point_table._prefix
-    return struct(cameras=cameras, rig_poses=rig_poses, points=points)
+    cameras, rig_poses, boards, points = self.point_table._prefix
+    return struct(cameras=cameras, rig_poses=rig_poses, boards=boards, points=points)
 
   @cached_property
   def valid_points(self):

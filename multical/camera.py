@@ -65,8 +65,10 @@ class Camera(Parameters):
     def calibrate(boards, detections, image_size, max_iter=10, eps=1e-3, 
         model='standard', fix_aspect=False, flags=0, max_images=None):
 
-      points = calibration_points(boards, detections, max_images=max_images)
-      
+      points = calibration_points(boards, detections)
+      if max_images is not None:
+        points = top_detection_size(points, max_images)
+
       # termination criteria
       criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, eps)
       flags = Camera.flags(model, fix_aspect) | flags
@@ -144,15 +146,8 @@ class Camera(Parameters):
         return Camera(**d)
 
 
-def calibration_points(boards, detections, max_images=None):
-  
-  board_detections = transpose_lists(detections)
-  points = [board_points(board, detections) for board, detections 
-    in zip(boards, board_detections)]
 
-  return reduce(operator.add, points)
-
-def board_points(board, detections):
+def board_correspondences(board, detections):
   non_empty = [d for d in detections if board.has_min_detections(d)]
   assert len(non_empty) > 0, "calibration_points: no points detected"
 
@@ -160,6 +155,29 @@ def board_points(board, detections):
   return detections._extend(
     object_points = [board.points[ids] for ids in detections.ids]
   )
+
+def index_list(xs, indexes):
+  return np.array(xs, dtype=object)[indexes].tolist()
+
+def top_detection_size(detections, k):
+  sizes = [-ids.size for ids in detections.ids]
+  sorted = detections._map(index_list, np.argsort(sizes))
+  return sorted._map(lambda xs: xs[:k])
+
+
+def image_bins(image_size, approx_bins=10):
+  bin_sizes = min(image_size[0] / approx_bins, image_size[1] / approx_bins)
+  return [np.linspace(0, image_size[axis], bin_sizes[axis]) for axis in [0, 1]]
+
+
+def calibration_points(boards, detections):
+
+  board_detections = transpose_lists(detections)
+  board_points = [board_correspondences(board, detections) for board, detections 
+    in zip(boards, board_detections)]
+
+  return reduce(operator.add, board_points)
+
 
 def calibrate_cameras(boards, points, image_sizes, **kwargs):
   pool = ThreadPool()

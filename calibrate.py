@@ -1,6 +1,7 @@
 
 import logging
 import math
+from multical.io.logging import setup_logging
 from os import path
 import pathlib
 import os
@@ -17,41 +18,6 @@ from pprint import pprint
 
 from multical.interface import visualize
 from logging import warning, info
-import textwrap
-
-class IndentFormatter(logging.Formatter):
-    def __init__(self, *args, **kwargs):
-        super(IndentFormatter, self).__init__(*args, **kwargs)
-
-    def format(self, record):
-      message = record.msg
-      record.msg = ''
-      header = super(IndentFormatter, self).format(record)
-      msg = textwrap.indent(message, ' ' * len(header)).strip()
-      return header + msg
-
-
-def setup_logging(output_path, console_level='INFO'):
-
-    log_file = path.join(output_path, "calibration.log")
-
-
-    stream_handler = logging.StreamHandler(stream=stdout)
-    stream_handler.setLevel(getattr(logging, console_level))
-    stream_handler.setFormatter(IndentFormatter('%(message)s'))
-
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
-    
-    handlers = [
-      stream_handler,
-      file_handler
-    ]
-
-    logging.basicConfig(handlers=handlers, level=logging.DEBUG)
-    info(f"Logging to {log_file}")
- 
 
 
 def main(): 
@@ -73,7 +39,7 @@ def main():
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
     parser.add_argument('--boards', help='configuration file (YAML) for calibration boards')
  
-    parser.add_argument('--intrinsic_images', default=None, help='number of images to use for initial intrinsic calibration default (unlimited)')
+    parser.add_argument('--intrinsic_images', type=int, default=None, help='number of images to use for initial intrinsic calibration default (unlimited)')
  
     parser.add_argument('--log_level', default='INFO', help='logging level for output to terminal')
     parser.add_argument('--output_path', default=None, help='specify output path, default (image_path)')

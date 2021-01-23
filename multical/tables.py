@@ -1,4 +1,5 @@
 from functools import partial
+from logging import info
 import numpy as np
 
 from structs.struct import transpose_structs, lens
@@ -46,15 +47,17 @@ def extract_pose(points, board, camera):
   return valid_pose(rtvec.to_matrix(poses))._extend(num_points=len(detections.ids))\
       if poses is not None else invalid_pose
 
+def map_table(f, point_table, boards, cameras):
+  elems = [[[f(points, board, camera)
+             for points, board in zip(frame_points._sequence(), boards)]  
+               for frame_points in points_camera._sequence()]
+                 for points_camera, camera in zip(point_table._sequence(), cameras)]
 
-def make_pose_table(point_table, board, cameras):
+  return make_nd_table(elems, n = 3)
 
-  poses = [[extract_pose(points, board, camera)
-            for points in points_camera._sequence()]
-           for points_camera, camera in zip(point_table._sequence(), cameras)]
 
-  return make_2d_table(poses)
-
+def make_pose_table(point_table, boards, cameras):
+  return map_table(extract_pose, point_table, boards, cameras)
 
 def make_point_table(detections, boards):
   num_points = np.max([board.num_points for board in boards])
@@ -108,8 +111,7 @@ def matching_points(points, board, cam1, cam2):
         points1=row1.points,
         points2=row2.points,
         object_points=board.points[ids],
-        ids=ids
-    )
+        ids=ids)
     )
 
   return transpose_structs(matching)
@@ -148,6 +150,28 @@ def fill_poses(pose_dict, n):
 
   values, mask = fill_sparse_tile(n, pose_table, valid_ids, np.eye(4))
   return Table.create(poses=values, valid_poses=mask)
+
+def count_valid(valid, axes=[]):
+  dims = np.arange(valid.ndim)
+  for axis in axes:
+     assert axis in dims
+  sum_axes = [axis for axis in dims if not axis in axes]
+  return valid.sum(axis=tuple(sum_axes))
+
+def table_info( valid, names):
+  def named_counts(names, axes=[]):
+    n = count_valid(valid, axes=axes)
+    return dict(zip(names, n))
+
+  camera_points = named_counts(names.camera, [0])
+  board_points = named_counts(names.board, [2])
+
+  info(f"total: {count_valid(valid)}, cameras: {camera_points}, boards: {board_points}")
+  if len(names.camera) > 1 and len(names.board) > 1:
+    board_points = count_valid(valid, axes=[0, 2])
+    info("Camera-board matrix")
+    info(board_points)
+
 
 
 def estimate_relative_poses(table, axis=0, hop_penalty=0.9):

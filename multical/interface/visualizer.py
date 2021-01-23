@@ -180,7 +180,7 @@ class Visualizer(QtWidgets.QMainWindow):
     if self.calibration is not None:
       layers.reprojection = "Reprojection"
     
-    if self.workspace.detected_poses is not None:
+    if self.workspace.pose_table is not None:
       layers.detected_poses = "Detected poses"
       
     return split_dict(layers)

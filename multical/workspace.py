@@ -8,8 +8,6 @@ from .camera import calibrate_cameras
 from logging import getLogger, info, warning, debug
 
 
-
-
 class Workspace:
   def __init__(self):
 
@@ -22,7 +20,8 @@ class Workspace:
     self.image_sizes = None
     self.images = None
 
-    self.detected_poses = None
+    self.point_table = None
+    self.pose_table = None
 
 
   def find_images(self, image_path, camera_dirs=None):
@@ -46,6 +45,10 @@ class Workspace:
     self.detected_points = loaded.points
     self.point_table = tables.make_point_table(loaded.points, self.boards)
 
+    info("Detected point counts:")
+    tables.table_info(self.point_table.valid_points, self.names)
+
+
     self.images = loaded.images
     self.image_size = loaded.image_size
 
@@ -63,12 +66,16 @@ class Workspace:
       info("---------------")
 
 
+
+
   def initialise_poses(self):
     assert self.cameras is not None
-
-    self.detected_poses = tables.make_pose_table(self.point_table, self.boards, self.cameras)
+    self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
     
-    pose_initialisation = tables.initialise_poses(self.detected_poses)
+    info("Pose counts:")
+    tables.table_info(self.pose_table.valid_poses, self.names)
+
+    pose_initialisation = tables.initialise_poses(self.pose_table)
     calib = Calibration(self.cameras, self.boards, self.point_table, pose_initialisation)
     self.calibrations['initialisation'] = calib
 

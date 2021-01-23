@@ -67,7 +67,7 @@ def main():
 
     ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
-    # visualize(ws)
+    ws.initialise_poses()
 
     assert False    
 

@@ -2,8 +2,8 @@ common:
   _type_: 'charuco'
   size: [10, 10]
   aruco_dict: '5X5_1000'
-  square_length: 40
-  marker_length: 32
+  square_length: 0.040
+  marker_length: 0.032
 
   min_rows: 3
   min_points: 9

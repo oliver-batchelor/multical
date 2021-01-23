@@ -4,8 +4,8 @@ boards:
     size: [22, 16]
     aruco_dict: 4X4_1000
 
-    square_length: 25
-    marker_length: 18.75
+    square_length: 0.025
+    marker_length: 0.01875
 
     min_rows: 3
     min_points: 20

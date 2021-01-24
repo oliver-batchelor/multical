@@ -1,10 +1,12 @@
 
 import numpy as np
 from .marker import View, board_mesh
-
+from structs.numpy import shape
+from multical import tables
 
 def camera_markers(viewer, camera_poses, cameras, scale=1.0):
   def add_view(camera_pose, camera):
+
     if camera_pose.valid_poses:
         return View(viewer, camera, np.linalg.inv(camera_pose.poses), scale)
 
@@ -12,28 +14,29 @@ def camera_markers(viewer, camera_poses, cameras, scale=1.0):
     for camera_pose, camera in zip(camera_poses._sequence(), cameras)]
  
 
-def board_objects(viewer, board, pose_estimates):
+def board_objects(viewer, board, pose_estimates, color):
   mesh = board_mesh(board)
-
   def add_board(pose):
-
     if pose.valid_poses:
       return viewer.add_mesh(mesh.copy(), style="wireframe", ambient=0.5,
-        transform=pose.poses, color=(1, 0, 0), show_edges=True)
+        transform=pose.poses, color=color, show_edges=True)
 
-  return [add_board(pose) for pose in pose_estimates.rig._sequence()]
+  return [add_board(pose) for pose in pose_estimates._sequence()]
    
 
 class MovingBoard(object):
-  def __init__(self, viewer, calib, scale=0.05):
+  def __init__(self, viewer, calib, board_colors, scale=0.05):
     self.viewer = viewer
 
     self.scale = scale
     self.views = camera_markers(self.viewer, calib.pose_estimates.camera, 
       calib.cameras, scale=self.scale)
 
-    self.boards = board_objects(self.viewer, calib.board, calib.pose_estimates)
-    self.board_color = (1, 0, 0)
+    board_poses = tables.expand_boards(calib.pose_estimates)
+
+    self.boards = [board_objects(self.viewer, board, board_pose, color)
+      for board, color, board_pose in zip(calib.boards, board_colors, board_poses._sequence(1))]
+    self.board_colors = board_colors
 
     self.show(False)
 
@@ -41,8 +44,9 @@ class MovingBoard(object):
     for view in self.views:
       if view is not None: view.show(shown)
 
-    for board in self.boards:
-      if board is not None: board.SetVisibility(shown)
+    for board_frames in self.boards:
+      for board in board_frames:
+        if board is not None: board.SetVisibility(shown)
 
   def update(self, state):
 
@@ -51,8 +55,10 @@ class MovingBoard(object):
         view.set_color(color)
         view.set_scale(state.scale)
 
-    for i, board in enumerate(self.boards):
-        color = self.board_color if i == state.frame else (0.5, 0.5, 0.5)
+
+    for color, board_frames in zip(self.board_colors, self.boards):
+      for i, board in enumerate(board_frames):
+        color = color if i == state.frame else (0.5, 0.5, 0.5)
         opacity = 1 if i == state.frame else 0.1
 
         if board is not None:

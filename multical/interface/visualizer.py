@@ -28,6 +28,8 @@ def visualize(workspace):
   app.exec_()
 
 
+
+
 class Visualizer(QtWidgets.QMainWindow):
   def __init__(self):
     super(Visualizer, self).__init__()
@@ -48,6 +50,8 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.setDisabled(True)
 
+
+
   def update_calibrations(self, calibrations):
     has_calibrations = len(calibrations) > 0
 
@@ -56,27 +60,39 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.viewer_3d.clear()
     self.controllers = None
-    self.calibration = None
- 
-    if has_calibrations:
-      names, calibs = split_dict(calibrations)
-      self.set_calibration(calibs[-1])
+
+    calib_names, calibs = split_dict(calibrations)
+    self.calibration = calibs[-1] if has_calibrations else None
+
+    self.calibrations_combo.clear()
+    self.calibrations_combo.addItems(calib_names)
+    self.calibrations_combo.setCurrentIndex(len(calibs) - 1)   
 
     self.setup_view_table(self.calibration)
+
+    if has_calibrations:
+      self.set_calibration(len(calib_names) - 1)
 
     _, layer_labels = self.image_layers()
     self.layer_combo.clear()
     self.layer_combo.addItems(layer_labels)
       
-  def set_calibration(self, calibration):
-    self.calibration = calibration
+  def set_calibration(self, index):
+    ws = self.workspace
 
-    params_layout = camera_params.params_viewer(self, self.calibration.cameras, self.workspace.camera_names)
+    assert index < len(ws.calibrations)
+    _, calibs = split_dict(ws.calibrations)
+
+    self.calibration = calibs[index]
+
+    params_layout = camera_params.params_viewer(self, ws.names.camera,
+      self.calibration.cameras, self.calibration.pose_estimates.camera)
+    
     self.param_scroll.setLayout(params_layout)
 
     self.controllers = struct(
-        moving_cameras=MovingCameras(self.viewer_3d, self.calibration),
-        moving_board=MovingBoard(self.viewer_3d, self.calibration)
+        moving_cameras=MovingCameras(self.viewer_3d, self.calibration, ws.board_colors),
+        moving_board=MovingBoard(self.viewer_3d, self.calibration, ws.board_colors)
     )
 
     self.viewer_3d.fix_camera()
@@ -84,21 +100,23 @@ class Visualizer(QtWidgets.QMainWindow):
 
 
   def setup_view_table(self, calibration):
+    ws = self.workspace
     board_labels = ["All boards"] + [f"Board: {name}" for name in self.workspace.names.board]
 
     self.boards_combo.clear()
     self.boards_combo.addItems(board_labels)
 
-    self.view_model = view_table.ViewModelDetections(self.workspace.point_table, self.workspace.names)\
-      if calibration is None else view_table.ViewModelCalibrated(calibration, self.workspace.names) 
+    self.view_model = view_table.ViewModelDetections(ws.point_table, ws.names)\
+      if calibration is None else view_table.ViewModelCalibrated(calibration, ws.names) 
+
+    self.view_table.setModel(self.view_model)
+    self.view_table.setSelectionMode(
+        QtWidgets.QAbstractItemView.SingleSelection)
+    self.select(0, 0)
 
     self.metric_combo.clear()
     self.metric_combo.addItems(self.view_model.metric_labels)
 
-    self.view_table.setSelectionMode(
-        QtWidgets.QAbstractItemView.SingleSelection)
-    self.view_table.setModel(self.view_model)
-    self.select(0, 0)
 
 
 
@@ -136,6 +154,7 @@ class Visualizer(QtWidgets.QMainWindow):
         index, QtCore.QItemSelectionModel.ClearAndSelect)
 
   def selection(self):
+
     selection = self.view_table.selectionModel().selectedIndexes()
     assert len(selection) == 1
 
@@ -215,22 +234,21 @@ class Visualizer(QtWidgets.QMainWindow):
     self.controller.enable(self.state())
 
   def update_view_table(self):
-    inlier_only = self.inliers_check.isChecked()
     metric_selected = self.metric_combo.currentIndex()
     board_index = self.boards_combo.currentIndex()
     board = None if board_index == 0 else board_index - 1
 
-    self.view_model.set_metric(metric_selected, board, inlier_only)
+    self.view_model.set_metric(metric_selected, board)
 
 
   def connect_ui(self):
     self.camera_size_slider.valueChanged.connect(self.update_frame)
     self.view_table.selectionModel().selectionChanged.connect(self.update_frame)
 
-    self.inliers_check.toggled.connect(self.update_view_table)
     self.metric_combo.currentIndexChanged.connect(self.update_view_table)
     self.boards_combo.currentIndexChanged.connect(self.update_view_table)
 
+    self.calibrations_combo.currentIndexChanged.connect(self.set_calibration)
 
     for layer_check in [self.show_ids_check]:
       layer_check.toggled.connect(self.update_image)

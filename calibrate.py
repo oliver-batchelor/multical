@@ -17,7 +17,7 @@ from structs.numpy import shape, Table
 from pprint import pprint
 
 from multical.interface import visualize, visualizer
-from logging import warning, info
+from multical.io.logging import warning, info
 
 
 def main(): 
@@ -68,40 +68,10 @@ def main():
     ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
     ws.initialise_poses()
-    ws.calibrate("extrinsics", loss='soft_l1')
+    # ws.calibrate("extrinsics", loss='soft_l1')
 
     # ws.calibrate("extrinsics", enable_intrinsics=True, enable_board=True, loss='soft_l1')
-
-    visualizer(ws)
-
-    assert False    
-
-    point_table = tables.make_point_table(loaded.points, boards)
-    calib = Calibration.initialise(cameras, boards, point_table)
-
-    calib.report("initialisation")
-    # calib = calib.reject_outliers_quantile(quantile=0.75, factor=4).bundle_adjust()   
-
-    # calib = calib.reject_outliers_quantile(quantile=0.75, factor=2).enable_intrinsics().bundle_adjust()    
-    # calib.report("optimised")
-
-    # calib = calib.enable_board().enable_intrinsics()
-    calib = calib.adjust_outliers(iterations=args.iter, quantile=0.75, factor=3, loss='soft_l1')
-    calib.report("optimised")
-
-    # calib = calib.enable_board().enable_intrinsics()
-    # calib = calib.adjust_outliers(iterations=args.iter, quantile=0.75, factor=3, loss='soft_l1')
-    # calib.report("optimised(intrinsics, board)")
-
-    vis = visualize(calib, loaded.images, camera_names, image_names)
-    
-
-    # save = args.save or path.join(args.input, "calibration.json")
-    # print("writing calibration to:", save)
-    
-    # io.export(save, calib, camera_names, image_names)
-    # calib.plot_errors()
-    # calib.display(loaded.images)
+    visualizer.visualize(ws)
 
 
 if __name__ == '__main__':

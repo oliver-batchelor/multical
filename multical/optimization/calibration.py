@@ -1,10 +1,10 @@
-from logging import info
 import math
 import numpy as np
 
-from .. import tables
-from ..transform import matrix, rtvec
-from ..display import display_pose_projections
+from multical import tables
+from multical.transform import matrix, rtvec
+from multical.display import display_pose_projections
+from multical.io.logging import info
 
 from . import parameters
 
@@ -217,10 +217,10 @@ class Calibration(parameters.Parameters):
 
   def adjust_outliers(self, iterations=4, quantile=0.75, factor=2, **kwargs):
     for i in range(iterations):
-      self.report(f"adjust_outliers: iteration-{i}")
+      self.report(f"Adjust_outliers {i}")
       self = self.reject_outliers_quantile(quantile, factor).bundle_adjust(**kwargs)
  
-    self.report(f"adjust_outliers: end")
+    self.report(f"Adjust_outliers end")
     return self
 
 

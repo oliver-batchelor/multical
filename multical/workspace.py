@@ -6,7 +6,8 @@ from structs.struct import split_dict, struct
 from . import tables, image
 from .camera import calibrate_cameras
 
-from logging import getLogger, info, warning, debug
+from .io.logging import info, warning, debug
+import palettable.colorbrewer.qualitative as palettes
 
 
 
@@ -16,6 +17,7 @@ class Workspace:
     self.calibrations = OrderedDict()
     self.detections = None
     self.boards = None
+    self.board_colors = None
 
     self.names = struct()
 
@@ -41,6 +43,8 @@ class Workspace:
     board_names, self.boards = split_dict(boards)
     self.names = self.names._extend(board = board_names)
     
+    self.board_colors = make_palette(len(boards))
+
     info("Detecting patterns..")
     loaded = image.detect.detect_images(self.boards, self.filenames, j=j, prefix=self.image_path)   
 
@@ -78,7 +82,7 @@ class Workspace:
     pose_initialisation = tables.initialise_poses(self.pose_table)
     calib = Calibration(self.cameras, self.boards, self.point_table, pose_initialisation)
     calib = calib.reject_outliers_quantile(0.75, 2)
-    calib.report(f"initialisation")
+    calib.report(f"Initialisation")
 
     self.calibrations['initialisation'] = calib
     return calib
@@ -100,6 +104,7 @@ class Workspace:
   def latest_calibration(self):
     return list(self.calibrations.values())[-1]
 
+
   def has_calibrations(self):
     return len(self.calibrations) > 0
 
@@ -114,3 +119,6 @@ class Workspace:
         return dict(initialisation = self.cameras)
 
         
+def make_palette(n):
+  n_colors = min(n, 4)
+  return getattr(palettes, f"Set1_{n_colors}").colors

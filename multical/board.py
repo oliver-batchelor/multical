@@ -1,4 +1,4 @@
-from pprint import pformat
+from .io.pprint import pformat, pprint
 from typing import Tuple
 from cached_property import cached_property
 import cv2
@@ -37,11 +37,14 @@ def create_dict(name, offset):
 
 
 class CharucoBoard(Parameters):
-  def __init__(self, board, dict_desc, min_rows=3, min_points=20, 
+  def __init__(self, board, dict_desc, square_length, marker_length, min_rows=3, min_points=20, 
     adjusted_points=None, aruco_params=None):
     
     self.board = board
     self.dict_desc = dict_desc
+
+    self.marker_length = marker_length
+    self.square_length = square_length
 
     self.adjusted_points = choose(adjusted_points, self.points) 
  
@@ -60,8 +63,8 @@ class CharucoBoard(Parameters):
       board = cv2.aruco.CharucoBoard_create(width, height,
          square_length, marker_length, aruco_dict)
 
-      return CharucoBoard(board, dict_desc, aruco_params=aruco_params, 
-        min_rows=min_rows, min_points=min_points)
+      return CharucoBoard(board, dict_desc, marker_length, square_length, 
+        aruco_params=aruco_params, min_rows=min_rows, min_points=min_points)
 
   def export(self):
     return struct(
@@ -85,13 +88,6 @@ class CharucoBoard(Parameters):
   def size(self):
     return self.board.getChessboardSize()
 
-  @property
-  def square_length(self):
-    return self.board.getSquareLength()
-
-  @property
-  def marker_length(self):
-    return self.board.getMarkerLength()
 
   @property 
   def ids(self):
@@ -160,6 +156,7 @@ class CharucoBoard(Parameters):
   def copy(self, **k):
       d = dict(board=self.board, adjusted_points=self.adjusted_points, 
         aruco_params=self.aruco_params, dict_desc=self.dict_desc, 
+        marker_length=self.marker_length, square_length=self.square_length,
         min_rows=self.min_rows, min_points=self.min_points)
       d.update(k)
       return CharucoBoard(**d)

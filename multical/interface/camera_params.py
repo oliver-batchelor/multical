@@ -5,11 +5,11 @@ from PyQt5 import uic
 from PyQt5.QtCore import Qt
 
 
-def params_viewer(parent, calib, camera_names):
+def params_viewer(parent, camera_names, cameras, camera_poses):
 
   layout = QtWidgets.QVBoxLayout()
   for camera_name, camera, camera_pose in\
-     zip(camera_names, calib.cameras, calib.pose_estimates.camera._sequence()):
+     zip(camera_names, cameras, camera_poses._sequence()):
 
     camera_widget = CameraParams(parent)
     camera_widget.init(camera_name, camera, camera_pose)

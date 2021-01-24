@@ -26,26 +26,52 @@
    <bool>false</bool>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout_2">
+   <layout class="QHBoxLayout" name="horizontalLayout_4">
     <item>
      <widget class="QSplitter" name="splitter">
-      <property name="frameShape">
-       <enum>QFrame::NoFrame</enum>
-      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <property name="handleWidth">
-       <number>6</number>
-      </property>
-      <property name="childrenCollapsible">
-       <bool>true</bool>
-      </property>
       <widget class="QWidget" name="layoutWidget">
-       <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetDefaultConstraint</enum>
-        </property>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QComboBox" name="calibrations_combo">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToContents</enum>
+            </property>
+            <property name="minimumContentsLength">
+             <number>12</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>Initialisation</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
         <item>
          <widget class="QTabWidget" name="tab_image">
           <property name="sizePolicy">
@@ -64,8 +90,8 @@
            <attribute name="title">
             <string>Image view</string>
            </attribute>
-           <layout class="QGridLayout" name="gridLayout_2">
-            <item row="0" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <item>
              <widget class="QFrame" name="image_frame">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -148,16 +174,9 @@
         <attribute name="title">
          <string>Views</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <layout class="QVBoxLayout" name="verticalLayout_3">
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout">
-           <item>
-            <widget class="QCheckBox" name="inliers_check">
-             <property name="text">
-              <string>Inliers only</string>
-             </property>
-            </widget>
-           </item>
            <item>
             <widget class="QComboBox" name="metric_combo">
              <property name="sizePolicy">
@@ -169,12 +188,9 @@
              <property name="sizeAdjustPolicy">
               <enum>QComboBox::AdjustToContents</enum>
              </property>
-             <property name="minimumContentsLength">
-              <number>12</number>
-             </property>
              <item>
               <property name="text">
-               <string>Detections (outliers)</string>
+               <string>Detections</string>
               </property>
              </item>
             </widget>
@@ -199,6 +215,19 @@
               </property>
              </item>
             </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </item>
@@ -414,18 +443,33 @@
          <string>Cameras</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_4">
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
+         <item>
+          <layout class="QGridLayout" name="gridLayout_2">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>Master</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="master_combo"/>
+           </item>
+           <item row="0" column="2">
+            <spacer name="horizontalSpacer_3">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
          <item>
           <widget class="QScrollArea" name="scrollArea">
            <property name="frameShape">
@@ -442,8 +486,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>596</width>
-              <height>648</height>
+              <width>579</width>
+              <height>599</height>
              </rect>
             </property>
            </widget>

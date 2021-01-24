@@ -1,3 +1,4 @@
+from structs.numpy import shape
 from .vtk_tools import vtk_transform
 import numpy as np
 
@@ -85,7 +86,7 @@ def board_mesh(board):
   return pv.PolyData(corners, quads)
 
 
-def board_object(viewer, board, transform=None):
+def board_object(viewer, board, color, transform=None):
   mesh = board_mesh(board)
   return viewer.add_mesh(mesh, style="wireframe", lighting=False, 
-    transform=transform, color=(1, 0, 0), show_edges=True)
+    transform=transform, color=color, show_edges=True)

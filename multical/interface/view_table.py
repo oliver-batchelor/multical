@@ -34,6 +34,9 @@ def reprojection_statistics(error, valid, inlier, axis=None):
                       min=min, lower_q=lq, median=median, upper_q=uq, max=max)
 
 
+sum_axes = struct(overall=None, views=(2, 3), 
+  boards=(0, 1, 3), cameras=(1, 2, 3), frames=(0, 2, 3))
+
 def reprojection_tables(calib, inlier_only=False):
   point_table = calib.point_table
   if inlier_only:
@@ -43,16 +46,13 @@ def reprojection_tables(calib, inlier_only=False):
 
   def f(axis): return reprojection_statistics(
       error, valid, calib.inliers, axis=axis)
-  axes = struct(overall=None, views=2, cameras=(1, 2), frames=(0, 2))
-  return axes._map(f)
+  return sum_axes._map(f)
 
 
 def detection_tables(point_table):
   valid = point_table.valid_points
   def f(axis): return np.sum(valid, axis=axis)
-
-  axes = struct(overall=None, views=3, boards=(0, 1, 3), cameras=(1, 2, 3), frames=(0, 2, 3))
-  return axes._map(f)
+  return sum_axes._map(f)
 
 
 def interpolate_hsl(t, color1, color2):
@@ -72,7 +72,7 @@ class ViewModelCalibrated(QAbstractTableModel):
     self.names = names
 
     self.metrics = dict(
-        detected='Detected (Outliers)',
+        detected='Detected',
         median='Median',
         upper_q='Upper quartile',
         max='Maximum',
@@ -81,7 +81,6 @@ class ViewModelCalibrated(QAbstractTableModel):
     )
 
     self.metric = 'detected'
-    self.inlier_only = False
 
   @property
   def metric_labels(self):
@@ -89,10 +88,11 @@ class ViewModelCalibrated(QAbstractTableModel):
 
   @property
   def view_table(self):
-    return self.reprojection_table.views\
-        if not self.inlier_only else self.inlier_table.views
+    return self.reprojection_table.views
 
   def cell_color(self, view_stats):
+    # detection_rate = min(detection_count / self.quantiles[4], 1)
+
     detection_rate = min(view_stats.detected / self.calib.board.num_points, 1)
     outlier_rate = view_stats.outliers / max(view_stats.detected, 1)
 
@@ -103,8 +103,7 @@ class ViewModelCalibrated(QAbstractTableModel):
     color.set_luminance(max(1 - detection_rate, 0.7))
     return color
 
-  def set_metric(self, metric, inlier_only=False):
-
+  def set_metric(self, metric):
     if isinstance(metric, str):
       assert metric in self.metrics
       self.metric = metric
@@ -113,31 +112,26 @@ class ViewModelCalibrated(QAbstractTableModel):
       metric_list = list(self.metrics.keys())
       self.metric = metric_list[metric]
 
-    self.inlier_only = inlier_only
     self.modelReset.emit()
 
   def data(self, index, role):
+    view_stats = self.reprojection_table.views._index[index.column(), index.row()]
+    inlier_stats = self.inlier_table.views._index[index.column(), index.row()]
 
     if role == Qt.DisplayRole:
-      view_stats = self.view_table._index[index.column(), index.row()]
+      inlier, all = inlier_stats[self.metric], view_stats[self.metric]
 
-      if self.metric == "detected":
-        return f"{view_stats.detected} ({view_stats.outliers})"
-      else:
-        return f"{view_stats[self.metric]:.2f}"
+      return f"{inlier} ({all})" if isinstance(inlier, int)\
+        else f"{inlier:.2f} ({all:.2f})" 
 
     if role == Qt.BackgroundRole:
-      view_table = self.reprojection_table.views
-      view_stats = view_table._index[index.column(), index.row()]
-
       rgb = np.array(self.cell_color(view_stats).get_rgb()) * 255
-
       return QBrush(QColor(*rgb))
 
   def headerData(self, index, orientation, role):
     if role == Qt.DisplayRole:
       if orientation == Qt.Horizontal:
-        return self.camera_names[index]
+        return self.names.camera[index]
       else:
         return path.splitext(self.names.image[index])[0]
 

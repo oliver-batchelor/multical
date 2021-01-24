@@ -1,5 +1,5 @@
 from functools import partial
-from logging import debug, info
+from .io.logging import debug, info
 import numpy as np
 
 from structs.struct import transpose_structs, lens
@@ -48,16 +48,14 @@ def extract_pose(points, board, camera):
       if poses is not None else invalid_pose
 
 def map_table(f, point_table, boards, cameras):
-  elems = [[[f(points, board, camera)
-             for points, board in zip(frame_points._sequence(), boards)]  
-               for frame_points in points_camera._sequence()]
-                 for points_camera, camera in zip(point_table._sequence(), cameras)]
-
-  return make_nd_table(elems, n = 3)
-
+  return [[[f(points, board, camera)
+           for points, board in zip(frame_points._sequence(), boards)]  
+             for frame_points in points_camera._sequence()]
+               for points_camera, camera in zip(point_table._sequence(), cameras)]
 
 def make_pose_table(point_table, boards, cameras):
-  return map_table(extract_pose, point_table, boards, cameras)
+  poses = map_table(extract_pose, point_table, boards, cameras)
+  return make_nd_table(poses, n = 3)
 
 def make_point_table(detections, boards):
   num_points = np.max([board.num_points for board in boards])
@@ -150,9 +148,9 @@ def estimate_transform(table, i, j, axis=0):
   err = rms(matrix.error_transform(t, poses_i, poses_j))
   err_inlier = rms(matrix.error_transform(t, poses_i[inliers], poses_j[inliers]))
 
-  debug(f"Estimate transform axis={axis}, pair {(i, j)}, "
-        f"inliers {inliers.sum()}/{poses_i.shape[0]}, "
-        f"rms frobius norm (with outlier) {err_inlier:.4f} ({err:.4f})")
+  info(f"Estimate transform axis={axis}, pair {(i, j)}, "
+       f"inliers {inliers.sum()}/{poses_i.shape[0]}, "
+       f"rms frobius norm (with outlier) {err_inlier:.4f} ({err:.4f})")
   return t
 
 def fill_poses(pose_dict, n):
@@ -191,11 +189,11 @@ def estimate_relative_poses(table, axis=0, hop_penalty=0.9):
   n = table._shape[axis]
   overlaps = pattern_overlaps(table, axis=axis)
 
-  debug(f"Axis {axis} overlaps:")
-  debug(overlaps)
+  info(f"Axis {axis} overlaps:")
+  info(overlaps)
 
   master, pairs = graph.select_pairs(overlaps, hop_penalty)
-  debug(f"Selected master {master} and pairs {pairs}")
+  info(f"Selected master {master} and pairs {pairs}")
 
   pose_dict = {master: np.eye(4)}
 
@@ -272,9 +270,17 @@ def expand(table, dims):
   return table._map(f)
 
 
+def expand_views(estimates):
+  return multiply_expand(estimates.camera, 1, estimates.rig, 0) 
+
+def expand_boards(estimates):
+  return multiply_expand(estimates.rig, 1, estimates.board, 0) 
+
+
 def expand_poses(estimates):
-  camera_rig = multiply_expand(estimates.camera, 1, estimates.rig, 0)  
-  return multiply_expand(camera_rig, 2, estimates.board, [0, 1])
+  view_poses = expand_views(estimates)
+  return multiply_expand(view_poses, 2, estimates.board, [0, 1])
+
 
 def mean_robust_n(pose_table, axis=0):
   def f(poses):

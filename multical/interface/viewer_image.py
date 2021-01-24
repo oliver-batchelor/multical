@@ -8,7 +8,6 @@ from cached_property import cached_property
 import cv2
 import numpy as np
 
-import palettable.colorbrewer.qualitative as palettes
 from structs.struct import choose, struct, transpose_lists
 from structs.numpy import shape
 
@@ -79,18 +78,14 @@ colors = struct(
   inlier = (0, 255, 0),
   invalid = (128, 128, 0))
 
-def board_colors(boards):
-  n_colors = min(len(boards), 4)
-  return getattr(palettes, f"Set1_{n_colors}").colors
-  
 
 
-def add_detections(scene, boards, image_table, options):
+
+def add_detections(scene,  image_table, boards, board_colors, options):
   marker_font = QFont()
   marker_font.setPixelSize(options.marker_size)
-  palette = board_colors(boards)
 
-  for board, color, detected in zip(boards, palette, image_table._sequence(0)):
+  for board, color, detected in zip(boards, board_colors, image_table._sequence(0)):
     pen = cosmetic_pen(color, options.line_width)
     corners = detected.points[detected.valid_points]
     ids = board.ids[detected.valid_points]
@@ -134,7 +129,7 @@ def annotate_image(workspace, calibration, layer, state, options):
 
   if layer == "detections":
     detections = workspace.point_table._index[state.camera, state.frame]
-    add_detections(scene, workspace.boards, detections, options)
+    add_detections(scene, detections, workspace.boards, workspace.board_colors, options)
   else:
     assert False, f"unknown layer {layer}"
 

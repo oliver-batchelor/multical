@@ -1,10 +1,24 @@
 import logging
 import textwrap
-from logging import warning, info
 
 from os import path
 from sys import stdout
 from copy import copy
+
+logger = logging.getLogger("calibration")
+
+def info(msg, *args, **kwargs):
+  return logger.info(msg, *args, **kwargs)
+
+def debug(msg, *args, **kwargs):
+  return logger.debug(msg, *args, **kwargs)
+
+def warning(msg, *args, **kwargs):
+  return logger.warning(msg, *args, **kwargs)
+
+def error(msg, *args, **kwargs):
+  return logger.error(msg, *args, **kwargs)
+
 
 class IndentFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
@@ -26,7 +40,7 @@ def setup_logging(output_path, console_level='INFO'):
 
     stream_handler = logging.StreamHandler(stream=stdout)
     stream_handler.setLevel(getattr(logging, console_level))
-    stream_handler.setFormatter(IndentFormatter('%(message)s'))
+    stream_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
 
     file_handler = logging.FileHandler(log_file, mode='w')
     file_handler.setLevel(logging.DEBUG)
@@ -37,6 +51,10 @@ def setup_logging(output_path, console_level='INFO'):
       file_handler
     ]
 
-    logging.basicConfig(handlers=handlers, level=logging.DEBUG)
+    for handler in handlers:
+      logger.addHandler(handler)
+
+    logger.setLevel(logging.DEBUG)
+
     info(f"Logging to {log_file}")
  

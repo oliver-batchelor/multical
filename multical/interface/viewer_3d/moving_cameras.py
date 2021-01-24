@@ -4,7 +4,7 @@ from .marker import board_object, View
 from multical import tables
 
 def view_markers(viewer, pose_estimates, cameras, scale=1.0):
-  view_poses = tables.inverse(tables.expand_poses(pose_estimates))
+  view_poses = tables.inverse(tables.expand_views(pose_estimates))
 
   def add_view(view_pose, camera):
     if view_pose.valid_poses:
@@ -16,16 +16,17 @@ def view_markers(viewer, pose_estimates, cameras, scale=1.0):
 
 
 class MovingCameras(object):
-  def __init__(self, viewer, calib):
+  def __init__(self, viewer, calib, board_colors):
     self.viewer = viewer
 
     self.views = view_markers(self.viewer, calib.pose_estimates, calib.cameras)
-    self.board = board_object(self.viewer, calib.board)
-
-    self.camera_view = False
+    self.boards = [board_object(self.viewer, board, color) 
+      for board, color in zip(calib.boards, board_colors)]
 
   def show(self, is_shown):
-    self.board.SetVisibility(is_shown)
+    for board in self.boards:
+      board.SetVisibility(is_shown)
+  
     for view in self.valid_views:
       view.show(is_shown)
 

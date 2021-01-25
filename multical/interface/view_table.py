@@ -1,4 +1,6 @@
+from collections import OrderedDict
 import math
+from numbers import Integral
 from os import path
 
 from PyQt5.QtGui import QBrush, QColor
@@ -8,7 +10,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QAbstractTableModel
 import numpy as np
 
-from structs.struct import struct
+from structs.struct import struct, split_dict
 from structs.numpy import shape, Table
 
 from colour import Color
@@ -34,7 +36,7 @@ def reprojection_statistics(error, valid, inlier, axis=None):
                       min=min, lower_q=lq, median=median, upper_q=uq, max=max)
 
 
-sum_axes = struct(overall=None, views=(2, 3), 
+sum_axes = struct(overall=None, views=(2, 3), board_views=(3,),
   boards=(0, 1, 3), cameras=(1, 2, 3), frames=(0, 2, 3))
 
 def reprojection_tables(calib, inlier_only=False):
@@ -49,29 +51,45 @@ def reprojection_tables(calib, inlier_only=False):
   return sum_axes._map(f)
 
 
+def get_view_metric(reprojection_table, metric, board=None):
+  views = (reprojection_table.views if board is None 
+    else reprojection_table.board_views._index[:, :, board])
+
+  return views[metric]
+
+
 def detection_tables(point_table):
   valid = point_table.valid_points
   def f(axis): return np.sum(valid, axis=axis)
   return sum_axes._map(f)
 
 
-def interpolate_hsl(t, color1, color2):
-  hsl1 = np.array(color1.get_hsl())
-  hsl2 = np.array(color2.get_hsl())
-  return Color(hsl=hsl2 * t + hsl1 * (1 - t))
+def hsl_color(name):
+  hsl = Color(name).get_hsl()
+  return np.array(hsl)
 
+def lerp(t, x, y):
+  return t * x + (1 - t) * y
+
+def lerp_table(t, x, y):
+  assert x.shape == y.shape
+  et = np.expand_dims(t, tuple(t.ndim + np.arange(x.ndim)))
+  ex = np.expand_dims(x, tuple(np.arange(t.ndim)))
+  ey = np.expand_dims(y, tuple(np.arange(t.ndim)))
+
+  return lerp(et, ex, ey)
 
 class ViewModelCalibrated(QAbstractTableModel):
   def __init__(self, calib, names):
     super(ViewModelCalibrated, self).__init__()
 
     self.calib = calib
-    self.reprojection_table = reprojection_tables(calib)
-    self.inlier_table = reprojection_tables(calib, inlier_only=True)
+    self.reproj = reprojection_tables(calib)
+    self.reproj_inl = reprojection_tables(calib, inlier_only=True)
 
     self.names = names
 
-    self.metrics = dict(
+    self.metric_types = OrderedDict(
         detected='Detected',
         median='Median',
         upper_q='Upper quartile',
@@ -80,53 +98,50 @@ class ViewModelCalibrated(QAbstractTableModel):
         mse='Mean Square Error'
     )
 
-    self.metric = 'detected'
+    self.set_metric(0, None)
 
   @property
   def metric_labels(self):
-    return list(self.metrics.values())
+    return list(self.metric_types.values())
 
-  @property
-  def view_table(self):
-    return self.reprojection_table.views
 
-  def cell_color(self, view_stats):
-    # detection_rate = min(detection_count / self.quantiles[4], 1)
+  def make_cell_color_table(self, board):
+    detections, inliers = self.get_metric_tables('detected', board)
+    upper_q = np.quantile(detections, 0.75)
 
-    detection_rate = min(view_stats.detected / self.calib.board.num_points, 1)
-    outlier_rate = view_stats.outliers / max(view_stats.detected, 1)
+    outlier_rate = (detections - inliers) / np.maximum(1, detections)
+    outlier_t = np.minimum(outlier_rate * 5, 1.0)
+    colors = lerp_table(outlier_t, hsl_color("red"), hsl_color("green"))
 
-    outlier_t = min(outlier_rate * 5, 1.0)
-    color = interpolate_hsl(
-        outlier_t, Color("green"), Color("red"))
+    detection_rate = np.minimum(detections / upper_q, 1.0)
 
-    color.set_luminance(max(1 - detection_rate, 0.7))
-    return color
+    colors[..., 2] = np.clip(1 - detection_rate + 0.25, 0.5, 1.0)
+    return colors 
 
-  def set_metric(self, metric):
-    if isinstance(metric, str):
-      assert metric in self.metrics
-      self.metric = metric
-    else:
-      assert isinstance(metric, int)
-      metric_list = list(self.metrics.keys())
-      self.metric = metric_list[metric]
+  def get_metric_tables(self, metric, board=None):
+    return get_view_metric(self.reproj, metric, board), get_view_metric(self.reproj_inl, metric, board)
 
+  def set_metric(self, index, board=None):
+    assert isinstance(index, int) and index < len(self.metric_types)
+    keys, _ = split_dict(self.metric_types)
+    self.metric = keys[index]
+
+    self.view_table, self.view_table_inl = self.get_metric_tables(self.metric, board)
+    self.cell_color_table = self.make_cell_color_table(board)
     self.modelReset.emit()
 
   def data(self, index, role):
-    view_stats = self.reprojection_table.views._index[index.column(), index.row()]
-    inlier_stats = self.inlier_table.views._index[index.column(), index.row()]
+
+    all = self.view_table[index.column(), index.row()]
+    inlier = self.view_table_inl[index.column(), index.row()]
 
     if role == Qt.DisplayRole:
-      inlier, all = inlier_stats[self.metric], view_stats[self.metric]
-
-      return f"{inlier} ({all})" if isinstance(inlier, int)\
+      return f"{inlier} ({all})" if isinstance(inlier, Integral)\
         else f"{inlier:.2f} ({all:.2f})" 
 
     if role == Qt.BackgroundRole:
-      rgb = np.array(self.cell_color(view_stats).get_rgb()) * 255
-      return QBrush(QColor(*rgb))
+      hsl = self.cell_color_table[index.column(), index.row()]
+      return QBrush(QColor.fromHslF(*hsl))
 
   def headerData(self, index, orientation, role):
     if role == Qt.DisplayRole:
@@ -136,10 +151,10 @@ class ViewModelCalibrated(QAbstractTableModel):
         return path.splitext(self.names.image[index])[0]
 
   def rowCount(self, index):
-    return self.view_table._shape[1]
+    return len(self.names.image)
 
   def columnCount(self, index):
-    return self.view_table._shape[0]
+    return len(self.names.camera)
 
 
 class ViewModelDetections(QAbstractTableModel):
@@ -164,12 +179,11 @@ class ViewModelDetections(QAbstractTableModel):
 
   def cell_color(self, detection_count):
     detection_rate = min(detection_count / self.quantiles[4], 1)
+    color = hsl_color("lime")
+    color[2] = 0.4 + (1 - detection_rate) * 0.6
+    return color 
 
-    color = Color("lime")
-    color.set_luminance(0.4 + (1 - detection_rate) * 0.6 )
-    return color
-
-  def set_metric(self, metric, board, inlier_only=False):
+  def set_metric(self, metric, board):
     assert metric < len(self.metrics)
     assert board is None or board < len(self.names.board) 
     
@@ -195,8 +209,8 @@ class ViewModelDetections(QAbstractTableModel):
       return f"{count}"
 
     if role == Qt.BackgroundRole:
-      rgb = np.array(self.cell_color(count).get_rgb()) * 255
-      return QBrush(QColor(*rgb))
+      hsl = self.cell_color(count) 
+      return QBrush(QColor.fromHslF(*hsl))
 
   def headerData(self, index, orientation, role):
     if role == Qt.DisplayRole:

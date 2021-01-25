@@ -56,9 +56,9 @@ class MovingBoard(object):
         view.set_scale(state.scale)
 
 
-    for color, board_frames in zip(self.board_colors, self.boards):
+    for board_color, board_frames in zip(self.board_colors, self.boards):
       for i, board in enumerate(board_frames):
-        color = color if i == state.frame else (0.5, 0.5, 0.5)
+        color = board_color if i == state.frame else (0.5, 0.5, 0.5)
         opacity = 1 if i == state.frame else 0.1
 
         if board is not None:

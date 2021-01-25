@@ -232,7 +232,11 @@
           </layout>
          </item>
          <item>
-          <widget class="QTableView" name="view_table"/>
+          <widget class="QTableView" name="view_table">
+           <attribute name="horizontalHeaderMinimumSectionSize">
+            <number>25</number>
+           </attribute>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -486,7 +490,7 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>579</width>
+              <width>505</width>
               <height>599</height>
              </rect>
             </property>

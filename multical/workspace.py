@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import numpy as np
 from structs.numpy import shape
 import os
 from multical.optimization.calibration import Calibration
@@ -121,4 +122,5 @@ class Workspace:
         
 def make_palette(n):
   n_colors = min(n, 4)
-  return getattr(palettes, f"Set1_{n_colors}").colors
+  colors = getattr(palettes, f"Set1_{n_colors}").colors
+  return np.array(colors) / 255

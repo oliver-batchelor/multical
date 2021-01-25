@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import math
 
 from .viewer_3d.viewer_3d import Viewer3D
@@ -195,19 +196,18 @@ class Visualizer(QtWidgets.QMainWindow):
     self.update_image()
 
   def image_layers(self):
-    layers = struct(detections="Detections")
+    layers = OrderedDict(detections="Detections")
     if self.calibration is not None:
-      layers.reprojection = "Reprojection"
+      layers['reprojection'] = "Reprojection"
     
     if self.workspace.pose_table is not None:
-      layers.detected_poses = "Detected poses"
-      
+      layers['detected_poses'] = "Detected poses"
+          
     return split_dict(layers)
 
   def update_image(self):
     state = self.state()
     layer_names, _ = self.image_layers()
-
 
     layer_name = layer_names[self.layer_combo.currentIndex()]
 
@@ -229,7 +229,7 @@ class Visualizer(QtWidgets.QMainWindow):
     if self.moving_cameras_check.isChecked():
       self.controller = self.controllers.moving_cameras
     else:
-      self.controller = self.controllers.camera_view
+      self.controller = self.controllers.moving_board
 
     self.controller.enable(self.state())
 

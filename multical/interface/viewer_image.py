@@ -1,4 +1,5 @@
 
+from collections import OrderedDict
 from functools import partial
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QFont
@@ -26,7 +27,7 @@ def qt_image(image):
   
 
 def cosmetic_pen(color, width=2):
-    pen = QPen(QColor(*color))
+    pen = QPen(QColor.fromRgbF(*color))
     pen.setCosmetic(True)
     pen.setWidth(width)
     return pen
@@ -64,7 +65,7 @@ def cross(point, radius, pen):
 
 def id_marker(id, point, radius, color, font):
   item = QtWidgets.QGraphicsTextItem(str(id))
-  item.setDefaultTextColor(QColor(*color))
+  item.setDefaultTextColor(QColor.fromRgbF(*color))
   item.setFont(font)
   
   container = group([item])
@@ -73,10 +74,10 @@ def id_marker(id, point, radius, color, font):
 
 
 colors = struct(
-  error_line = (255, 255, 0),
-  outlier = (255, 0, 0),
-  inlier = (0, 255, 0),
-  invalid = (128, 128, 0))
+  error_line = (1, 1, 0),
+  outlier =    (1, 0, 0),
+  inlier =     (0, 1, 0),
+  invalid =    (0.5, 0.5, 0))
 
 
 

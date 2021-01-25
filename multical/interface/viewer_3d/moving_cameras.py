@@ -19,9 +19,11 @@ class MovingCameras(object):
   def __init__(self, viewer, calib, board_colors):
     self.viewer = viewer
 
+    board_poses = calib.pose_estimates.board.poses
+
     self.views = view_markers(self.viewer, calib.pose_estimates, calib.cameras)
-    self.boards = [board_object(self.viewer, board, color) 
-      for board, color in zip(calib.boards, board_colors)]
+    self.boards = [board_object(self.viewer, board, color, transform=t) 
+      for board, color, t in zip(calib.boards, board_colors, board_poses)]
 
   def show(self, is_shown):
     for board in self.boards:

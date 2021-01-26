@@ -1,4 +1,4 @@
-from .io.pprint import pformat, pprint
+from pprint import pformat, pprint
 from typing import Tuple
 from cached_property import cached_property
 import cv2

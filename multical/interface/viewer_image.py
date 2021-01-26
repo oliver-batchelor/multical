@@ -80,23 +80,46 @@ colors = struct(
   invalid =    (0.5, 0.5, 0))
 
 
+def add_marker(scene, corner, id, options, pen, color, font):
+    scene.addItem(cross(corner, options.marker_size, pen))
+    if options.show_ids:
+      scene.addItem(id_marker(id, corner, options.marker_size, color, font))
 
 
-def add_detections(scene,  image_table, boards, board_colors, options):
+
+def add_detections(scene, points, boards, board_colors, options):
   marker_font = QFont()
   marker_font.setPixelSize(options.marker_size)
 
-  for board, color, detected in zip(boards, board_colors, image_table._sequence(0)):
+  for board, color, detected in zip(boards, board_colors, points._sequence(0)):
     pen = cosmetic_pen(color, options.line_width)
     corners = detected.points[detected.valid_points]
-    ids = board.ids[detected.valid_points]
 
-    for corner, id in zip(corners, ids):
-      scene.addItem(cross(corner, options.marker_size, pen))
+    for corner, id in zip(corners, board.ids[detected.valid_points]):
+      add_marker(scene, corner, id, options, pen, color, marker_font)
 
-    if options.show_ids:
-      for corner, id in zip(corners, ids):
-        scene.addItem(id_marker(id, corner, options.marker_size, color, marker_font))
+def add_reprojections(scene, points, projected, inliers, boards, options):
+  marker_font = QFont()
+  marker_font.setPixelSize(options.marker_size)
+
+  frame_table = points._extend(valid = projected.valid_points, proj=projected.points, inlier=inliers)
+
+  colors = struct(
+    error_line = (1, 1, 0),
+    outlier =    (1, 0, 0),
+    inlier =     (0, 1, 0),
+    invalid =    (0.5, 0.5, 0))  
+  
+  pens = colors._map(cosmetic_pen, options.line_width)
+
+  for board, board_points in zip(boards, frame_table.sequence(0)):
+      for point, id in zip(board_points._sequence(), board.ids):
+
+        color_key = 'invalid' if not point.valid else ('inlier' if point.inlier else 'outlier')
+        add_marker(scene, point.points, id, options, pens[color_key], colors[color_key], marker_font)
+
+        if point.valid:
+          scene.addItem.append(line(point.proj, point.points, pens.error_line))
 
 
 
@@ -128,9 +151,13 @@ def annotate_image(workspace, calibration, layer, state, options):
   pixmap = QPixmap(qt_image(image))
   scene.addPixmap(pixmap)
 
+  detections = workspace.point_table._index[state.camera, state.frame]
   if layer == "detections":
-    detections = workspace.point_table._index[state.camera, state.frame]
     add_detections(scene, detections, workspace.boards, workspace.board_colors, options)
+  elif layer == "reprojection":
+    assert calibration is not None
+    projected = calibration.projected._index[state.camera, state.frame]
+    add_reprojections(scene, detections, projected, workspace.boards, options)
   else:
     assert False, f"unknown layer {layer}"
 

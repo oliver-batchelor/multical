@@ -196,9 +196,10 @@ class Visualizer(QtWidgets.QMainWindow):
     self.update_image()
 
   def image_layers(self):
-    layers = OrderedDict(detections="Detections")
+    layers = OrderedDict()
     if self.calibration is not None:
       layers['reprojection'] = "Reprojection"
+    layers['detections'] = "Detections"
     
     if self.workspace.pose_table is not None:
       layers['detected_poses'] = "Detected poses"

@@ -42,7 +42,7 @@ sum_axes = struct(overall=None, views=(2, 3), board_views=(3,),
 def reprojection_tables(calib, inlier_only=False):
   point_table = calib.point_table
   if inlier_only:
-    point_table = point_table._extend(valid_points=calib.inliers)
+    point_table = point_table._extend(valid=calib.inliers)
 
   error, valid = tables.reprojection_error(calib.projected, point_table)
 
@@ -59,7 +59,7 @@ def get_view_metric(reprojection_table, metric, board=None):
 
 
 def detection_tables(point_table):
-  valid = point_table.valid_points
+  valid = point_table.valid
   def f(axis): return np.sum(valid, axis=axis)
   return sum_axes._map(f)
 

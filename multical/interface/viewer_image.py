@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 
 from structs.struct import choose, struct, transpose_lists
-from structs.numpy import shape
+from structs.numpy import Table, shape
 
 def qt_image(image):
   assert image.ndim in [2, 3], f"qt_image: unsupported image dimensions {image.ndim}"
@@ -87,22 +87,26 @@ def add_marker(scene, corner, id, options, pen, color, font):
 
 
 
-def add_detections(scene, points, boards, board_colors, options):
+def add_point_markers(scene, points, board, color, options):
   marker_font = QFont()
   marker_font.setPixelSize(options.marker_size)
 
-  for board, color, detected in zip(boards, board_colors, points._sequence(0)):
-    pen = cosmetic_pen(color, options.line_width)
-    corners = detected.points[detected.valid_points]
+  pen = cosmetic_pen(color, options.line_width)
+  corners = points.points[points.valid]
 
-    for corner, id in zip(corners, board.ids[detected.valid_points]):
-      add_marker(scene, corner, id, options, pen, color, marker_font)
+  for corner, id in zip(corners, board.ids[points.valid]):
+    add_marker(scene, corner, id, options, pen, color, marker_font)
+
+
+
+
+
 
 def add_reprojections(scene, points, projected, inliers, boards, options):
   marker_font = QFont()
   marker_font.setPixelSize(options.marker_size)
 
-  frame_table = points._extend(valid = projected.valid_points, proj=projected.points, inlier=inliers)
+  frame_table = points._extend(proj=projected.points, inlier=inliers)
 
   colors = struct(
     error_line = (1, 1, 0),
@@ -112,35 +116,16 @@ def add_reprojections(scene, points, projected, inliers, boards, options):
   
   pens = colors._map(cosmetic_pen, options.line_width)
 
-  for board, board_points in zip(boards, frame_table.sequence(0)):
+  for board, board_points in zip(boards, frame_table._sequence(0)):
       for point, id in zip(board_points._sequence(), board.ids):
 
         color_key = 'invalid' if not point.valid else ('inlier' if point.inlier else 'outlier')
-        add_marker(scene, point.points, id, options, pens[color_key], colors[color_key], marker_font)
+        add_marker(scene, point.proj, id, options, pens[color_key], colors[color_key], marker_font)
 
         if point.valid:
-          scene.addItem.append(line(point.proj, point.points, pens.error_line))
+          scene.addItem(line(point.proj, point.points, pens.error_line))
 
 
-
-# def calibrated_layers(camera, boards, image_table, radius=10):
-#   refined, pose = [], []
-#   pens = colors._map(cosmetic_pen)
-
-#   projected_points = camera.project(board.adjusted_points, image_table.poses).astype(np.float32)
-#   projected_pose = camera.project(board.points, image_table.pose_detections).astype(np.float32)
-
-#   iter =  zip(projected_points, image_table.valid_points, projected_pose, image_table.inliers)
-
-#   for proj, corner, valid, pose_point, inlier, id in iter:
-#       if valid:
-#         refined.append(line(proj, corner, pens.error_line))
-
-#       proj_pen = pens.invalid if not valid else (pens.inlier if inlier else pens.outlier)
-#       refined.append(cross(proj, radius, proj_pen))  
-#       pose.append(cross(pose_point, radius, pens.pose))        
-
-#   return struct(refined = group(refined), pose=group(pose))
 
 
 def annotate_image(workspace, calibration, layer, state, options):
@@ -153,11 +138,27 @@ def annotate_image(workspace, calibration, layer, state, options):
 
   detections = workspace.point_table._index[state.camera, state.frame]
   if layer == "detections":
-    add_detections(scene, detections, workspace.boards, workspace.board_colors, options)
+
+    for board, color, points in zip(workspace.boards, workspace.board_colors, detections._sequence(0)):
+      add_point_markers(scene, points, board, color, options)
+
   elif layer == "reprojection":
     assert calibration is not None
     projected = calibration.projected._index[state.camera, state.frame]
-    add_reprojections(scene, detections, projected, workspace.boards, options)
+    inliers = calibration.inliers[state.camera, state.frame]
+    add_reprojections(scene, detections, projected, inliers, workspace.boards, options)
+  elif layer == "detected_poses":
+    board_poses = workspace.pose_table._index[state.camera, state.frame]
+    camera = workspace.cameras[state.camera]
+
+    for board, pose, color in zip(workspace.boards, board_poses._sequence(0), workspace.board_colors):
+      if pose.valid:
+        projected = Table.create(
+          points = camera.project(board.points, pose.poses),
+          valid = np.ones(board.points.shape[0], dtype=np.bool)
+        )
+        add_point_markers(scene, projected, board, color, options)
+
   else:
     assert False, f"unknown layer {layer}"
 
@@ -165,7 +166,7 @@ def annotate_image(workspace, calibration, layer, state, options):
   #   assert calibration is not None
   #   camera = workspace.cameras[state.camera]
 
-  #   detected = workspace.pose_detections._index[state.camera, state.frame]
+  #   
   #   initial = workspace.pose_estimates[state.camera, state.frame]
   #   calibrated = calibration.pose_table[state.camera, state.frame]
 

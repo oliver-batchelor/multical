@@ -29,7 +29,7 @@ def annotate_projection(board, image, camera, image_table, radius=20.0, thicknes
   image = cv2.resize(image, (image.shape[1] * scale, image.shape[0] * scale))
 
   for proj, corner, valid, inlier in zip(projected * scale, 
-      image_table.points * scale, image_table.valid_points, image_table.inliers):
+      image_table.points * scale, image_table.valid, image_table.inliers):
 
     color = (255, 255, 0) if not valid\
       else (0, 255, 0) if inlier else (0, 0, 255) 
@@ -47,7 +47,7 @@ def annotate_projection(board, image, camera, image_table, radius=20.0, thicknes
 
 
 def display_pose_projections(point_table, pose_table, board, cameras, images, inliers=None, scale=2):
-  inliers = choose(inliers, point_table.valid_points)
+  inliers = choose(inliers, point_table.valid)
   table = point_table._merge(pose_table)._extend(inliers = inliers)
 
   image_frames = transpose_lists(images)

@@ -25,7 +25,7 @@ def export_extrinsic(extrinsic, parent):
 
 def export_extrinsics(camera_names, camera_poses):
   return {k : export_extrinsic(pose, "rig") 
-    for k, pose, valid in zip(camera_names, camera_poses.poses, camera_poses.valid_poses) 
+    for k, pose, valid in zip(camera_names, camera_poses.poses, camera_poses.valid) 
       if valid}
 
 def export(filename, calib, camera_names, image_names):
@@ -33,7 +33,7 @@ def export(filename, calib, camera_names, image_names):
   
   pose_sets = calib.pose_estimates
 
-  valid_frames = np.flatnonzero(pose_sets.rig.valid_poses)
+  valid_frames = np.flatnonzero(pose_sets.rig.valid)
   rig_poses = pose_sets.rig.poses[valid_frames]
 
   image_names = np.array(image_names)[valid_frames].tolist()

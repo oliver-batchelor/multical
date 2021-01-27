@@ -53,7 +53,7 @@ class Workspace:
     self.point_table = tables.make_point_table(loaded.points, self.boards)
 
     info("Detected point counts:")
-    tables.table_info(self.point_table.valid_points, self.names)
+    tables.table_info(self.point_table.valid, self.names)
 
 
     self.images = loaded.images
@@ -78,7 +78,7 @@ class Workspace:
     self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
     
     info("Pose counts:")
-    tables.table_info(self.pose_table.valid_poses, self.names)
+    tables.table_info(self.pose_table.valid, self.names)
 
     pose_initialisation = tables.initialise_poses(self.pose_table)
     calib = Calibration(self.cameras, self.boards, self.point_table, pose_initialisation)

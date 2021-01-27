@@ -31,13 +31,13 @@ def fill_sparse_tile(n, values, ids, tile):
 
 
 def sparse_points(points):
-  ids = np.flatnonzero(points.valid_points)
+  ids = np.flatnonzero(points.valid)
   return struct(corners=points.points[ids], ids=ids)
 
-invalid_pose = struct(poses=np.eye(4), num_points=0, valid_poses=False)
+invalid_pose = struct(poses=np.eye(4), num_points=0, valid=False)
 
 def valid_pose(t):
-  return struct(poses=t, valid_poses=True)
+  return struct(poses=t, valid=True)
 
 
 def extract_pose(points, board, camera):
@@ -63,7 +63,7 @@ def make_point_table(detections, boards):
   def extract_points(frame_dets):    
     points, mask = fill_sparse(
         num_points, frame_dets.corners, frame_dets.ids)
-    return struct(points=points, valid_points=mask)
+    return struct(points=points, valid=mask)
 
   points = [[[extract_points(d) for d in frame_dets]
             for frame_dets in cam_dets]
@@ -104,7 +104,7 @@ def matching_points(points, board, cam1, cam2):
   matching = []
 
   for i, j in zip(points1._sequence(0), points2._sequence(0)):
-    row1, row2, ids = common_entries(i, j, 'valid_points')
+    row1, row2, ids = common_entries(i, j, 'valid')
     matching.append(struct(
         points1=row1.points,
         points2=row2.points,
@@ -129,7 +129,7 @@ def pattern_overlaps(table, axis=0):
       row_i, row_j = table._index_select(
           i, axis=axis), table._index_select(j, axis=axis)
 
-      has_pose = (row_i.valid_poses & row_j.valid_poses)
+      has_pose = (row_i.valid & row_j.valid)
       weight = np.min([row_i.num_points, row_j.num_points], axis=0)
       overlaps[i, j] = overlaps[j, i] = np.sum(
           has_pose.astype(np.float32) * weight)
@@ -158,7 +158,7 @@ def fill_poses(pose_dict, n):
   pose_table = np.array([pose_dict[k] for k in valid_ids])
 
   values, mask = fill_sparse_tile(n, pose_table, valid_ids, np.eye(4))
-  return Table.create(poses=values, valid_poses=mask)
+  return Table.create(poses=values, valid=mask)
 
 def count_valid(valid, axes=[]):
   dims = np.arange(valid.ndim)
@@ -208,12 +208,12 @@ def estimate_relative_poses_inv(table, axis=2, hop_penalty=0.9):
   return inverse(estimate_relative_poses(inverse(table), axis=axis, hop_penalty=hop_penalty))
 
 
-def valid_points(estimates, point_table):
-  valid_poses = (np.expand_dims(estimates.camera.valid_poses, [1, 2]) & 
-    np.expand_dims(estimates.rig.valid_poses, [0, 2]) &
-    np.expand_dims(estimates.board.valid_poses, [0, 1]))
+def valid(estimates, point_table):
+  valid = (np.expand_dims(estimates.camera.valid, [1, 2]) & 
+    np.expand_dims(estimates.rig.valid, [0, 2]) &
+    np.expand_dims(estimates.board.valid, [0, 1]))
 
-  return point_table.valid_points & np.expand_dims(valid_poses, valid_poses.ndim)
+  return point_table.valid & np.expand_dims(valid, valid.ndim)
 
 
 def valid_reprojection_error(points1, points2):
@@ -222,7 +222,7 @@ def valid_reprojection_error(points1, points2):
 
 
 def reprojection_error(points1, points2):
-  mask = points1.valid_points & points2.valid_points
+  mask = points1.valid & points2.valid
   error = np.linalg.norm(points1.points - points2.points, axis=-1)
   error[~mask] = 0
 
@@ -258,7 +258,7 @@ def multiply_tables(table1, table2):
 
   return Table.create(
     poses=table1.poses @ table2.poses,
-    valid_poses= table1.valid_poses & table2.valid_poses
+    valid= table1.valid & table2.valid
   )
 
 def multiply_expand(table1, dims1, table2, dims2):
@@ -284,17 +284,17 @@ def expand_poses(estimates):
 
 def mean_robust_n(pose_table, axis=0):
   def f(poses):
-    if not np.any(poses.valid_poses):
+    if not np.any(poses.valid):
       return invalid_pose
     else:
-      return valid_pose(matrix.mean_robust(poses.poses[poses.valid_poses]))
+      return valid_pose(matrix.mean_robust(poses.poses[poses.valid]))
 
   mean_poses = [f(poses) for poses in pose_table._sequence(axis)]
   return Table.stack(mean_poses)
 
 
 def relative_between(table1, table2):
-  common1, common2, valid = common_entries(table1, table2, mask_key='valid_poses')
+  common1, common2, valid = common_entries(table1, table2, mask_key='valid')
   if valid.size == 0:
     return invalid_pose
   else:

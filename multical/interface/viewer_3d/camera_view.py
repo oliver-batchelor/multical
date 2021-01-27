@@ -42,7 +42,7 @@ class CameraView(object):
     self.hide()
 
     pose = self.view_poses._index[state.camera, state.frame]
-    self.board.SetVisibility(pose.valid_poses)
+    self.board.SetVisibility(pose.valid)
 
     proj = self.projections[state.camera][state.frame]
     proj.SetVisibility(True)

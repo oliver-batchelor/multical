@@ -43,8 +43,8 @@ class Calibration(parameters.Parameters):
     return struct(cameras=cameras, rig_poses=rig_poses, boards=boards, points=points)
 
   @cached_property
-  def valid_points(self):
-    return tables.valid_points(self.pose_estimates, self.point_table) 
+  def valid(self):
+    return tables.valid(self.pose_estimates, self.point_table) 
  
   @cached_property
   def pose_table(self):
@@ -52,33 +52,34 @@ class Calibration(parameters.Parameters):
 
   @cached_property
   def inliers(self):
-    return choose(self.inlier_mask, self.valid_points)
+    return choose(self.inlier_mask, self.valid)
 
+  @cached_property 
+  def stacked_boards(self):
+    def pad_points(board):
+      points = board.adjusted_points.astype(np.float64)
+      return np.pad(points, [(0, self.point_table._shape[3] - points.shape[0]), (0, 0)])
+      
+    return np.stack([pad_points(board) for board in self.boards], axis=0)    
 
 
   @cached_property
   def projected(self):
     """ Projected points from multiplying out poses and then projecting to each image. 
     Returns a table of points corresponding to point_table"""
-    
-    def pad_points(board):
-      points = board.adjusted_points.astype(np.float64)
-      return np.pad(points, [(0, self.point_table._shape[3] - points.shape[0]), (0, 0)])
-      
-    board_points = np.stack([pad_points(board) for board in self.boards], axis=0)
 
     camera_points = matrix.transform_homog(
       t      = np.expand_dims(self.pose_table.poses, 3),
-      points = np.expand_dims(board_points, [0, 1])
+      points = np.expand_dims(self.stacked_boards, [0, 1])
     )
 
     image_points = [camera.project(p) for camera, p in 
       zip(self.cameras, camera_points)]
     
-    valid_poses = np.repeat(np.expand_dims(self.pose_table.valid_poses, axis=3), 
+    valid = np.repeat(np.expand_dims(self.pose_table.valid, axis=3), 
       self.size.points, axis=3)
 
-    return Table.create(points=np.stack(image_points), valid_points=valid_poses)
+    return Table.create(points=np.stack(image_points), valid=valid)
 
   
 
@@ -88,7 +89,7 @@ class Calibration(parameters.Parameters):
 
   @cached_property
   def reprojection_inliers(self):
-    inlier_table = self.point_table._extend(valid_points=choose(self.inliers, self.valid_points))
+    inlier_table = self.point_table._extend(valid=choose(self.inliers, self.valid))
     return tables.valid_reprojection_error(self.projected, inlier_table)
 
 
@@ -149,7 +150,7 @@ class Calibration(parameters.Parameters):
 
     def pose_mapping(poses, axis):
       return [(6, point_indexes(i, axis, enabled))
-        for i, enabled in enumerate(poses.valid_poses)]
+        for i, enabled in enumerate(poses.valid)]
 
     param_mappings = (
       pose_mapping(self.pose_estimates.camera, axis=0) +

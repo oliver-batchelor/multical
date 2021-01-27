@@ -7,7 +7,7 @@ def view_markers(viewer, pose_estimates, cameras, scale=1.0):
   view_poses = tables.inverse(tables.expand_views(pose_estimates))
 
   def add_view(view_pose, camera):
-    if view_pose.valid_poses:
+    if view_pose.valid:
       return View(viewer, camera, view_pose.poses, scale)
          
   return [[add_view(view_pose, camera)

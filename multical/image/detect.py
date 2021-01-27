@@ -32,20 +32,19 @@ def common_image_size(images):
   return (w, h)
 
 def detect_images(boards, filenames, prefix=None, j=len(os.sched_getaffinity(0)) // 2, chunksize=1):
-  pool = ThreadPool(processes=j)                                                        
+  with ThreadPool(processes=j) as pool:
+    cam_lengths = map_list(len, filenames)
+    flat_files = concat_lists(filenames)
 
-  cam_lengths = map_list(len, filenames)
-  flat_files = concat_lists(filenames)
+    if prefix is not None:
+      flat_files = [path.join(prefix, file) for file in flat_files]
+    
+    loader = pool.imap(partial(load_detect, boards), flat_files, chunksize=chunksize)
+    results = list(tqdm(loader, total=len(flat_files)))
 
-  if prefix is not None:
-    flat_files = [path.join(prefix, file) for file in flat_files]
-  
-  loader = pool.imap(partial(load_detect, boards), flat_files, chunksize=chunksize)
-  results = list(tqdm(loader, total=len(flat_files)))
-
-  results = transpose_structs(results)._map(split_list, cam_lengths)
-  
-  return results._extend(image_size = map_list(common_image_size, results.images))
+    results = transpose_structs(results)._map(split_list, cam_lengths)
+    
+    return results._extend(image_size = map_list(common_image_size, results.images))
 
 
 

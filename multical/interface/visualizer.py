@@ -42,12 +42,15 @@ class Visualizer(QtWidgets.QMainWindow):
     self.viewer_3d = Viewer3D(self)
     self.viewer_image = ViewerImage(self)
 
-    self.view_frame.setLayout(h_layout(self.viewer_3d))
-    self.image_frame.setLayout(h_layout(self.viewer_image))
+    self.view_frame.setLayout(h_layout(self.viewer_3d, margin=0))
+    self.image_frame.setLayout(h_layout(self.viewer_image, margin=0))
 
     self.controller = None
     self.splitter.setStretchFactor(0, 10)
     self.splitter.setStretchFactor(1, 1)
+
+    self.params_viewer = camera_params.ParamsViewer(self)
+
 
     self.setDisabled(True)
 
@@ -86,11 +89,9 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.calibration = calibs[index]
 
-    params_layout = camera_params.params_viewer(self, ws.names.camera,
-      self.calibration.cameras, self.calibration.pose_estimates.camera)
+      
+    self.params_viewer.set_cameras(self.calibration.cameras, self.calibration.pose_estimates.camera)
     
-    self.param_scroll.setLayout(params_layout)
-
     self.controllers = struct(
         moving_cameras=MovingCameras(self.viewer_3d, self.calibration, ws.board_colors),
         moving_board=MovingBoard(self.viewer_3d, self.calibration, ws.board_colors)
@@ -262,9 +263,12 @@ class Visualizer(QtWidgets.QMainWindow):
     self.moving_cameras_check.toggled.connect(self.update_controller)
 
 
-def h_layout(*widgets):
+def h_layout(*widgets, margin=None):
   layout = QtWidgets.QHBoxLayout()
   for widget in widgets:
     layout.addWidget(widget)
+
+  if margin is not None:
+   layout.setContentsMargins(margin, margin, margin, margin)
 
   return layout

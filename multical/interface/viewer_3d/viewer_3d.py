@@ -14,6 +14,7 @@ class Viewer3D(QtWidgets.QWidget):
     super().__init__(parent)
 
     layout = QtWidgets.QHBoxLayout(self)
+    layout.setContentsMargins(0, 0, 0, 0)
     
     self.plotter = QtInteractor(self, multi_samples=8, line_smoothing=True, point_smoothing=True)
     layout.addWidget(self.plotter.interactor)

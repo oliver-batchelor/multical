@@ -7,6 +7,7 @@ from .viewer_3d.camera_view import CameraView
 from .viewer_3d.moving_cameras import MovingCameras
 
 from . import camera_params, view_table
+from .layout import h_layout
 import PyQt5.QtWidgets as QtWidgets
 
 from PyQt5 import uic, QtCore
@@ -17,6 +18,7 @@ from multical import image, tables
 from .viewer_image import ViewerImage, annotate_image
 from structs.struct import struct, split_dict
 
+import qtawesome as qta
 
 def visualize(workspace):
   app = QtWidgets.QApplication([])
@@ -50,10 +52,23 @@ class Visualizer(QtWidgets.QMainWindow):
     self.splitter.setStretchFactor(1, 1)
 
     self.params_viewer = camera_params.ParamsViewer(self)
+    self.cameras_tab.setLayout(h_layout(self.params_viewer))
 
+    action = QtWidgets.QAction(qta.icon('ei.file-new'), "New", self)
+    self.toolBar.addAction(action)
+    
+    action = QtWidgets.QAction(qta.icon('ei.download'), "Export", self)
+    self.toolBar.addAction(action)
+
+    action = QtWidgets.QAction(qta.icon('ei.cogs'), "Optimize", self)
+    self.toolBar.addAction(action)
+
+    self.toolBar.addSeparator()
+
+    self.calibrations_combo = QtWidgets.QComboBox(self)
+    self.toolBar.addWidget(self.calibrations_combo)
 
     self.setDisabled(True)
-
 
 
   def update_calibrations(self, calibrations):
@@ -72,6 +87,7 @@ class Visualizer(QtWidgets.QMainWindow):
     self.calibrations_combo.addItems(calib_names)
     self.calibrations_combo.setCurrentIndex(len(calibs) - 1)   
 
+
     self.setup_view_table(self.calibration)
 
     if has_calibrations:
@@ -88,9 +104,7 @@ class Visualizer(QtWidgets.QMainWindow):
     _, calibs = split_dict(ws.calibrations)
 
     self.calibration = calibs[index]
-
-      
-    self.params_viewer.set_cameras(self.calibration.cameras, self.calibration.pose_estimates.camera)
+    self.params_viewer.set_cameras(self.calibration.cameras, tables.inverse(self.calibration.pose_estimates.camera))
     
     self.controllers = struct(
         moving_cameras=MovingCameras(self.viewer_3d, self.calibration, ws.board_colors),
@@ -121,11 +135,12 @@ class Visualizer(QtWidgets.QMainWindow):
 
 
 
-
   def update_workspace(self, workspace):
 
     self.workspace = workspace
     self.blockSignals(True)
+
+    self.params_viewer.init(self.workspace.names.camera)
 
     self.calibrations = self.workspace.get_calibrations()
     self.update_calibrations(self.calibrations)
@@ -263,12 +278,4 @@ class Visualizer(QtWidgets.QMainWindow):
     self.moving_cameras_check.toggled.connect(self.update_controller)
 
 
-def h_layout(*widgets, margin=None):
-  layout = QtWidgets.QHBoxLayout()
-  for widget in widgets:
-    layout.addWidget(widget)
 
-  if margin is not None:
-   layout.setContentsMargins(margin, margin, margin, margin)
-
-  return layout

@@ -63,7 +63,7 @@ def cross(point, radius, pen):
   item.setPos(x, y)
   return item
 
-def id_marker(id, point, radius, color, font):
+def id_marker(id, point, color, font):
   item = QtWidgets.QGraphicsTextItem(str(id))
   item.setDefaultTextColor(QColor.fromRgbF(*color))
   item.setFont(font)
@@ -83,7 +83,7 @@ colors = struct(
 def add_marker(scene, corner, id, options, pen, color, font):
     scene.addItem(cross(corner, options.marker_size, pen))
     if options.show_ids:
-      scene.addItem(id_marker(id, corner, options.marker_size, color, font))
+      scene.addItem(id_marker(id, corner,  color, font))
 
 
 
@@ -96,11 +96,6 @@ def add_point_markers(scene, points, board, color, options):
 
   for corner, id in zip(corners, board.ids[points.valid]):
     add_marker(scene, corner, id, options, pen, color, marker_font)
-
-
-
-
-
 
 def add_reprojections(scene, points, projected, inliers, boards, options):
   marker_font = QFont()
@@ -124,8 +119,6 @@ def add_reprojections(scene, points, projected, inliers, boards, options):
 
         if point.valid:
           scene.addItem(line(point.proj, point.points, pens.error_line))
-
-
 
 
 def annotate_image(workspace, calibration, layer, state, options):
@@ -162,23 +155,9 @@ def annotate_image(workspace, calibration, layer, state, options):
   else:
     assert False, f"unknown layer {layer}"
 
-  # if layer == "reprojection":
-  #   assert calibration is not None
-  #   camera = workspace.cameras[state.camera]
-
-  #   
-  #   initial = workspace.pose_estimates[state.camera, state.frame]
-  #   calibrated = calibration.pose_table[state.camera, state.frame]
-
-  #   annotate_image()
-
-
   h, w, *_ = image.shape
   scene.setSceneRect(-w, -h, 3 * w, 3 * h)  
   return scene  
-
-
-
 
 class ViewerImage(QtWidgets.QGraphicsView):
   def __init__(self, parent):

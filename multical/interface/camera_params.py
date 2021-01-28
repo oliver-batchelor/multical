@@ -5,52 +5,51 @@ from PyQt5 import uic
 from PyQt5.QtCore import Qt
 import numpy as np
 
+from .layout import h_layout, h_stretch, v_stretch, v_layout
+
 
 def set_master(poses, index):
   inv = np.linalg.inv(poses.poses[index])
   return poses._extend(poses = poses.poses @ np.expand_dims(inv, 0))
 
 class ParamsViewer(QtWidgets.QScrollArea):
-  def __init__(self):
-    super().__init__(self)
-
-
-  def init(self, camera_names):
-    self.master_combo = QtWidgets.QComboBox(self)
-    self.master_combo.currentIndexChanged.connect(self.update_master)
-    self.master_combo.addItems(camera_names)
-
-    camera_widgets = [CameraParams(name) for name in camera_names]
-    layout = QtWidgets.QVBoxLayout()
-
-    header = QtWidgets.QHBoxLayout()
-    header.addItem(self.master_combo)
-    header.addStretch()
-
-    layout.addItem(header)
-
-    for widget in camera_widgets:
-      layout.addItem(widget)
+  def __init__(self, parent):
+    super().__init__(parent)
 
     self.camera_poses = None
     self.cameras = None
+    self.camera_names = None
 
-    layout.addStretch()
+  def init(self, camera_names):
+    self.camera_names = camera_names
+    self.master_combo = QtWidgets.QComboBox(self)
+    self.master_combo.addItems(camera_names)
+   
+    self.camera_widgets = [CameraParams(name) for name in camera_names]
+
+    layout = v_layout(
+      h_layout(self.master_combo, h_stretch()),
+      *self.camera_widgets,
+      v_stretch())
     self.setLayout(layout)
 
     self.setDisabled(True)
-    self.master_combo.currentIndexChanged(self.update_cameras)
+    self.master_combo.currentIndexChanged.connect(self.update_cameras)
 
   def set_cameras(self, cameras, camera_poses):
+    assert self.camera_names is not None
+
     self.cameras = cameras
     self.camera_poses = camera_poses
 
+    self.update_cameras()
+
   def update_cameras(self):
-    master = self.master_combo.getCurrentIndex()
+    master = self.master_combo.currentIndex()
     poses = set_master(self.camera_poses, master)
 
     for camera_widget, camera, camera_pose in\
-       zip(self.camera_widgets, self.cameras, poses.pose):
+       zip(self.camera_widgets, self.cameras, poses.poses):
       camera_widget.set_camera(camera)
       camera_widget.set_pose(camera_pose)
 

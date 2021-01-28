@@ -20,6 +20,7 @@ from structs.struct import struct, split_dict
 
 import qtawesome as qta
 
+
 def visualize(workspace):
   app = QtWidgets.QApplication([])
 
@@ -31,6 +32,15 @@ def visualize(workspace):
   app.exec_()
 
 
+class BlockSignals(object):
+  def __init__(self, widget):
+    self.widget = widget
+
+  def __enter__(self):
+    self.was_blocked = self.widget.blockSignals(True)
+
+  def __exit__(self, type, value, traceback):
+    self.widget.blockSignals(self.was_blocked)
 
 
 class Visualizer(QtWidgets.QMainWindow):
@@ -39,7 +49,7 @@ class Visualizer(QtWidgets.QMainWindow):
     uic.loadUi('multical/interface/visualizer.ui', self)
 
     self.setFocusPolicy(Qt.StrongFocus)
-    self.grabKeyboard()
+    # self.grabKeyboard()
 
     self.viewer_3d = Viewer3D(self)
     self.viewer_image = ViewerImage(self)
@@ -54,101 +64,111 @@ class Visualizer(QtWidgets.QMainWindow):
     self.params_viewer = camera_params.ParamsViewer(self)
     self.cameras_tab.setLayout(h_layout(self.params_viewer))
 
-    action = QtWidgets.QAction(qta.icon('ei.file-new'), "New", self)
-    self.toolBar.addAction(action)
-    
-    action = QtWidgets.QAction(qta.icon('ei.download'), "Export", self)
-    self.toolBar.addAction(action)
+    # action = QtWidgets.QAction(qta.icon('fa.folder-open'), "new", self)
+    # self.toolBar.addAction(action)
 
-    action = QtWidgets.QAction(qta.icon('ei.cogs'), "Optimize", self)
-    self.toolBar.addAction(action)
+    # action = QtWidgets.QAction(qta.icon('fa.save'), "Save", self)
+    # self.toolBar.addAction(action)
 
-    self.toolBar.addSeparator()
+    # action = QtWidgets.QAction(qta.icon('fa.cogs'), "Optimize", self)
+    # self.toolBar.addAction(action)
+
+    # self.toolBar.addSeparator()
 
     self.calibrations_combo = QtWidgets.QComboBox(self)
     self.toolBar.addWidget(self.calibrations_combo)
 
     self.setDisabled(True)
 
-
   def update_calibrations(self, calibrations):
-    has_calibrations = len(calibrations) > 0
+    with(self.block_signals):
+      has_calibrations = len(calibrations) > 0
 
-    self.tab_3d.setEnabled(has_calibrations)
-    self.cameras_tab.setEnabled(has_calibrations)  
+      self.tab_3d.setEnabled(has_calibrations)
+      self.cameras_tab.setEnabled(has_calibrations)
 
-    self.viewer_3d.clear()
-    self.controllers = None
+      self.viewer_3d.clear()
+      self.controllers = None
 
-    calib_names, calibs = split_dict(calibrations)
-    self.calibration = calibs[-1] if has_calibrations else None
+      calib_names, calibs = split_dict(calibrations)
 
-    self.calibrations_combo.clear()
-    self.calibrations_combo.addItems(calib_names)
-    self.calibrations_combo.setCurrentIndex(len(calibs) - 1)   
+      self.calibrations_combo.clear()
+      self.calibrations_combo.addItems(calib_names)
+      self.calibrations_combo.setCurrentIndex(len(calibs) - 1)
 
+      if has_calibrations:
+        self.set_calibration(len(calib_names) - 1)
+      else:
+        self.setup_view_table(None)
 
-    self.setup_view_table(self.calibration)
+      _, layer_labels = self.image_layers()
+      self.layer_combo.clear()
+      self.layer_combo.addItems(layer_labels)
 
-    if has_calibrations:
-      self.set_calibration(len(calib_names) - 1)
-
-    _, layer_labels = self.image_layers()
-    self.layer_combo.clear()
-    self.layer_combo.addItems(layer_labels)
-      
   def set_calibration(self, index):
-    ws = self.workspace
+    with(self.block_signals):
+      ws = self.workspace
 
-    assert index < len(ws.calibrations)
-    _, calibs = split_dict(ws.calibrations)
+      assert index < len(ws.calibrations)
+      _, calibs = split_dict(ws.calibrations)
 
-    self.calibration = calibs[index]
-    self.params_viewer.set_cameras(self.calibration.cameras, tables.inverse(self.calibration.pose_estimates.camera))
-    
-    self.controllers = struct(
-        moving_cameras=MovingCameras(self.viewer_3d, self.calibration, ws.board_colors),
-        moving_board=MovingBoard(self.viewer_3d, self.calibration, ws.board_colors)
-    )
+      self.calibration = calibs[index]
+      self.params_viewer.set_cameras(self.calibration.cameras, tables.inverse(
+          self.calibration.pose_estimates.camera))
 
-    self.viewer_3d.fix_camera()
-    self.update_controller()        
+      self.controllers = struct(
+          moving_cameras=MovingCameras(
+              self.viewer_3d, self.calibration, ws.board_colors),
+          moving_board=MovingBoard(
+              self.viewer_3d, self.calibration, ws.board_colors)
+      )
 
+      self.setup_view_table(self.calibration)
+
+      self.viewer_3d.fix_camera()
+      self.update_controller()
 
   def setup_view_table(self, calibration):
-    ws = self.workspace
-    board_labels = ["All boards"] + [f"Board: {name}" for name in self.workspace.names.board]
+    with(self.block_signals):
 
-    self.boards_combo.clear()
-    self.boards_combo.addItems(board_labels)
+      ws = self.workspace
+      board_labels = ["All boards"] + \
+          [f"Board: {name}" for name in self.workspace.names.board]
 
-    self.view_model = view_table.ViewModelDetections(ws.point_table, ws.names)\
-      if calibration is None else view_table.ViewModelCalibrated(calibration, ws.names) 
+      self.boards_combo.clear()
+      self.boards_combo.addItems(board_labels)
 
-    self.view_table.setModel(self.view_model)
-    self.view_table.setSelectionMode(
-        QtWidgets.QAbstractItemView.SingleSelection)
-    self.select(0, 0)
+      self.view_model = view_table.ViewModelDetections(ws.point_table, ws.names)\
+          if calibration is None else view_table.ViewModelCalibrated(calibration, ws.names)
 
-    self.metric_combo.clear()
-    self.metric_combo.addItems(self.view_model.metric_labels)
+      self.view_table.setModel(self.view_model)
+      self.view_table.setSelectionMode(
+          QtWidgets.QAbstractItemView.SingleSelection)
+      self.select(0, 0)
 
+      self.metric_combo.clear()
+      self.metric_combo.addItems(self.view_model.metric_labels)
 
+  @property
+  def block_signals(self):
+    return BlockSignals(self)
 
   def update_workspace(self, workspace):
+    with(self.block_signals):
+      self.workspace = workspace
 
-    self.workspace = workspace
-    self.blockSignals(True)
+      for record in workspace.log_entries:
+        self.log_viewer.insertPlainText(record.message + "\n")
 
-    self.params_viewer.init(self.workspace.names.camera)
+      self.params_viewer.init(self.workspace.names.camera)
 
-    self.calibrations = self.workspace.get_calibrations()
-    self.update_calibrations(self.calibrations)
+      self.calibrations = self.workspace.get_calibrations()
+      self.update_calibrations(self.calibrations)
 
-    self.update_frame()
-    self.setDisabled(False)
-    self.blockSignals(False)
-    self.connect_ui()
+      self.update_frame()
+      self.setDisabled(False)
+
+      self.connect_ui()
 
   def keyPressEvent(self, event):
 
@@ -192,13 +212,13 @@ class Visualizer(QtWidgets.QMainWindow):
     )
 
   def move_frame(self, d_frame=0):
-    sizes = self.workspace.sizes 
+    sizes = self.workspace.sizes
 
     frame, camera = self.selection()
     self.select((frame + d_frame) % sizes.image, camera)
-  
+
   def move_camera(self, d_camera=0):
-    sizes = self.workspace.sizes 
+    sizes = self.workspace.sizes
 
     frame, camera = self.selection()
     self.select(frame, (camera + d_camera) % sizes.camera)
@@ -216,10 +236,10 @@ class Visualizer(QtWidgets.QMainWindow):
     if self.calibration is not None:
       layers['reprojection'] = "Reprojection"
     layers['detections'] = "Detections"
-    
+
     if self.workspace.pose_table is not None:
       layers['detected_poses'] = "Detected poses"
-          
+
     return split_dict(layers)
 
   def update_image(self):
@@ -229,13 +249,13 @@ class Visualizer(QtWidgets.QMainWindow):
     layer_name = layer_names[self.layer_combo.currentIndex()]
 
     options = struct(
-      marker_size = self.marker_size_slider.value(),
-      line_width = self.line_width_slider.value(),
-      show_ids=self.show_ids_check.isChecked()
+        marker_size=self.marker_size_slider.value(),
+        line_width=self.line_width_slider.value(),
+        show_ids=self.show_ids_check.isChecked()
     )
 
-    annotated_image = annotate_image(self.workspace, self.calibration, 
-      layer_name, state, options=options)
+    annotated_image = annotate_image(self.workspace, self.calibration,
+                                     layer_name, state, options=options)
 
     self.viewer_image.update_image(annotated_image)
 
@@ -252,30 +272,24 @@ class Visualizer(QtWidgets.QMainWindow):
 
   def update_view_table(self):
     metric_selected = self.metric_combo.currentIndex()
-    board_index = self.boards_combo.currentIndex()
-    board = None if board_index == 0 else board_index - 1
+    board_index = self.boards_combo.currentIndex()    
+    board = None if board_index <= 0 else board_index - 1
 
     self.view_model.set_metric(metric_selected, board)
-
 
   def connect_ui(self):
     self.camera_size_slider.valueChanged.connect(self.update_frame)
     self.view_table.selectionModel().selectionChanged.connect(self.update_frame)
-
     self.metric_combo.currentIndexChanged.connect(self.update_view_table)
     self.boards_combo.currentIndexChanged.connect(self.update_view_table)
-
     self.calibrations_combo.currentIndexChanged.connect(self.set_calibration)
 
     for layer_check in [self.show_ids_check]:
       layer_check.toggled.connect(self.update_image)
+      
     self.layer_combo.currentIndexChanged.connect(self.update_image)
     self.marker_size_slider.valueChanged.connect(self.update_image)
     self.line_width_slider.valueChanged.connect(self.update_image)
 
-
     self.line_size_slider.valueChanged.connect(self.viewer_3d.set_line_size)
     self.moving_cameras_check.toggled.connect(self.update_controller)
-
-
-

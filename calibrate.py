@@ -44,15 +44,17 @@ def main():
     parser.add_argument('--log_level', default='INFO', help='logging level for output to terminal')
     parser.add_argument('--output_path', default=None, help='specify output path, default (image_path)')
 
+    parser.add_argument('--loss', default='linear', help='loss function in optimizer (linear|soft_l1|huber)')
+
 
 
     args = parser.parse_args()
     output_path = args.output_path or args.image_path
     pathlib.Path(output_path).mkdir(parents=True, exist_ok=True)
 
-    setup_logging(output_path, args.log_level)
+    log_handler = setup_logging(output_path, args.log_level)
  
-    ws = workspace.Workspace()
+    ws = workspace.Workspace(log_handler = log_handler)
     info(args) 
 
     boards = board.load_config(args.boards)
@@ -68,9 +70,9 @@ def main():
     ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
     ws.initialise_poses()
-    # ws.calibrate("extrinsics", loss='soft_l1')
+    ws.calibrate("extrinsics", loss=args.loss)
 
-    # ws.calibrate("extrinsics", enable_intrinsics=True, enable_board=True, loss='soft_l1')
+    # ws.calibrate("full", enable_intrinsics=True, enable_board=True, loss=args.loss)
     visualizer.visualize(ws)
 
 

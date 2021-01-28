@@ -216,7 +216,7 @@ class Calibration(parameters.Parameters):
 
     return self.copy(inlier_mask = inliers)
 
-  def adjust_outliers(self, iterations=4, quantile=0.75, factor=2, **kwargs):
+  def adjust_outliers(self, iterations=4, quantile=0.75, factor=3, **kwargs):
     for i in range(iterations):
       self.report(f"Adjust_outliers {i}")
       self = self.reject_outliers_quantile(quantile, factor).bundle_adjust(**kwargs)

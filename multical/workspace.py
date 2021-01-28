@@ -13,7 +13,7 @@ import palettable.colorbrewer.qualitative as palettes
 
 
 class Workspace:
-  def __init__(self):
+  def __init__(self, log_handler):
 
     self.calibrations = OrderedDict()
     self.detections = None
@@ -27,6 +27,8 @@ class Workspace:
 
     self.point_table = None
     self.pose_table = None
+
+    self.log_handler = log_handler
 
 
   def find_images(self, image_path, camera_dirs=None):
@@ -105,6 +107,9 @@ class Workspace:
   def latest_calibration(self):
     return list(self.calibrations.values())[-1]
 
+  @property
+  def log_entries(self):
+    return self.log_handler.records
 
   def has_calibrations(self):
     return len(self.calibrations) > 0
@@ -121,6 +126,6 @@ class Workspace:
 
         
 def make_palette(n):
-  n_colors = min(n, 4)
+  n_colors = max(n, 4)
   colors = getattr(palettes, f"Set1_{n_colors}").colors
   return np.array(colors) / 255

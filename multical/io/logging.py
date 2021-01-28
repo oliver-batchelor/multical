@@ -5,6 +5,8 @@ from os import path
 from sys import stdout
 from copy import copy
 
+from structs.struct import struct
+
 logger = logging.getLogger("calibration")
 
 def info(msg, *args, **kwargs):
@@ -18,6 +20,28 @@ def warning(msg, *args, **kwargs):
 
 def error(msg, *args, **kwargs):
   return logger.error(msg, *args, **kwargs)
+
+
+class MemoryHandler(logging.Handler):
+  def __init__(self, level=logging.DEBUG):
+    super().__init__(level=level)
+    self.records = []
+    self.setFormatter(logging.Formatter('%(message)s'))
+
+  def get_records(self):
+    return self.records
+
+  def emit(self, record):
+    try:
+      msg = self.format(record)
+      entry = struct(level=record.levelname, time=record.created, message=msg)
+      self.records.append(entry)
+    except RecursionError:  # See issue 36272
+        raise
+    except Exception:
+        self.handleError(record)
+
+
 
 
 class IndentFormatter(logging.Formatter):
@@ -46,15 +70,20 @@ def setup_logging(output_path, console_level='INFO'):
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
     
+    memory_handler = MemoryHandler()
+
+
     handlers = [
       stream_handler,
-      file_handler
+      file_handler,
+      memory_handler
     ]
 
     for handler in handlers:
       logger.addHandler(handler)
 
     logger.setLevel(logging.DEBUG)
-
     info(f"Logging to {log_file}")
+
+    return memory_handler
  

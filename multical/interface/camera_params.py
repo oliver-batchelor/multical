@@ -20,6 +20,8 @@ class ParamsViewer(QtWidgets.QScrollArea):
     self.cameras = None
     self.camera_names = None
 
+    self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+
   def init(self, camera_names):
     self.camera_names = camera_names
     self.master_combo = QtWidgets.QComboBox(self)

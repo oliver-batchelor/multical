@@ -4,7 +4,7 @@ from cached_property import cached_property
 import numpy as np
 import cv2
 
-from structs.struct import transpose_structs, transpose_lists
+from structs.struct import subset, transpose_structs, transpose_lists
 from structs.numpy import shape
 
 from pprint import pformat
@@ -138,21 +138,30 @@ class Camera(Parameters):
 
     return self.copy(intrinsic=np.array(intrinsic), dist=params.dist)
 
+  def __getstate__(self):
+    return subset(self.__dict__, 
+      ['image_size', 'intrinsic', 'dist', 'fix_aspect', 'model']
+    )
+
   def copy(self, **k):
-    d = dict(image_size=self.image_size, intrinsic=self.intrinsic,
-             dist=self.dist, fix_aspect=self.fix_aspect, model=self.model)
+    d = self.__getstate__()
     d.update(k)
     return Camera(**d)
 
 
 def board_correspondences(board, detections):
   non_empty = [d for d in detections if board.has_min_detections(d)]
-  assert len(non_empty) > 0, "calibration_points: no points detected"
+  assert len(non_empty) > 0, "board_correspondences: no detections"
 
   detections = transpose_structs(non_empty)
   return detections._extend(
       object_points=[board.points[ids] for ids in detections.ids]
   )
+
+
+def board_frames(board, detections):
+  non_empty = [d for d in detections if board.has_min_detections(d)]
+  return len(non_empty)
 
 
 def index_list(xs, indexes):

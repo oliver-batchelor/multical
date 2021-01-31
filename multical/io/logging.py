@@ -58,9 +58,8 @@ class IndentFormatter(logging.Formatter):
       return header + msg
 
 
-def setup_logging(output_path, console_level='INFO'):
+def setup_logging(log_file, console_level='INFO', handlers=[]):
 
-    log_file = path.join(output_path, "calibration.log")
 
     stream_handler = logging.StreamHandler(stream=stdout)
     stream_handler.setLevel(getattr(logging, console_level))
@@ -70,14 +69,8 @@ def setup_logging(output_path, console_level='INFO'):
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
     
-    memory_handler = MemoryHandler()
 
-
-    handlers = [
-      stream_handler,
-      file_handler,
-      memory_handler
-    ]
+    handlers = handlers + [stream_handler, file_handler]
 
     for handler in handlers:
       logger.addHandler(handler)
@@ -85,5 +78,4 @@ def setup_logging(output_path, console_level='INFO'):
     logger.setLevel(logging.DEBUG)
     info(f"Logging to {log_file}")
 
-    return memory_handler
  

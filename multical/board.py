@@ -8,18 +8,17 @@ from omegaconf.errors import ValidationError
 from omegaconf.omegaconf import MISSING
 
 
-from structs.struct import pluck, struct, split_dict, choose
+from structs.struct import pluck, struct, split_dict, choose, subset
 from .transform import rtvec
 from .optimization.parameters import Parameters
 
 from omegaconf import OmegaConf
 from dataclasses import dataclass
 
-def default_aruco_params():
-  return cv2.aruco.DetectorParameters_create()
+
 
 def aruco_config(attrs):
-  config = default_aruco_params()
+  config = cv2.aruco.DetectorParameters_create()
   for k, v in attrs.items():
     assert hasattr(config, k), f"aruco_config: no such detector parameter {k}"
     setattr(config, k, v)  
@@ -37,44 +36,48 @@ def create_dict(name, offset):
 
 
 class CharucoBoard(Parameters):
-  def __init__(self, board, dict_desc, square_length, marker_length, min_rows=3, min_points=20, 
-    adjusted_points=None, aruco_params=None):
+  def __init__(self, size, square_length, marker_length, min_rows=3, min_points=20, 
+    adjusted_points=None, aruco_params=None, aruco_dict='4X4_100', aruco_offset=0):
     
-    self.board = board
-    self.dict_desc = dict_desc
+    self.aruco_dict = aruco_dict
+    self.aruco_offset = aruco_offset 
+
+    self.size = size
 
     self.marker_length = marker_length
     self.square_length = square_length
 
     self.adjusted_points = choose(adjusted_points, self.points) 
  
-    self.aruco_params = aruco_params or default_aruco_params()
+    self.aruco_params = aruco_params or {}
     self.min_rows = min_rows
     self.min_points = min_points
 
-  @staticmethod
-  def create(size, square_length, marker_length, 
-    aruco_dict='4X4_100', aruco_offset=0, aruco_params=None, min_rows=3, min_points=20):
-      width, height = size
-    
-      dict_desc = struct(name=aruco_dict, offset=aruco_offset)
-      aruco_dict = create_dict(**dict_desc)
-      
-      board = cv2.aruco.CharucoBoard_create(width, height,
-         square_length, marker_length, aruco_dict)
 
-      return CharucoBoard(board, dict_desc, marker_length, square_length, 
-        aruco_params=aruco_params, min_rows=min_rows, min_points=min_points)
+  @cached_property
+  def board(self):
+    aruco_dict = create_dict(**self.dict_desc)
+    width, height = self.size
+    self.board = cv2.aruco.CharucoBoard_create(width, height,
+      self.square_length, self.marker_length, aruco_dict)
+
+  @cached_property
+  def aruco_config(self):
+    return aruco_config(self.aruco_params)  
 
   def export(self):
     return struct(
       type='charuco',
-      dict=self.dict_desc.name,
-      offset=self.dict_desc.offset,
+      aruco_dict=self.aruco_dict,
+      aruco_offset=self.aruco_offset,
       size = self.size,
       marker_length = self.marker_length,
-      square_length = self.square_length
+      square_length = self.square_length,
+      aruco_params = self.aruco_params
     )
+
+  def compare_config(self, other):
+    return self.export() == other.export()
 
   @property
   def points(self):
@@ -86,8 +89,7 @@ class CharucoBoard(Parameters):
 
   @property 
   def size(self):
-    return self.board.getChessboardSize()
-
+    return self.size
 
   @property 
   def ids(self):
@@ -107,7 +109,8 @@ class CharucoBoard(Parameters):
 
 
   def detect(self, image):    
-    corners, ids, _ = cv2.aruco.detectMarkers(image, self.board.dictionary, parameters=self.aruco_params)     
+    corners, ids, _ = cv2.aruco.detectMarkers(image, 
+      self.board.dictionary, parameters=aruco_config(self.aruco_params))     
     if ids is None: return empty_detection
 
     _, corners, ids = cv2.aruco.interpolateCornersCharuco(corners, ids, image, self.board)
@@ -145,7 +148,6 @@ class CharucoBoard(Parameters):
     else:
       return struct(corners = corners.squeeze(1), ids = ids.squeeze(1))
 
-
   @cached_property
   def params(self):
     return self.adjusted_points
@@ -154,12 +156,15 @@ class CharucoBoard(Parameters):
     return self.copy(adjusted_points = params)
 
   def copy(self, **k):
-      d = dict(board=self.board, adjusted_points=self.adjusted_points, 
-        aruco_params=self.aruco_params, dict_desc=self.dict_desc, 
-        marker_length=self.marker_length, square_length=self.square_length,
-        min_rows=self.min_rows, min_points=self.min_points)
+      d = self.__getstate__()
       d.update(k)
       return CharucoBoard(**d)
+
+  def __getstate__(self):
+    return subset(self.__dict__, ['size', 'adjusted_points', 'aruco_params', 
+      'marker_length', 'square_length', 'min_rows', 'min_points',
+      'aruco_dict', 'aruco_offset'
+    ])
 
 
 @dataclass 
@@ -178,7 +183,7 @@ class CharucoConfig:
 
 def load_config(yaml_file):
   config = OmegaConf.load(yaml_file)
-  aruco_params = aruco_config(config.get('aruco_params', {}))
+  aruco_params = config.get('aruco_params', {})
   
   boards = {k:OmegaConf.merge(config.common, board) for k, board in config.boards.items()} if 'common' in config\
     else config.boards
@@ -193,6 +198,5 @@ def load_config(yaml_file):
       return CharucoBoard.create(aruco_params=aruco_params, **merged)
     else:
       assert False, f"unknown board type: {config._type_}"
-
 
   return {k:instantiate_board(board) for k, board in boards.items()}

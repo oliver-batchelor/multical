@@ -9,7 +9,7 @@ from multical.io.logging import info
 from . import parameters
 
 from structs.numpy import Table, shape
-from structs.struct import concat_lists, struct, choose
+from structs.struct import concat_lists, struct, choose, subset
 
 from scipy import optimize
 
@@ -18,7 +18,7 @@ from cached_property import cached_property
 
 class Calibration(parameters.Parameters):
   def __init__(self, cameras, boards, point_table, pose_estimates, inlier_mask=None, 
-      optimize_intrinsics=False, optimize_board=False):
+      optimize_intrinsics=False, optimize_board=False, optimize_rolling=False):
 
     self.cameras = cameras
     self.boards = boards
@@ -28,6 +28,7 @@ class Calibration(parameters.Parameters):
     self.pose_estimates = pose_estimates
     self.optimize_intrinsics = optimize_intrinsics
     self.optimize_board = optimize_board
+    self.optimize_rolling = optimize_rolling
     
     self.inlier_mask = inlier_mask
     
@@ -187,12 +188,15 @@ class Calibration(parameters.Parameters):
     return self.copy(optimize_board=enabled)    
 
   
+  def __getstate__(self):
+    attrs = ['cameras', 'boards', 'point_table', 'pose_estimates', 'inlier_mask',
+      'optimize_intrinsics', 'optimize_board', 'optimize_rolling'
+    ]
+    return subset(self.__dict__, attrs)
+
   def copy(self, **k):
     """Copy calibration environment and change some parameters (no mutation)"""
-    d = dict(cameras=self.cameras, boards=self.boards, point_table=self.point_table, 
-      pose_estimates=self.pose_estimates, inlier_mask=self.inlier_mask, 
-      optimize_intrinsics=self.optimize_intrinsics, optimize_board=self.optimize_board)
-
+    d = self.__getstate__()
     d.update(k)
     return Calibration(**d)
 

@@ -18,6 +18,11 @@ boards:
   board2:
     aruco_offset: 100
 
+  board3:
+    aruco_offset: 150
+
+  board4:
+    aruco_offset: 200
 
 
 aruco_params:

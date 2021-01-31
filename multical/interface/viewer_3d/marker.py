@@ -24,6 +24,7 @@ def view_projection(camera, size=1):
 
   return np.transpose(proj @ corners)[:, 0:3]
 
+view_triangles = np.hstack([[3, 0, 2, 1], [3, 0, 3, 2], [3, 0, 4, 3], [3, 0, 1, 4]])
 
 def view_marker(camera, size=1):
   corners = np.concatenate([
@@ -31,10 +32,7 @@ def view_marker(camera, size=1):
       view_projection(camera, size=size),
   ])
 
-  tetra = [[3, 0, 2, 1], [3, 0, 3, 2], [3, 0, 4, 3], [3, 0, 1, 4]]
-
-  triangles = np.hstack(tetra)
-  mesh = pv.PolyData(corners, triangles)
+  mesh = pv.PolyData(corners, view_triangles)
   return mesh
 
 

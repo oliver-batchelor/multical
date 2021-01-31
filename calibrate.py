@@ -1,4 +1,3 @@
-
 import logging
 import math
 from multical.io.logging import setup_logging
@@ -37,7 +36,7 @@ def main():
 
     parser.add_argument('--fix_aspect', default=False, action="store_true", help='set same focal length ')
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
-    parser.add_argument('--boards', help='configuration file (YAML) for calibration boards')
+    parser.add_argument('--boards', default=None, help='configuration file (YAML) for calibration boards')
  
     parser.add_argument('--intrinsic_images', type=int, default=None, help='number of images to use for initial intrinsic calibration default (unlimited)')
  
@@ -45,19 +44,26 @@ def main():
     parser.add_argument('--output_path', default=None, help='specify output path, default (image_path)')
 
     parser.add_argument('--loss', default='linear', help='loss function in optimizer (linear|soft_l1|huber)')
-
+    parser.add_argument('--no_cache', default=False, action='store_true', help="don't load detections from cache")
 
 
     args = parser.parse_args()
     output_path = args.output_path or args.image_path
     pathlib.Path(output_path).mkdir(parents=True, exist_ok=True)
+    
+    log_file = path.join(output_path, "calibration.log")
+    export_file = path.join(output_path, "calibration.json")
 
-    log_handler = setup_logging(output_path, args.log_level)
+    detection_cache = path.join(output_path, "detections.pkl")
+    workspace_file = path.join(output_path, "workspace.pkl")
+    
+    ws = workspace.Workspace()
+    setup_logging(log_file, args.log_level, [ws.log_handler])
  
-    ws = workspace.Workspace(log_handler = log_handler)
     info(args) 
 
-    boards = board.load_config(args.boards)
+    board_file = args.boards or path.join(args.image_path, "boards.yaml")
+    boards = board.load_config(board_file)
     info("Using boards:")
     for name, b in boards.items():
       info(f"{name} {b}")
@@ -65,12 +71,16 @@ def main():
     cameras = map_none(str.split, args.cameras, ",")
     
     ws.find_images(args.image_path, cameras)
-    ws.load_detect(boards, j=args.j)
-
+    ws.load_images(j=args.j)
+    ws.detect_boards(boards, j=args.j, cache_file=detection_cache, load_cache=not args.no_cache)
+    
     ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
     ws.initialise_poses()
     ws.calibrate("extrinsics", loss=args.loss)
+
+    ws.export(export_file)
+    ws.dump(workspace_file)
 
     # ws.calibrate("full", enable_intrinsics=True, enable_board=True, loss=args.loss)
     visualizer.visualize(ws)

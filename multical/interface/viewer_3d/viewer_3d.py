@@ -40,8 +40,11 @@ class Viewer3D(QtWidgets.QWidget):
   def enable(self, enabled):
     if enabled:
       self.plotter.enable()
+      self.plotter.interactor.setHidden(False)
     else:
       self.plotter.disable()
+      self.plotter.interactor.setHidden(True)
+
 
   def add_mesh(self, mesh, transform=None, **kwargs):
       actor = self.plotter.add_mesh(mesh, **kwargs)

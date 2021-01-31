@@ -1,11 +1,11 @@
 import json
+from multical import tables
 from os import path
 import numpy as np
 
 from structs.struct import struct, to_dicts
-from .transform import matrix
+from multical.transform import matrix
 
-from .optimization.calibration import Calibration
 
 def export_camera(camera):
   return struct(
@@ -23,33 +23,38 @@ def export_extrinsic(extrinsic, parent):
     return struct (R = r.tolist(), T=t.tolist(), parent=parent)
 
 
-def export_extrinsics(camera_names, camera_poses):
-  return {k : export_extrinsic(pose, "rig") 
+def export_extrinsics(camera_names, camera_poses, master=None):
+  master_name = "rig" if master is None else camera_names[master]
+
+  return {k : export_extrinsic(pose, master_name) 
     for k, pose, valid in zip(camera_names, camera_poses.poses, camera_poses.valid) 
       if valid}
 
-def export(filename, calib, camera_names, image_names):
-  assert isinstance(calib, Calibration)
-  
+def export(filename, calib, names):  
   pose_sets = calib.pose_estimates
 
   valid_frames = np.flatnonzero(pose_sets.rig.valid)
   rig_poses = pose_sets.rig.poses[valid_frames]
+  board_poses = pose_sets.board.poses
 
   image_names = np.array(image_names)[valid_frames].tolist()
 
   data = struct(
     cameras = export_cameras(camera_names, calib.cameras),
-    extrinsics = export_extrinsics(camera_names=camera_names, camera_poses=pose_sets.camera),
+    extrinsics = export_extrinsics(camera_names=camera_names, 
+      camera_poses=tables.inverse(pose_sets.camera)),
+
     rig_poses = [t.tolist() for t in rig_poses],
-    boards = [calib.board.export()],
+    board_poses = [t.tolist() for t in board_poses],
+
+    boards = [board.export() for board in calib.boards],
 
     image_sets = struct(
       rgb = [{camera : path.join(camera, image) for camera in camera_names}
         for image in image_names]
     ),
 
-    board_points = [calib.board.adjusted_points.tolist()]
+    board_points = [board.adjusted_points.tolist() for board in calib.boards]
   )
   
 

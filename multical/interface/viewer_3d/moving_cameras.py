@@ -3,6 +3,9 @@ import numpy as np
 from .marker import board_object, View
 from multical import tables
 
+from numba import jit
+
+@jit(forceobj=True)
 def view_markers(viewer, pose_estimates, cameras, scale=1.0):
   view_poses = tables.inverse(tables.expand_views(pose_estimates))
 
@@ -16,6 +19,7 @@ def view_markers(viewer, pose_estimates, cameras, scale=1.0):
 
 
 class MovingCameras(object):
+  @jit(forceobj=True)
   def __init__(self, viewer, calib, board_colors):
     self.viewer = viewer
 

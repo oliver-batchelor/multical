@@ -3,7 +3,9 @@ import numpy as np
 from .marker import View, board_mesh
 from structs.numpy import shape
 from multical import tables
+from numba import jit
 
+@jit(forceobj=True)
 def camera_markers(viewer, camera_poses, cameras, scale=1.0):
   def add_view(camera_pose, camera):
 
@@ -13,7 +15,7 @@ def camera_markers(viewer, camera_poses, cameras, scale=1.0):
   return [add_view(camera_pose, camera)
     for camera_pose, camera in zip(camera_poses._sequence(), cameras)]
  
-
+@jit(forceobj=True)
 def board_objects(viewer, board, pose_estimates, color):
   mesh = board_mesh(board)
   def add_board(pose):
@@ -25,6 +27,7 @@ def board_objects(viewer, board, pose_estimates, color):
    
 
 class MovingBoard(object):
+  @jit(forceobj=True)
   def __init__(self, viewer, calib, board_colors, scale=0.05):
     self.viewer = viewer
 

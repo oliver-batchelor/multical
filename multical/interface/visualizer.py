@@ -32,15 +32,27 @@ def visualize(workspace):
   app.exec_()
 
 
-class BlockSignals(object):
+class Updating(object):
   def __init__(self, widget):
     self.widget = widget
 
   def __enter__(self):
-    self.was_blocked = self.widget.blockSignals(True)
+    self.was_ready = self.widget.ready
 
   def __exit__(self, type, value, traceback):
-    self.widget.blockSignals(self.was_blocked)
+    self.widget.ready = self.was_ready
+
+
+def if_ready(func):
+  def f(self, *args, **kwargs):
+    if self.ready:
+      return func(self, *args, **kwargs)
+  return f
+
+def void(func):
+  def f(self, *args, **kwargs):
+    return func(self)
+  return f
 
 
 class Visualizer(QtWidgets.QMainWindow):
@@ -63,6 +75,7 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.params_viewer = camera_params.ParamsViewer(self)
     self.cameras_tab.setLayout(h_layout(self.params_viewer))
+    self.ready = False
 
     # action = QtWidgets.QAction(qta.icon('fa.folder-open'), "new", self)
     # self.toolBar.addAction(action)
@@ -81,7 +94,7 @@ class Visualizer(QtWidgets.QMainWindow):
     self.setDisabled(True)
 
   def update_calibrations(self, calibrations):
-    with(self.block_signals):
+    with(self.updating):
       has_calibrations = len(calibrations) > 0
 
       self.tab_3d.setEnabled(has_calibrations)
@@ -104,9 +117,11 @@ class Visualizer(QtWidgets.QMainWindow):
       _, layer_labels = self.image_layers()
       self.layer_combo.clear()
       self.layer_combo.addItems(layer_labels)
+    self.update_controller()
+
 
   def set_calibration(self, index):
-    with(self.block_signals):
+    with(self.updating):
       ws = self.workspace
 
       assert index < len(ws.calibrations)
@@ -116,6 +131,9 @@ class Visualizer(QtWidgets.QMainWindow):
       self.params_viewer.set_cameras(self.calibration.cameras, tables.inverse(
           self.calibration.pose_estimates.camera))
 
+      self.viewer_3d.enable(False)
+      self.viewer_3d.clear()
+
       self.controllers = struct(
           moving_cameras=MovingCameras(
               self.viewer_3d, self.calibration, ws.board_colors),
@@ -124,12 +142,15 @@ class Visualizer(QtWidgets.QMainWindow):
       )
 
       self.setup_view_table(self.calibration)
-
+      self.viewer_3d.enable(True)
       self.viewer_3d.fix_camera()
-      self.update_controller()
+
+      
+    self.update_controller()
 
   def setup_view_table(self, calibration):
-    with(self.block_signals):
+    
+    with(self.updating):
 
       ws = self.workspace
       board_labels = ["All boards"] + \
@@ -144,17 +165,19 @@ class Visualizer(QtWidgets.QMainWindow):
       self.view_table.setModel(self.view_model)
       self.view_table.setSelectionMode(
           QtWidgets.QAbstractItemView.SingleSelection)
-      self.select(0, 0)
 
       self.metric_combo.clear()
       self.metric_combo.addItems(self.view_model.metric_labels)
 
+    self.select(0, 0)
+
+
   @property
-  def block_signals(self):
-    return BlockSignals(self)
+  def updating(self):
+    return Updating(self)
 
   def update_workspace(self, workspace):
-    with(self.block_signals):
+    with(self.updating):
       self.workspace = workspace
 
       for record in workspace.log_entries:
@@ -165,10 +188,13 @@ class Visualizer(QtWidgets.QMainWindow):
       self.calibrations = self.workspace.get_calibrations()
       self.update_calibrations(self.calibrations)
 
-      self.update_frame()
       self.setDisabled(False)
-
       self.connect_ui()
+
+    self.ready = True
+    self.update_frame()
+    self.update_controller()
+
 
   def keyPressEvent(self, event):
 
@@ -191,7 +217,6 @@ class Visualizer(QtWidgets.QMainWindow):
         index, QtCore.QItemSelectionModel.ClearAndSelect)
 
   def selection(self):
-
     selection = self.view_table.selectionModel().selectedIndexes()
     assert len(selection) == 1
 
@@ -223,6 +248,8 @@ class Visualizer(QtWidgets.QMainWindow):
     frame, camera = self.selection()
     self.select(frame, (camera + d_camera) % sizes.camera)
 
+  @if_ready
+  @void
   def update_frame(self):
     state = self.state()
     if self.controller is not None:
@@ -242,6 +269,8 @@ class Visualizer(QtWidgets.QMainWindow):
 
     return split_dict(layers)
 
+  @if_ready
+  @void
   def update_image(self):
     state = self.state()
     layer_names, _ = self.image_layers()
@@ -259,6 +288,7 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.viewer_image.update_image(annotated_image)
 
+  @if_ready
   def update_controller(self):
     if self.controller is not None:
       self.controller.disable()
@@ -270,6 +300,7 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.controller.enable(self.state())
 
+  @if_ready
   def update_view_table(self):
     metric_selected = self.metric_combo.currentIndex()
     board_index = self.boards_combo.currentIndex()    

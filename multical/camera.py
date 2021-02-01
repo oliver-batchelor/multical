@@ -151,7 +151,8 @@ class Camera(Parameters):
 
 def board_correspondences(board, detections):
   non_empty = [d for d in detections if board.has_min_detections(d)]
-  assert len(non_empty) > 0, "board_correspondences: no detections"
+  if len(non_empty) == 0:
+    return struct(corners = [], object_points=[], ids=[])
 
   detections = transpose_structs(non_empty)
   return detections._extend(

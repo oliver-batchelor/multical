@@ -1,6 +1,6 @@
 
 import numpy as np
-from .marker import board_object, View
+from .marker import board_object, View, view_marker
 from multical import tables
 
 from numba import jit
@@ -12,9 +12,11 @@ def view_markers(viewer, pose_estimates, cameras, scale=1.0):
   def add_view(view_pose, camera):
     if view_pose.valid:
       return View(viewer, camera, view_pose.poses, scale)
+
+  marker_meshes = [view_marker(camera) for camera in cameras]
          
-  return [[add_view(view_pose, camera)
-    for view_pose, camera in zip(camera_poses._sequence(), cameras)]
+  return [[add_view(view_pose, marker.copy())
+    for view_pose, marker in zip(camera_poses._sequence(), marker_meshes)]
         for camera_poses in view_poses._sequence(1)]
 
 

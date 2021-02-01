@@ -1,6 +1,6 @@
 
 import numpy as np
-from .marker import View, board_mesh
+from .marker import View, board_mesh, view_marker
 from structs.numpy import shape
 from multical import tables
 from numba import jit
@@ -10,7 +10,7 @@ def camera_markers(viewer, camera_poses, cameras, scale=1.0):
   def add_view(camera_pose, camera):
 
     if camera_pose.valid:
-        return View(viewer, camera, np.linalg.inv(camera_pose.poses), scale)
+        return View(viewer, view_marker(camera), np.linalg.inv(camera_pose.poses), scale)
 
   return [add_view(camera_pose, camera)
     for camera_pose, camera in zip(camera_poses._sequence(), cameras)]
@@ -18,6 +18,7 @@ def camera_markers(viewer, camera_poses, cameras, scale=1.0):
 @jit(forceobj=True)
 def board_objects(viewer, board, pose_estimates, color):
   mesh = board_mesh(board)
+
   def add_board(pose):
     if pose.valid:
       return viewer.add_mesh(mesh.copy(), style="wireframe", ambient=0.5,

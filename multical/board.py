@@ -42,7 +42,7 @@ class CharucoBoard(Parameters):
     self.aruco_dict = aruco_dict
     self.aruco_offset = aruco_offset 
 
-    self.size = size
+    self.size = tuple(size)
 
     self.marker_length = marker_length
     self.square_length = square_length
@@ -56,9 +56,9 @@ class CharucoBoard(Parameters):
 
   @cached_property
   def board(self):
-    aruco_dict = create_dict(**self.dict_desc)
+    aruco_dict = create_dict(self.aruco_dict, self.aruco_offset)
     width, height = self.size
-    self.board = cv2.aruco.CharucoBoard_create(width, height,
+    return cv2.aruco.CharucoBoard_create(width, height,
       self.square_length, self.marker_length, aruco_dict)
 
   @cached_property
@@ -76,7 +76,7 @@ class CharucoBoard(Parameters):
       aruco_params = self.aruco_params
     )
 
-  def compare_config(self, other):
+  def __eq__(self, other):
     return self.export() == other.export()
 
   @property
@@ -86,10 +86,6 @@ class CharucoBoard(Parameters):
   @property
   def num_points(self):
     return len(self.points)
-
-  @property 
-  def size(self):
-    return self.size
 
   @property 
   def ids(self):
@@ -195,8 +191,11 @@ def load_config(yaml_file):
 
       merged = OmegaConf.merge(schema, config)
       merged = struct(**merged)._without('_type_')
-      return CharucoBoard.create(aruco_params=aruco_params, **merged)
+      return CharucoBoard(aruco_params=aruco_params, **merged)
     else:
       assert False, f"unknown board type: {config._type_}"
 
   return {k:instantiate_board(board) for k, board in boards.items()}
+
+
+

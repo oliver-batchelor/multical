@@ -300,6 +300,7 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.controller.enable(self.state())
 
+  @void
   @if_ready
   def update_view_table(self):
     metric_selected = self.metric_combo.currentIndex()

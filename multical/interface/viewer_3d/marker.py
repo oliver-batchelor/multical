@@ -48,11 +48,10 @@ def image_projection(camera, distance=1):
  
 
 class View():
-  def __init__(self, viewer, camera, pose, scale=1):
+  def __init__(self, viewer, mesh, pose, scale=1):
     self.pose = pose
-    self.camera = camera
 
-    self.mesh = view_marker(camera)
+    self.mesh = mesh
     self.actor = viewer.add_mesh(self.mesh, show_edges=True)
 
     self.set_scale(scale)

@@ -37,11 +37,11 @@ def export(filename, calib, names):
   rig_poses = pose_sets.rig.poses[valid_frames]
   board_poses = pose_sets.board.poses
 
-  image_names = np.array(image_names)[valid_frames].tolist()
+  image_names = np.array(names.image)[valid_frames].tolist()
 
   data = struct(
-    cameras = export_cameras(camera_names, calib.cameras),
-    extrinsics = export_extrinsics(camera_names=camera_names, 
+    cameras = export_cameras(names.camera, calib.cameras),
+    extrinsics = export_extrinsics(camera_names=names.camera, 
       camera_poses=tables.inverse(pose_sets.camera)),
 
     rig_poses = [t.tolist() for t in rig_poses],
@@ -50,7 +50,7 @@ def export(filename, calib, names):
     boards = [board.export() for board in calib.boards],
 
     image_sets = struct(
-      rgb = [{camera : path.join(camera, image) for camera in camera_names}
+      rgb = [{camera : path.join(camera, image) for camera in names.camera}
         for image in image_names]
     ),
 

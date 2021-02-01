@@ -41,6 +41,8 @@ class MemoryHandler(logging.Handler):
     except Exception:
         self.handleError(record)
 
+  def __getstate__(self):
+    return struct(records = self.records)
 
 
 

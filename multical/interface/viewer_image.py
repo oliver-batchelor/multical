@@ -97,7 +97,7 @@ def add_point_markers(scene, points, board, color, options):
   for corner, id in zip(corners, board.ids[points.valid]):
     add_marker(scene, corner, id, options, pen, color, marker_font)
 
-def add_reprojections(scene, points, projected, inliers, boards, options):
+def add_reprojections(scene, points, projected, inliers, boards, valid_boards, options):
   marker_font = QFont()
   marker_font.setPixelSize(options.marker_size)
 
@@ -111,7 +111,10 @@ def add_reprojections(scene, points, projected, inliers, boards, options):
   
   pens = colors._map(cosmetic_pen, options.line_width)
 
-  for board, board_points in zip(boards, frame_table._sequence(0)):
+  for board, valid_board, board_points in zip(boards, valid_boards, frame_table._sequence(0)):
+      if not valid_board:
+        continue
+
       for point, id in zip(board_points._sequence(), board.ids):
 
         color_key = 'invalid' if not point.valid else ('inlier' if point.inlier else 'outlier')
@@ -136,10 +139,14 @@ def annotate_image(workspace, calibration, layer, state, options):
       add_point_markers(scene, points, board, color, options)
 
   elif layer == "reprojection":
+
     assert calibration is not None
     projected = calibration.projected._index[state.camera, state.frame]
     inliers = calibration.inliers[state.camera, state.frame]
-    add_reprojections(scene, detections, projected, inliers, workspace.boards, options)
+    valid_boards = calibration.pose_estimates.board.valid
+
+    add_reprojections(scene, detections, projected, inliers, workspace.boards, valid_boards, options)
+
   elif layer == "detected_poses":
     board_poses = workspace.pose_table._index[state.camera, state.frame]
     camera = workspace.cameras[state.camera]

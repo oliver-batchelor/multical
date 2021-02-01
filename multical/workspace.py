@@ -129,7 +129,7 @@ class Workspace:
 
     pose_initialisation = tables.initialise_poses(self.pose_table)
     calib = Calibration(self.cameras, self.boards, self.point_table, pose_initialisation)
-    calib = calib.reject_outliers_quantile(0.75, 2)
+    calib = calib.reject_outliers_quantile(0.75, 5)
     calib.report(f"Initialisation")
 
     self.calibrations['initialisation'] = calib
@@ -140,6 +140,7 @@ class Workspace:
     calib = self.latest_calibration.enable(intrinsics=intrinsics, board=board, rolling=rolling)
         
     calib = calib.adjust_outliers(**opt_args)
+
     self.calibrations[name] = calib
     return calib
 

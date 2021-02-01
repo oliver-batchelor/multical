@@ -7,7 +7,7 @@ from .viewer_3d.camera_view import CameraView
 from .viewer_3d.moving_cameras import MovingCameras
 
 from . import camera_params, view_table
-from .layout import h_layout
+from .layout import h_layout, v_layout, widget
 import PyQt5.QtWidgets as QtWidgets
 
 from PyQt5 import uic, QtCore
@@ -77,19 +77,21 @@ class Visualizer(QtWidgets.QMainWindow):
     self.cameras_tab.setLayout(h_layout(self.params_viewer))
     self.ready = False
 
-    # action = QtWidgets.QAction(qta.icon('fa.folder-open'), "new", self)
-    # self.toolBar.addAction(action)
+    action = QtWidgets.QAction(qta.icon('fa.folder-open'), "new", self)
+    self.toolBar.addAction(action)
 
-    # action = QtWidgets.QAction(qta.icon('fa.save'), "Save", self)
-    # self.toolBar.addAction(action)
+    action = QtWidgets.QAction(qta.icon('fa.save'), "Save", self)
+    self.toolBar.addAction(action)
 
-    # action = QtWidgets.QAction(qta.icon('fa.cogs'), "Optimize", self)
-    # self.toolBar.addAction(action)
+    action = QtWidgets.QAction(qta.icon('fa.cogs'), "Optimize", self)
+    self.toolBar.addAction(action)
 
-    # self.toolBar.addSeparator()
+    self.toolBar.addSeparator()
 
     self.calibrations_combo = QtWidgets.QComboBox(self)
-    self.toolBar.addWidget(self.calibrations_combo)
+
+    toolbar_combo = widget(h_layout(QtWidgets.QLabel("Stage"), self.calibrations_combo), self)
+    self.toolBar.addWidget(toolbar_combo)
 
     self.setDisabled(True)
 
@@ -288,6 +290,7 @@ class Visualizer(QtWidgets.QMainWindow):
 
     self.viewer_image.update_image(annotated_image)
 
+  @void
   @if_ready
   def update_controller(self):
     if self.controller is not None:

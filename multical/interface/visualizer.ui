@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1162</width>
+    <width>1620</width>
     <height>849</height>
    </rect>
   </property>
@@ -345,6 +345,14 @@
            <layout class="QVBoxLayout" name="verticalLayout">
             <item>
              <widget class="QTextEdit" name="log_viewer">
+              <property name="font">
+               <font>
+                <family>Courier</family>
+                <pointsize>11</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
               <property name="inputMethodHints">
                <set>Qt::ImhNone</set>
               </property>
@@ -400,7 +408,7 @@
            <item>
             <widget class="QComboBox" name="metric_combo">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -418,7 +426,7 @@
            <item>
             <widget class="QComboBox" name="boards_combo">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -437,17 +445,30 @@
             </widget>
            </item>
            <item>
-            <spacer name="horizontalSpacer_2">
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>Tolerance</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSlider" name="tolerance_slider">
+             <property name="minimum">
+              <number>10</number>
+             </property>
+             <property name="maximum">
+              <number>100</number>
+             </property>
+             <property name="pageStep">
+              <number>1</number>
+             </property>
+             <property name="value">
+              <number>50</number>
+             </property>
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
+            </widget>
            </item>
           </layout>
          </item>
@@ -475,7 +496,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1162</width>
+     <width>1620</width>
      <height>20</height>
     </rect>
    </property>

@@ -45,6 +45,22 @@ class MemoryHandler(logging.Handler):
     return struct(records = self.records)
 
 
+class LogWriter():
+  def __init__(self, level=logging.INFO, ignore_newline=True):
+    self.level = level
+    self.ignore_newline = ignore_newline
+
+  def write(self, message, *args, **kwargs):
+    if message != '\n' or not self.ignore_newline:
+      logger._log(self.level, message, args, **kwargs)
+
+  @staticmethod
+  def info(ignore_newline=True):
+    return LogWriter(level=logging.INFO, ignore_newline=ignore_newline)
+  
+  @staticmethod
+  def debug(ignore_newline=True):
+    return LogWriter(level=logging.DEBUG, ignore_newline=ignore_newline)
 
 class IndentFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):

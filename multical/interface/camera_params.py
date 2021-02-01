@@ -30,7 +30,7 @@ class ParamsViewer(QtWidgets.QScrollArea):
     self.camera_widgets = [CameraParams(name) for name in camera_names]
 
     layout = v_layout(
-      h_layout(self.master_combo, h_stretch()),
+      h_layout(QtWidgets.QLabel("Master", self), self.master_combo, h_stretch()),
       *self.camera_widgets,
       v_stretch())
     self.setLayout(layout)

@@ -15,21 +15,23 @@ from scipy import optimize
 
 from cached_property import cached_property
 
+default_optimize = struct(
+  intrinsics = False,
+  board = False,
+  rolling = False
+)
 
 class Calibration(parameters.Parameters):
   def __init__(self, cameras, boards, point_table, pose_estimates, inlier_mask=None, 
-      optimize_intrinsics=False, optimize_board=False, optimize_rolling=False):
+      optimize=default_optimize):
 
     self.cameras = cameras
     self.boards = boards
 
     self.point_table = point_table
-
     self.pose_estimates = pose_estimates
-    self.optimize_intrinsics = optimize_intrinsics
-    self.optimize_board = optimize_board
-    self.optimize_rolling = optimize_rolling
-    
+
+    self.optimize = optimize    
     self.inlier_mask = inlier_mask
     
     assert len(self.cameras) == self.size.cameras
@@ -105,15 +107,17 @@ class Calibration(parameters.Parameters):
 
     return struct(
       pose    = struct(camera=pose.camera, rig=pose.rig, board=pose.board),
-      camera  = [camera.param_vec for camera in self.cameras] if self.optimize_intrinsics else [], 
-      board   = [board.param_vec for board in self.boards] if self.optimize_board else []
+      camera  = [camera.param_vec for camera in self.cameras
+        ] if self.optimize.intrinsics else [], 
+      board   = [board.param_vec for board in self.boards
+        ] if self.optimize.board else []
     )    
   
   def with_params(self, params):
     """ Return a new Calibration object with updated parameters unpacked from given parameter struct
     sets pose_estimates of rig and camera, 
-    sets camera intrinsic parameters (if enabled),
-    sets adjusted board points (if enabled)
+    sets camera intrinsic parameters (if optimized),
+    sets adjusted board points (if optimized)
     """
     def update_pose(pose_estimates, pose_params):
       m = rtvec.to_matrix(pose_params.reshape(-1, 6))
@@ -122,12 +126,12 @@ class Calibration(parameters.Parameters):
     pose_estimates = self.pose_estimates._zipWith(update_pose, params.pose)
 
     cameras = self.cameras
-    if self.optimize_intrinsics:
+    if self.optimize.intrinsics:
       cameras = [camera.with_param_vec(p) for p, camera in 
         zip(params.camera, self.cameras)]
 
     boards = self.boards
-    if self.optimize_board:
+    if self.optimize.board:
       boards = [board.with_param_vec(board_params) 
         for board, board_params in zip(boards, params.board)]
 
@@ -142,16 +146,16 @@ class Calibration(parameters.Parameters):
     inlier_mask = np.broadcast_to(np.expand_dims(self.inliers, -1), [*self.inliers.shape, 2]) 
     indices = np.arange(inlier_mask.size).reshape(*inlier_mask.shape)
 
-    def point_indexes(i, axis, enabled=True):
-      return np.take(indices, i, axis=axis).ravel() if enabled else None
+    def point_indexes(i, axis, optimized=True):
+      return np.take(indices, i, axis=axis).ravel() if optimized else None
 
     def param_indexes(axis, params):
       return [(p.size, point_indexes(i, axis=axis))
         for i, p in enumerate(params)]
 
     def pose_mapping(poses, axis):
-      return [(6, point_indexes(i, axis, enabled))
-        for i, enabled in enumerate(poses.valid)]
+      return [(6, point_indexes(i, axis, optimized))
+        for i, optimized in enumerate(poses.valid)]
 
     param_mappings = (
       pose_mapping(self.pose_estimates.camera, axis=0) +
@@ -179,18 +183,18 @@ class Calibration(parameters.Parameters):
       verbose=2, x_scale='jac', ftol=tolerance, max_nfev=max_iterations, method='trf', loss=loss)
   
     return self.with_param_vec(res.x)
- 
   
-  def enable_intrinsics(self, enabled=True):
-    return self.copy(optimize_intrinsics=enabled)
+  def enable(self, **flags):
+    for k in flags.keys():
+      assert k in self.optimize,\
+        f"unknown option {k}, options are {list(self.optimize.keys())}"
 
-  def enable_board(self, enabled=True):
-    return self.copy(optimize_board=enabled)    
+    optimize = self.optimize._extend(**flags)
+    return self.copy(optimize=optimize)
 
-  
   def __getstate__(self):
-    attrs = ['cameras', 'boards', 'point_table', 'pose_estimates', 'inlier_mask',
-      'optimize_intrinsics', 'optimize_board', 'optimize_rolling'
+    attrs = ['cameras', 'boards', 'point_table', 'pose_estimates', 
+    'inlier_mask', 'optimize'
     ]
     return subset(self.__dict__, attrs)
 

@@ -136,9 +136,8 @@ class Workspace:
     return calib
 
 
-  def calibrate(self, name, enable_intrinsics=False, enable_board=False, **opt_args):
-    calib = self.latest_calibration.enable_intrinsics(
-        enable_intrinsics).enable_board(enable_board)
+  def calibrate(self, name, intrinsics=False, board=False, rolling=False, **opt_args):
+    calib = self.latest_calibration.enable(intrinsics=intrinsics, board=board, rolling=rolling)
         
     calib = calib.adjust_outliers(**opt_args)
     self.calibrations[name] = calib

@@ -1,5 +1,6 @@
 import logging
 import math
+from multical.optimization.calibration import select_threshold
 from multical.io.logging import setup_logging
 from os import path
 import pathlib
@@ -43,7 +44,7 @@ def main():
     parser.add_argument('--log_level', default='INFO', help='logging level for output to terminal')
     parser.add_argument('--output_path', default=None, help='specify output path, default (image_path)')
 
-    parser.add_argument('--loss', default='linear', help='loss function in optimizer (linear|soft_l1|huber)')
+    parser.add_argument('--loss', default='linear', help='loss function in optimizer (linear|soft_l1|huber|cauchy|arctan)')
     parser.add_argument('--no_cache', default=False, action='store_true', help="don't load detections from cache")
 
 
@@ -77,7 +78,10 @@ def main():
     ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
     ws.initialise_poses()
-    ws.calibrate("extrinsics", loss=args.loss)
+    outliers = select_threshold(quantile=0.75, factor=5)
+    auto_scale = select_threshold(quantile=0.75, factor=1)
+
+    ws.calibrate("extrinsics", loss=args.loss, auto_scale=auto_scale, outliers=outliers)
 
     ws.export(export_file)
     ws.dump(workspace_file)

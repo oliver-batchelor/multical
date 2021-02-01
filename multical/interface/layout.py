@@ -13,6 +13,12 @@ def v_stretch():
   return QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
 
 
+def widget(layout, parent=None):
+  w = QtWidgets.QWidget(parent)
+  w.setLayout(layout)
+  return w
+
+
 def layout(create=QtWidgets.QHBoxLayout):
   def f(*widgets, margin=None):
     layout = create()

@@ -1,19 +1,25 @@
+import contextlib
 import math
 import numpy as np
 
 from multical import tables
 from multical.transform import matrix, rtvec
 from multical.display import display_pose_projections
-from multical.io.logging import info
+from multical.io.logging import LogWriter, info
 
 from . import parameters
 
 from structs.numpy import Table, shape
-from structs.struct import concat_lists, struct, choose, subset
+from structs.struct import concat_lists, apply_none, struct, choose, subset
 
 from scipy import optimize
 
 from cached_property import cached_property
+
+def select_threshold(quantile=0.95, factor=1.0):
+  def f(reprojection_error):
+    return np.quantile(reprojection_error, quantile) * factor
+  return f
 
 
 class Calibration(parameters.Parameters):
@@ -166,7 +172,7 @@ class Calibration(parameters.Parameters):
     return parameters.build_sparse(param_mappings, inlier_mask)
 
   
-  def bundle_adjust(self, tolerance=1e-4, max_iterations=100, loss='linear'):
+  def bundle_adjust(self, tolerance=1e-4, f_scale=1.0, max_iterations=100, loss='linear'):
     """ Perform non linear least squares optimization with scipy least_squares
     based on finite differences of the parameters, on point reprojection error
     """
@@ -174,11 +180,11 @@ class Calibration(parameters.Parameters):
       calib = self.with_param_vec(param_vec)
       return (calib.projected.points - calib.point_table.points)[self.inliers].ravel()
       
-
-    res = optimize.least_squares(evaluate, self.param_vec, jac_sparsity=self.sparsity_matrix, 
-      verbose=2, x_scale='jac', ftol=tolerance, max_nfev=max_iterations, method='trf', loss=loss)
+    with contextlib.redirect_stdout(LogWriter.info()):
+      res = optimize.least_squares(evaluate, self.param_vec, jac_sparsity=self.sparsity_matrix, 
+        verbose=2, x_scale='jac', f_scale=f_scale, ftol=tolerance, max_nfev=max_iterations, method='trf', loss=loss)
   
-    return self.with_param_vec(res.x)
+      return self.with_param_vec(res.x)
  
   
   def enable_intrinsics(self, enabled=True):
@@ -205,6 +211,7 @@ class Calibration(parameters.Parameters):
     threshold = np.quantile(self.reprojection_error, quantile)
     return self.reject_outliers(threshold=threshold * factor)
 
+  
 
   def reject_outliers(self, threshold):
     """ Set outlier threshold """
@@ -220,11 +227,15 @@ class Calibration(parameters.Parameters):
 
     return self.copy(inlier_mask = inliers)
 
-  def adjust_outliers(self, iterations=4, quantile=0.75, factor=3, **kwargs):
+  def adjust_outliers(self, iterations=4, auto_scale=None, outliers=None, **kwargs):
+
     for i in range(iterations):
       self.report(f"Adjust_outliers {i}")
-      self = self.reject_outliers_quantile(quantile, factor).bundle_adjust(**kwargs)
- 
+      f_scale = apply_none(auto_scale, self.reprojection_error) or 1.0
+      if outliers is not None:
+        self = self.reject_outliers(outliers(self.reprojection_error))
+
+      self = self.bundle_adjust(f_scale=f_scale, **kwargs)
     self.report(f"Adjust_outliers end")
     return self
 
@@ -272,7 +283,6 @@ def error_stats(errors):
   mse = np.square(errors).mean()
   quantiles = np.array([np.quantile(errors, n) for n in [0, 0.25, 0.5, 0.75, 1]])
   return struct(mse = mse, rms = np.sqrt(mse), quantiles=quantiles, n = errors.size)
-
 
 
 

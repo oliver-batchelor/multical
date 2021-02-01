@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def homog_points(points):
   padding = np.ones([*points.shape[:-1], 1])
   return  np.concatenate([points, padding], axis=points.ndim - 1)
@@ -97,4 +96,3 @@ def align_transforms_robust(m1, m2, threshold=2.0):
   return m, inliers
 
 
-  

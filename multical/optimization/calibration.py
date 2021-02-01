@@ -1,5 +1,6 @@
 import contextlib
 import math
+from multical.transform.interpolate import interpolate_poses
 import numpy as np
 
 from multical import tables
@@ -16,22 +17,40 @@ from scipy import optimize
 
 from cached_property import cached_property
 
-<<<<<<< HEAD
 default_optimize = struct(
   intrinsics = False,
   board = False,
   rolling = False
 )
-=======
+
 def select_threshold(quantile=0.95, factor=1.0):
   def f(reprojection_error):
     return np.quantile(reprojection_error, quantile) * factor
   return f
 
->>>>>>> 6dc5b872d0e68d7ca76859fc945de1089d3c180d
+def stack_boards(boards):
+  num_points = max([board.num_points for board in boards])
+
+  def pad_points(board):
+    points = board.adjusted_points.astype(np.float64)
+    return np.pad(points, [(0, num_points - points.shape[0]), (0, 0)])
+    
+  return np.stack([pad_points(board) for board in boards], axis=0) 
+
+def transform_points(pose_table, boards):
+  board_points, valid_mask = stack_boards(boards)
+
+  points = matrix.transform_homog(
+    t      = np.expand_dims(pose_table.poses, 3),
+    points = np.expand_dims(board_points, [0, 1])
+  )    
+
+  valid = (np.expand_dims(pose_table.valid, axis=3) & valid_mask)
+  return points, valid
+
 
 class Calibration(parameters.Parameters):
-  def __init__(self, cameras, boards, point_table, pose_estimates, inlier_mask=None, 
+  def __init__(self, cameras, boards, point_table, pose_estimates, motion_estimates=None, inlier_mask=None, 
       optimize=default_optimize):
 
     self.cameras = cameras
@@ -40,6 +59,8 @@ class Calibration(parameters.Parameters):
     self.point_table = point_table
     self.pose_estimates = pose_estimates
 
+    self.motion_estimates = motion_estimates
+
     self.optimize = optimize    
     self.inlier_mask = inlier_mask
     
@@ -47,6 +68,9 @@ class Calibration(parameters.Parameters):
     assert pose_estimates.camera._shape[0] == self.size.cameras
     assert pose_estimates.rig._shape[0] == self.size.rig_poses
     assert pose_estimates.board._shape[0] == self.size.boards
+
+    assert motion_estimates is None\
+       or motion_estimates._shape == pose_estimates.rig._shape
 
    
   @cached_property 
@@ -66,13 +90,34 @@ class Calibration(parameters.Parameters):
   def inliers(self):
     return choose(self.inlier_mask, self.valid)
 
-  @cached_property 
-  def stacked_boards(self):
-    def pad_points(board):
-      points = board.adjusted_points.astype(np.float64)
-      return np.pad(points, [(0, self.point_table._shape[3] - points.shape[0]), (0, 0)])
-      
-    return np.stack([pad_points(board) for board in self.boards], axis=0)    
+   
+
+  @cached_property
+  def transformed_points(self):
+    return transform_points(self.pose_table, self.stacked_boards)
+
+  @cached_property
+  def times(self):
+    image_heights = np.array([camera.image_size[1] for camera in self.cameras])
+    return self.point_table.points[..., 1] / np.expand_dims(image_heights, (1,2,3))
+
+  @cached_property
+  def transformed_rolling(self):
+    poses = self.pose_estimates
+    start_frame = np.expand_dims(poses.rig.poses, (0, 2, 3))
+    end_frame = np.expand_dims(poses.rig.poses @ self.frame_motion, (0, 2, 3))
+
+    frame_poses = interpolate_poses(start_frame, end_frame, self.times)
+
+    view_poses = np.expand_dims(poses.camera.poses, (1, 2, 3)) @ frame_poses  
+    board_points = matrix.transform_homog(t = np.expand_dims(poses.board.poses, 1),
+      points = self.stacked_boards)
+
+    return matrix.transform_homog(t = view_poses, 
+      points = np.expand_dims(board_points, (0, 1)))
+
+  @cached_property
+  def transformed_rolling_approx(self):
 
 
   @cached_property
@@ -80,16 +125,13 @@ class Calibration(parameters.Parameters):
     """ Projected points from multiplying out poses and then projecting to each image. 
     Returns a table of points corresponding to point_table"""
 
-    camera_points = matrix.transform_homog(
-      t      = np.expand_dims(self.pose_table.poses, 3),
-      points = np.expand_dims(self.stacked_boards, [0, 1])
-    )
+    print(shape(self.transformed_rolling))
+
+    transformed, valid = self.transformed_rolling if self.optimize.rolling\
+      else self.transformed_points
 
     image_points = [camera.project(p) for camera, p in 
-      zip(self.cameras, camera_points)]
-    
-    valid = np.repeat(np.expand_dims(self.pose_table.valid, axis=3), 
-      self.size.points, axis=3)
+      zip(self.cameras, transformed)]
 
     return Table.create(points=np.stack(image_points), valid=valid)
 
@@ -104,6 +146,10 @@ class Calibration(parameters.Parameters):
     inlier_table = self.point_table._extend(valid=choose(self.inliers, self.valid))
     return tables.valid_reprojection_error(self.projected, inlier_table)
 
+  @cached_property
+  def frame_motion(self):
+    return self.motion_estimates if self.motion_estimates is not None\
+      else np.expand_dims(np.eye(4), 0)
 
   @cached_property
   def params(self):
@@ -191,12 +237,7 @@ class Calibration(parameters.Parameters):
       res = optimize.least_squares(evaluate, self.param_vec, jac_sparsity=self.sparsity_matrix, 
         verbose=2, x_scale='jac', f_scale=f_scale, ftol=tolerance, max_nfev=max_iterations, method='trf', loss=loss)
   
-<<<<<<< HEAD
     return self.with_param_vec(res.x)
-=======
-      return self.with_param_vec(res.x)
- 
->>>>>>> 6dc5b872d0e68d7ca76859fc945de1089d3c180d
   
   def enable(self, **flags):
     for k in flags.keys():
@@ -208,7 +249,7 @@ class Calibration(parameters.Parameters):
 
   def __getstate__(self):
     attrs = ['cameras', 'boards', 'point_table', 'pose_estimates', 
-    'inlier_mask', 'optimize'
+      'motion_estimates', 'inlier_mask', 'optimize'
     ]
     return subset(self.__dict__, attrs)
 
@@ -224,7 +265,6 @@ class Calibration(parameters.Parameters):
     return self.reject_outliers(threshold=threshold * factor)
 
   
-
   def reject_outliers(self, threshold):
     """ Set outlier threshold """
 

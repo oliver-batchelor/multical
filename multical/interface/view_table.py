@@ -110,10 +110,10 @@ class ViewModelCalibrated(QAbstractTableModel):
     upper_q = np.quantile(detections, 0.75)
 
     outlier_rate = (detections - inliers) / np.maximum(1, detections)
-    outlier_t = np.minimum(outlier_rate * 5, 1.0)
+    outlier_t = np.clip(outlier_rate * 5, 0.0, 1.0)
     colors = lerp_table(outlier_t, hsl_color("red"), hsl_color("green"))
 
-    detection_rate = np.minimum(detections / upper_q, 1.0)
+    detection_rate = np.clip(detections / np.maximum(upper_q, 1), 0.0, 1.0)
 
     colors[..., 2] = np.clip(1 - detection_rate + 0.25, 0.5, 1.0)
     return colors 
@@ -178,7 +178,7 @@ class ViewModelDetections(QAbstractTableModel):
     return self.detection_table.views
 
   def cell_color(self, detection_count):
-    detection_rate = min(detection_count / self.quantiles[4], 1)
+    detection_rate = np.clip(detection_count / self.quantiles[4], 0, 1)
     color = hsl_color("lime")
     color[2] = 0.4 + (1 - detection_rate) * 0.6
     return color 

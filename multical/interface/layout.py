@@ -20,7 +20,7 @@ def widget(layout, parent=None):
 
 
 def layout(create=QtWidgets.QHBoxLayout):
-  def f(*widgets, margin=None):
+  def f(*widgets, margin=None, spacing=5):
     layout = create()
 
     def add_item(item):
@@ -36,6 +36,9 @@ def layout(create=QtWidgets.QHBoxLayout):
 
     if margin is not None:
       layout.setContentsMargins(margin, margin, margin, margin)
+
+    if spacing is not None:
+      layout.setSpacing(spacing)
 
     return layout
   return f

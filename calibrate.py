@@ -78,10 +78,10 @@ def main():
     ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
     ws.initialise_poses()
-    outliers = select_threshold(quantile=0.75, factor=5)
-    auto_scale = select_threshold(quantile=0.75, factor=1)
+    # outliers = select_threshold(quantile=0.75, factor=5)
+    # auto_scale = select_threshold(quantile=0.75, factor=1)
 
-    ws.calibrate("extrinsics", loss=args.loss, auto_scale=auto_scale, outliers=outliers)
+    # ws.calibrate("extrinsics", loss=args.loss, auto_scale=auto_scale, outliers=outliers)
 
     ws.export(export_file)
     ws.dump(workspace_file)

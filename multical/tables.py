@@ -152,7 +152,9 @@ def estimate_transform(table, i, j, axis=0):
 
   info(f"Estimate transform axis={axis}, pair {(i, j)}, "
        f"inliers {inliers.sum()}/{poses_i.shape[0]}, "
-       f"rms frobius norm (with outlier) {err_inlier:.4f} ({err:.4f})")
+       f"RMS {err_inlier:.4f} ({err:.4f})")
+  
+  info(t)
   return t
 
 def fill_poses(pose_dict, n):

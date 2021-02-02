@@ -29,24 +29,27 @@ def select_threshold(quantile=0.95, factor=1.0):
   return f
 
 def stack_boards(boards):
-  num_points = max([board.num_points for board in boards])
+  padded_points = max([board.num_points for board in boards])
 
   def pad_points(board):
     points = board.adjusted_points.astype(np.float64)
-    return np.pad(points, [(0, num_points - points.shape[0]), (0, 0)])
+    return struct(
+      points=np.pad(points, [(0, padded_points - points.shape[0]), (0, 0)]),
+      valid = np.arange(padded_points) < board.num_points
+    )
     
-  return np.stack([pad_points(board) for board in boards], axis=0) 
+  return Table.stack([pad_points(board) for board in boards]) 
 
-def transform_points(pose_table, boards):
-  board_points, valid_mask = stack_boards(boards)
+def transform_points(pose_table, board_table):
 
   points = matrix.transform_homog(
     t      = np.expand_dims(pose_table.poses, 3),
-    points = np.expand_dims(board_points, [0, 1])
+    points = np.expand_dims(board_table.points, [0, 1])
   )    
 
-  valid = (np.expand_dims(pose_table.valid, axis=3) & valid_mask)
-  return points, valid
+
+  valid = (np.expand_dims(pose_table.valid, axis=3) & np.expand_dims(board_table.valid, axis=(0, 1)))
+  return Table.create(points=points, valid=valid)
 
 
 class Calibration(parameters.Parameters):
@@ -90,7 +93,10 @@ class Calibration(parameters.Parameters):
   def inliers(self):
     return choose(self.inlier_mask, self.valid)
 
-   
+  @cached_property
+  def stacked_boards(self):
+    return stack_boards(self.boards)
+
 
   @cached_property
   def transformed_points(self):
@@ -105,19 +111,20 @@ class Calibration(parameters.Parameters):
   def transformed_rolling(self):
     poses = self.pose_estimates
     start_frame = np.expand_dims(poses.rig.poses, (0, 2, 3))
-    end_frame = np.expand_dims(poses.rig.poses @ self.frame_motion, (0, 2, 3))
+    #end_frame = np.expand_dims(poses.rig.poses @ self.frame_motion, (0, 2, 3))
+    end_frame = start_frame
 
     frame_poses = interpolate_poses(start_frame, end_frame, self.times)
 
     view_poses = np.expand_dims(poses.camera.poses, (1, 2, 3)) @ frame_poses  
-    board_points = matrix.transform_homog(t = np.expand_dims(poses.board.poses, 1),
-      points = self.stacked_boards)
 
-    return matrix.transform_homog(t = view_poses, 
-      points = np.expand_dims(board_points, (0, 1)))
+    board_points = self.stacked_boards
+    board_points_t = matrix.transform_homog(t = np.expand_dims(poses.board.poses, 1), points = board_points.points)
 
-  @cached_property
-  def transformed_rolling_approx(self):
+    return struct(
+      points = matrix.transform_homog(t = view_poses, points = np.expand_dims(board_points_t, (0, 1))),
+      valid = self.valid
+    )
 
 
   @cached_property
@@ -125,15 +132,18 @@ class Calibration(parameters.Parameters):
     """ Projected points from multiplying out poses and then projecting to each image. 
     Returns a table of points corresponding to point_table"""
 
-    print(shape(self.transformed_rolling))
+    # print("********", shape(self.transformed_rolling))
 
-    transformed, valid = self.transformed_rolling if self.optimize.rolling\
+    transformed = self.transformed_rolling if self.optimize.rolling\
       else self.transformed_points
 
-    image_points = [camera.project(p) for camera, p in 
-      zip(self.cameras, transformed)]
+    # transformed = self.transformed_rolling
 
-    return Table.create(points=np.stack(image_points), valid=valid)
+
+    image_points = [camera.project(p) for camera, p in 
+      zip(self.cameras, transformed.points)]
+
+    return Table.create(points=np.stack(image_points), valid=transformed.valid)
 
   
 

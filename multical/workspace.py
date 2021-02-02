@@ -62,6 +62,10 @@ class Workspace:
     self.images = image.detect.load_images(self.filenames, j=j, prefix=self.image_path)
     self.image_size = map_list(common_image_size, self.images)
 
+    info(f"Loaded {len(self.filenames) * self.sizes.camera} images")
+    info({k:image_size for k, image_size in zip(self.names.camera, self.image_size)})
+
+
   def try_load_detections(self, filename):
     try:
       with open(filename, "rb") as file:
@@ -75,7 +79,7 @@ class Workspace:
           return loaded.detected_points
         else:
           info(f"Config changed, not using loaded detections in {filename}")
-    except (OSError, IOError, EOFError) as e:
+    except (OSError, IOError, EOFError, AttributeError) as e:
       return None
 
   def write_detections(self, filename):
@@ -129,7 +133,7 @@ class Workspace:
 
     pose_initialisation = tables.initialise_poses(self.pose_table)
     calib = Calibration(self.cameras, self.boards, self.point_table, pose_initialisation)
-    calib = calib.reject_outliers_quantile(0.75, 5)
+    #calib = calib.reject_outliers_quantile(0.75, 5)
     calib.report(f"Initialisation")
 
     self.calibrations['initialisation'] = calib
@@ -138,7 +142,6 @@ class Workspace:
 
   def calibrate(self, name, intrinsics=False, board=False, rolling=False, **opt_args):
     calib = self.latest_calibration.enable(intrinsics=intrinsics, board=board, rolling=rolling)
-        
     calib = calib.adjust_outliers(**opt_args)
 
     self.calibrations[name] = calib

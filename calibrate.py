@@ -21,7 +21,7 @@ from multical.io.logging import warning, info
 
 
 def main(): 
-    np.set_printoptions(precision=3, suppress=True)
+    np.set_printoptions(precision=4, suppress=True)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('image_path', help='input image path')
@@ -39,7 +39,7 @@ def main():
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
     parser.add_argument('--boards', default=None, help='configuration file (YAML) for calibration boards')
  
-    parser.add_argument('--intrinsic_images', type=int, default=None, help='number of images to use for initial intrinsic calibration default (unlimited)')
+    parser.add_argument('--intrinsic_images', type=int, default=50, help='number of images to use for initial intrinsic calibration default (unlimited)')
  
     parser.add_argument('--log_level', default='INFO', help='logging level for output to terminal')
     parser.add_argument('--output_path', default=None, help='specify output path, default (image_path)')
@@ -78,10 +78,26 @@ def main():
     ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
     ws.initialise_poses()
-    outliers = select_threshold(quantile=0.75, factor=4)
-    auto_scale = select_threshold(quantile=0.75, factor=1)
+    outliers =  select_threshold(quantile=0.75, factor=6)
+    auto_scale = select_threshold(quantile=0.75, factor=2)
+    # outliers = None
 
-    ws.calibrate("extrinsics", loss=args.loss, auto_scale=auto_scale, outliers=outliers)
+
+    ws.calibrate("calibration", loss=args.loss,  
+      rolling=True, 
+      intrinsics=True, 
+      # board=True,
+      auto_scale=auto_scale, outliers=outliers)
+
+
+    ws.calibrate("final", loss=args.loss,  
+      tolerance = 1e-5, max_iterations=30, 
+      num_adjustments=1,
+      rolling=True, 
+      intrinsics=True, 
+      board=True,
+      auto_scale=auto_scale, outliers=outliers)
+
 
     ws.export(export_file)
     ws.dump(workspace_file)

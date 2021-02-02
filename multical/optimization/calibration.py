@@ -1,6 +1,6 @@
 import contextlib
 import math
-from multical.transform.interpolate import interpolate_poses
+from multical.transform.interpolate import interpolate_poses, lerp
 import numpy as np
 
 from multical import tables
@@ -11,7 +11,7 @@ from multical.io.logging import LogWriter, info
 from . import parameters
 
 from structs.numpy import Table, shape
-from structs.struct import concat_lists, apply_none, struct, choose, subset
+from structs.struct import concat_lists, apply_none, struct, choose, subset, when
 
 from scipy import optimize
 
@@ -73,7 +73,7 @@ class Calibration(parameters.Parameters):
     assert pose_estimates.board._shape[0] == self.size.boards
 
     assert motion_estimates is None\
-       or motion_estimates._shape == pose_estimates.rig._shape
+       or motion_estimates.shape == pose_estimates.rig.poses.shape
 
    
   @cached_property 
@@ -104,18 +104,17 @@ class Calibration(parameters.Parameters):
 
   @cached_property
   def times(self):
-    image_heights = np.array([camera.image_size[1] for camera in self.cameras])
+    image_heights = np.array([camera.image_size[1] for camera in self.cameras])    
     return self.point_table.points[..., 1] / np.expand_dims(image_heights, (1,2,3))
 
   @cached_property
   def transformed_rolling(self):
     poses = self.pose_estimates
     start_frame = np.expand_dims(poses.rig.poses, (0, 2, 3))
-    #end_frame = np.expand_dims(poses.rig.poses @ self.frame_motion, (0, 2, 3))
-    end_frame = start_frame
+    end_frame = np.expand_dims(self.frame_motion.poses, (0, 2, 3))
+    
 
     frame_poses = interpolate_poses(start_frame, end_frame, self.times)
-
     view_poses = np.expand_dims(poses.camera.poses, (1, 2, 3)) @ frame_poses  
 
     board_points = self.stacked_boards
@@ -126,19 +125,30 @@ class Calibration(parameters.Parameters):
       valid = self.valid
     )
 
+  @cached_property
+  def transformed_rolling_linear(self):
+    poses_start = self.pose_estimates
+    poses_end = poses_start._extend(rig=self.frame_motion)
+
+    table_start = tables.expand_poses(poses_start)
+    table_end = tables.expand_poses(poses_end)
+
+    start_frame = transform_points(table_start, self.stacked_boards)
+    end_frame = transform_points(table_end, self.stacked_boards)
+
+    return struct(
+      points = lerp(start_frame, end_frame, self.times),
+      valid = self.valid
+    )
+
 
   @cached_property
   def projected(self):
     """ Projected points from multiplying out poses and then projecting to each image. 
     Returns a table of points corresponding to point_table"""
 
-    # print("********", shape(self.transformed_rolling))
-
     transformed = self.transformed_rolling if self.optimize.rolling\
       else self.transformed_points
-
-    # transformed = self.transformed_rolling
-
 
     image_points = [camera.project(p) for camera, p in 
       zip(self.cameras, transformed.points)]
@@ -158,8 +168,15 @@ class Calibration(parameters.Parameters):
 
   @cached_property
   def frame_motion(self):
-    return self.motion_estimates if self.motion_estimates is not None\
-      else np.expand_dims(np.eye(4), 0)
+    rig = self.pose_estimates.rig
+
+    return Table.create(
+      poses = self.motion_estimates if self.motion_estimates is not None\
+        else rig.poses,
+        #else np.broadcast_to(np.expand_dims(np.eye(4), 0), rig.poses.shape),
+      valid = rig.valid
+    )
+
 
   @cached_property
   def params(self):
@@ -175,7 +192,10 @@ class Calibration(parameters.Parameters):
       camera  = [camera.param_vec for camera in self.cameras
         ] if self.optimize.intrinsics else [], 
       board   = [board.param_vec for board in self.boards
-        ] if self.optimize.board else []
+        ] if self.optimize.board else [],
+
+      motion = (get_pose_params(self.frame_motion) 
+      if self.optimize.rolling else [])
     )    
   
   def with_params(self, params):
@@ -200,7 +220,12 @@ class Calibration(parameters.Parameters):
       boards = [board.with_param_vec(board_params) 
         for board, board_params in zip(boards, params.board)]
 
-    return self.copy(cameras=cameras, pose_estimates=pose_estimates, boards=boards)
+    motion_estimates = self.motion_estimates
+    if self.optimize.rolling:
+      motion_estimates = rtvec.to_matrix(params.motion.reshape(-1, 6))
+
+    return self.copy(cameras=cameras, pose_estimates=pose_estimates, 
+      boards=boards, motion_estimates=motion_estimates)
 
   @cached_property
   def sparsity_matrix(self):
@@ -232,6 +257,9 @@ class Calibration(parameters.Parameters):
         for board in self.params.board])
     )
 
+    if self.optimize.rolling:
+      param_mappings += pose_mapping(self.frame_motion, axis=1) 
+
     return parameters.build_sparse(param_mappings, inlier_mask)
 
   
@@ -243,6 +271,7 @@ class Calibration(parameters.Parameters):
       calib = self.with_param_vec(param_vec)
       return (calib.projected.points - calib.point_table.points)[self.inliers].ravel()
       
+
     with contextlib.redirect_stdout(LogWriter.info()):
       res = optimize.least_squares(evaluate, self.param_vec, jac_sparsity=self.sparsity_matrix, 
         verbose=2, x_scale='jac', f_scale=f_scale, ftol=tolerance, max_nfev=max_iterations, method='trf', loss=loss)
@@ -289,9 +318,9 @@ class Calibration(parameters.Parameters):
 
     return self.copy(inlier_mask = inliers)
 
-  def adjust_outliers(self, iterations=4, auto_scale=None, outliers=None, **kwargs):
+  def adjust_outliers(self, num_adjustments=4, auto_scale=None, outliers=None, **kwargs):
 
-    for i in range(iterations):
+    for i in range(num_adjustments):
       self.report(f"Adjust_outliers {i}")
       f_scale = apply_none(auto_scale, self.reprojection_error) or 1.0
       if outliers is not None:

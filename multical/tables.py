@@ -101,25 +101,26 @@ def map_pairs(f, table, axis=0):
   return pairs
 
 
+def common_entries(row1, row2):
+  valid = np.nonzero(row1.valid  & row2.valid)
+  return row1._index[valid], row2._index[valid], valid[0]
+
 def matching_points(points, board, cam1, cam2):
   points1, points2 = points._index[cam1], points._index[cam2]
   matching = []
 
   for i, j in zip(points1._sequence(0), points2._sequence(0)):
-    row1, row2, ids = common_entries(i, j, 'valid')
+    row1, row2, ids = common_entries(i, j)
     matching.append(struct(
         points1=row1.points,
         points2=row2.points,
         object_points=board.points[ids],
-        ids=ids)
-    )
+        ids=ids
+    ))
 
   return transpose_structs(matching)
 
 
-def common_entries(row1, row2, mask_key):
-  valid = np.nonzero(row1[mask_key] & row2[mask_key])
-  return row1._index[valid], row2._index[valid], valid[0]
 
 
 def pattern_overlaps(table, axis=0):
@@ -141,20 +142,24 @@ def rms(errors):
   return np.sqrt(np.square(errors).mean())
 
 def estimate_transform(table, i, j, axis=0):
-  poses_i = table._index_select(i, axis=axis).poses.reshape(-1, 4, 4)
-  poses_j = table._index_select(j, axis=axis).poses.reshape(-1, 4, 4)
+  table_i = table._index_select(i, axis=axis)
+  table_j = table._index_select(j, axis=axis)
 
-  assert poses_i.shape == poses_j.shape
+  assert table_i._shape == table_j._shape
+  valid = (table_i.valid & table_j.valid).ravel()
 
-  t, inliers = matrix.align_transforms_robust(poses_i, poses_j)
-  err = rms(matrix.error_transform(t, poses_i, poses_j))
+  poses_i = table_i.poses.reshape(-1, 4, 4)
+  poses_j = table_j.poses.reshape(-1, 4, 4)
+
+  t, inliers = matrix.align_transforms_robust(poses_i, poses_j, valid=valid)
+  err = rms(matrix.error_transform(t, poses_i[valid], poses_j[valid]))
+
   err_inlier = rms(matrix.error_transform(t, poses_i[inliers], poses_j[inliers]))
 
   info(f"Estimate transform axis={axis}, pair {(i, j)}, "
-       f"inliers {inliers.sum()}/{poses_i.shape[0]}, "
-       f"RMS {err_inlier:.4f} ({err:.4f})")
-  
-  info(t)
+       f"inliers {inliers.sum()}/{valid.sum()}, "
+       f"rms frobius norm (with outlier) {err_inlier:.4f} ({err:.4f})")
+  print(t)
   return t
 
 def fill_poses(pose_dict, n):
@@ -297,7 +302,7 @@ def mean_robust_n(pose_table, axis=0):
 
 
 def relative_between(table1, table2):
-  common1, common2, valid = common_entries(table1, table2, mask_key='valid')
+  common1, common2, valid = common_entries(table1, table2)
   if valid.size == 0:
     return invalid_pose
   else:

@@ -1,4 +1,6 @@
 import numpy as np
+from structs.numpy import shape
+from structs.struct import choose
 
 def homog_points(points):
   padding = np.ones([*points.shape[:-1], 1])
@@ -78,19 +80,21 @@ def align_transforms_ls(m1, m2):
   return join(r, t)
 
 def test_outlier(errs, threshold=2.0):
-  median = np.quantile(errs, 0.5)
+  uq = np.quantile(errs, 0.75)
+  return errs < uq * threshold
 
-  return errs < median * threshold
 
-
-def align_transforms_robust(m1, m2, threshold=2.0):
+def align_transforms_robust(m1, m2, valid=None, threshold=2.0):
   """ As align_transforms, with outlier rejection.
-    threshold (float): proportion of IQR above upper quartile to be determined as an outlier.
+    threshold (float): factor of upper quartile to be determined as an outlier.
   """
-  m = align_transforms_mean(m1, m2)
+
+  mask = choose(valid, np.ones(m1.shape[0], dtype=np.bool))
+
+  m = align_transforms_mean(m1[mask], m2[mask])
   errs = error_transform(m, m1, m2)
 
-  inliers = test_outlier(errs, threshold)
+  inliers = test_outlier(errs, threshold) & mask
   m = align_transforms_mean(m1[inliers], m2[inliers])
 
   return m, inliers

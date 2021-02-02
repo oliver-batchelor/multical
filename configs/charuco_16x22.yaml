@@ -8,4 +8,4 @@ boards:
     marker_length: 18.75
 
     min_rows: 3
-    min_points: 20
+    min_points: 20 

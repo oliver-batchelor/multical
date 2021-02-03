@@ -62,7 +62,7 @@ class Workspace:
     self.images = image.detect.load_images(self.filenames, j=j, prefix=self.image_path)
     self.image_size = map_list(common_image_size, self.images)
 
-    info(f"Loaded {len(self.filenames) * self.sizes.camera} images")
+    info(f"Loaded {self.sizes.image * self.sizes.camera} images")
     info({k:image_size for k, image_size in zip(self.names.camera, self.image_size)})
 
 

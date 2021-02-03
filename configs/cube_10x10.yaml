@@ -26,5 +26,5 @@ boards:
 
 
 aruco_params:
-  adaptiveThreshWinSizeMax: 400
-  adaptiveThreshWinSizeStep: 100
+  adaptiveThreshWinSizeMax: 200
+  adaptiveThreshWinSizeStep: 50

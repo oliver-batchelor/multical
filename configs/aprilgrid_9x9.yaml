@@ -1,3 +1,4 @@
+
 boards:
   board:
     _type_: 'aprilgrid'
@@ -5,3 +6,6 @@ boards:
     tag_family: t36h11 # ['t16h5', 't25h7', 't25h9', 't36h11']
     tag_length: 0.06
     tag_spacing: 0.3
+
+    min_rows: 2
+    min_points: 12

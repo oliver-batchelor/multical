@@ -134,8 +134,8 @@ class Visualizer(QtWidgets.QMainWindow):
           self.calibration.pose_estimates.camera))
 
       self.viewer_3d.enable(False)
-      self.viewer_3d.clear()
 
+  
       self.controllers = struct(
           moving_cameras=MovingCameras(
               self.viewer_3d, self.calibration, ws.board_colors),

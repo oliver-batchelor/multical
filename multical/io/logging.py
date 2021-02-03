@@ -83,7 +83,7 @@ def setup_logging(log_file, console_level='INFO', handlers=[]):
     stream_handler.setLevel(getattr(logging, console_level))
     stream_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
 
-    file_handler = logging.FileHandler(log_file, mode='w')
+    file_handler = logging.FileHandler(log_file, mode='a')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
     

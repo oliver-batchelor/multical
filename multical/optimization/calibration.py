@@ -137,8 +137,8 @@ class Calibration(parameters.Parameters):
     end_frame = transform_points(table_end, self.stacked_boards)
 
     return struct(
-      points = lerp(start_frame, end_frame, self.times),
-      valid = self.valid
+      points = lerp(start_frame.points, end_frame.points, self.times),
+      valid = start_frame.valid & end_frame.valid
     )
 
 
@@ -147,7 +147,7 @@ class Calibration(parameters.Parameters):
     """ Projected points from multiplying out poses and then projecting to each image. 
     Returns a table of points corresponding to point_table"""
 
-    transformed = self.transformed_rolling if self.optimize.rolling\
+    transformed = self.transformed_rolling_linear if self.optimize.rolling\
       else self.transformed_points
 
     image_points = [camera.project(p) for camera, p in 
@@ -267,10 +267,10 @@ class Calibration(parameters.Parameters):
     """ Perform non linear least squares optimization with scipy least_squares
     based on finite differences of the parameters, on point reprojection error
     """
+
     def evaluate(param_vec):
       calib = self.with_param_vec(param_vec)
       return (calib.projected.points - calib.point_table.points)[self.inliers].ravel()
-      
 
     with contextlib.redirect_stdout(LogWriter.info()):
       res = optimize.least_squares(evaluate, self.param_vec, jac_sparsity=self.sparsity_matrix, 
@@ -319,10 +319,14 @@ class Calibration(parameters.Parameters):
     return self.copy(inlier_mask = inliers)
 
   def adjust_outliers(self, num_adjustments=4, auto_scale=None, outliers=None, **kwargs):
+    info(f"Beginning adjustments ({num_adjustments}) options {self.optimize}")
 
     for i in range(num_adjustments):
       self.report(f"Adjust_outliers {i}")
       f_scale = apply_none(auto_scale, self.reprojection_error) or 1.0
+      if auto_scale is not None:
+        info(f"Auto scaling for outliers influence at {f_scale}")
+      
       if outliers is not None:
         self = self.reject_outliers(outliers(self.reprojection_error))
 

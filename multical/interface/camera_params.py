@@ -5,7 +5,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import Qt
 import numpy as np
 
-from .layout import h_layout, h_stretch, v_stretch, v_layout
+from .layout import h_layout, h_stretch, v_stretch, v_layout, widget
 
 
 def set_master(poses, index):
@@ -20,7 +20,7 @@ class ParamsViewer(QtWidgets.QScrollArea):
     self.cameras = None
     self.camera_names = None
 
-    self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+
 
   def init(self, camera_names):
     self.camera_names = camera_names
@@ -33,7 +33,9 @@ class ParamsViewer(QtWidgets.QScrollArea):
       h_layout(QtWidgets.QLabel("Master", self), self.master_combo, h_stretch()),
       *self.camera_widgets,
       v_stretch())
-    self.setLayout(layout)
+
+    self.setWidget(widget(layout))
+    self.setWidgetResizable(True)
 
     self.setDisabled(True)
     self.master_combo.currentIndexChanged.connect(self.update_cameras)

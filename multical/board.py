@@ -58,6 +58,11 @@ def estimate_pose_points(board, camera, detections):
     return rtvec.join(rvec.flatten(), tvec.flatten())
 
 
+def subpix_corners(image, corners, ids, window):
+  criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.0001)               
+  refined = cv2.cornerSubPix(image, corners, (window, window), (-1, -1), criteria)
+
+  return struct(corners=refined, ids=ids)
 
 
 class CharucoBoard(Parameters):
@@ -168,7 +173,7 @@ class CharucoBoard(Parameters):
 
 class AprilGrid(Parameters):
   def __init__(self, size, tag_length, 
-      tag_spacing, tag_family='t36h11', adjusted_points=None, border_bits=2, min_rows=2, min_points=12):
+      tag_spacing, tag_family='t36h11', border_bits=2, min_rows=2, min_points=12, subpix_region=5, adjusted_points=None):
     
     assert tag_family in self.aruco_dicts
     self.size = tuple(size)
@@ -182,7 +187,7 @@ class AprilGrid(Parameters):
  
     self.min_rows = min_rows
     self.min_points = min_points
-
+    self.subpix_region = subpix_region
 
   @cached_property
   def grid(self):
@@ -267,14 +272,22 @@ class AprilGrid(Parameters):
 
 
   def detect(self, image):    
-    raise NotImplemented()
+    detections = self.grid.compute_observation(image)
+    corners = []
+    ids = []
+
+    for d in detections:
+      id = d.ids[0] * 4
+      ids.extend([id, id + 1, id + 2, id + 3])
+      corners.extend(d.corners)
+
+    return subpix_corners(image, corners, ids, self.subpix_region)
 
   def has_min_detections(self, detections):
     return has_min_detections(self, detections)
 
   def estimate_pose_points(self, camera, detections):
     return estimate_pose_points(self, camera, detections)
-
 
 
   @cached_property
@@ -291,7 +304,7 @@ class AprilGrid(Parameters):
 
   def __getstate__(self):
     return subset(self.__dict__, ['size', 'tag_family', 'tag_length', 
-      'tag_spacing', 'min_rows', 'min_points', 'border_bits'])
+      'tag_spacing', 'min_rows', 'min_points', 'border_bits', 'subpix_region'])
     
 
 @dataclass 

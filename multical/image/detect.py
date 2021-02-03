@@ -76,8 +76,5 @@ def stereo_calibrate_detections(detections, board, cameras, i, j, **kwargs):
   return stereo_calibrate((cameras[i], cameras[j]), matching_frames, **kwargs)  
   
 
-def refine_detections(board, cameras, points, images):
-  return [[board.refine_points(camera, frame_dets, image) 
-    for frame_dets, image in zip(cam_dets, cam_images)]
-      for camera, cam_dets, cam_images in zip(cameras, points, images)]
+
       

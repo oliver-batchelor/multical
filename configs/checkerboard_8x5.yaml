@@ -1,5 +1,5 @@
 boards:
-  board:
+  checkerboard_8x5:
     _type_: 'checkerboard'
     size: [8, 5]
     square_length: 0.03

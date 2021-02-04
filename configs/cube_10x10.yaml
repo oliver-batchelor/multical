@@ -9,19 +9,19 @@ common:
   min_points: 9
 
 boards:
-  board0:
+  charuco_10x10_0:
     aruco_offset: 0
 
-  board1:
+  charuco_10x10_1:
     aruco_offset: 50
 
-  board2:
+  charuco_10x10_2:
     aruco_offset: 100
 
-  board3:
+  charuco_10x10_3:
     aruco_offset: 150
 
-  board4:
+  charuco_10x10_4:
     aruco_offset: 200
 
 

@@ -158,7 +158,7 @@ def estimate_transform(table, i, j, axis=0):
 
   info(f"Estimate transform axis={axis}, pair {(i, j)}, "
        f"inliers {inliers.sum()}/{valid.sum()}, "
-       f"rms frobius norm (with outlier) {err_inlier:.4f} ({err:.4f})")
+       f"RMS {err_inlier:.4f} ({err:.4f})")
   print(t)
   return t
 

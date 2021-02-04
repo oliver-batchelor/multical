@@ -6,9 +6,10 @@ import numpy as np
 
 from omegaconf.errors import ValidationError
 from omegaconf.omegaconf import MISSING
+from structs.numpy import shape, shape_info, Table
 
 
-from structs.struct import pluck, struct, split_dict, choose, subset
+from structs.struct import struct, choose, subset
 from .transform import rtvec
 from .optimization.parameters import Parameters
 
@@ -37,12 +38,11 @@ def create_dict(name, offset):
   return aruco_dict
 
 
-def has_min_detections(board, detections):
-  w, h = board.size
-  dims = np.unravel_index(detections.ids, shape=(h, w)) 
-
-  has_rows = [np.unique(d).size >= board.min_rows for d in dims]
-  return detections.ids.size >= board.min_points and all(has_rows)
+def has_min_detections_grid(grid_size, ids, min_points, min_rows):
+  w, h = grid_size
+  dims = np.unravel_index(ids, shape=(h, w)) 
+  has_rows = [np.unique(d).size >= min_rows for d in dims]
+  return ids.size >= min_points and all(has_rows)
 
 def estimate_pose_points(board, camera, detections):
     if not board.has_min_detections(detections):
@@ -58,11 +58,13 @@ def estimate_pose_points(board, camera, detections):
     return rtvec.join(rvec.flatten(), tvec.flatten())
 
 
-def subpix_corners(image, corners, ids, window):
+def subpix_corners(image, detections, window):
   criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.0001)               
-  refined = cv2.cornerSubPix(image, corners, (window, window), (-1, -1), criteria)
 
-  return struct(corners=refined, ids=ids)
+  reshaped = np.array(detections.corners).reshape(-1, 1, 2).astype(np.float32)
+  refined = cv2.cornerSubPix(image, reshaped, (window, window), (-1, -1), criteria)
+
+  return detections._extend(corners=refined.reshape(-1, 2))
 
 
 class CharucoBoard(Parameters):
@@ -145,7 +147,7 @@ class CharucoBoard(Parameters):
     return struct(corners = corners.squeeze(1), ids = ids.squeeze(1))
 
   def has_min_detections(self, detections):
-    return has_min_detections(self, detections)
+    return has_min_detections_grid(self, detections.ids, min_points=self.min_points, min_rows=self.min_rows)
 
   def estimate_pose_points(self, camera, detections):
     return estimate_pose_points(self, camera, detections)
@@ -222,9 +224,9 @@ class AprilGrid(Parameters):
   def points(self):
     tag_ids = range(self.size[0] * self.size[1])
     corners = [self.grid.get_tag_corners_for_id(id) for id in tag_ids]
-    return np.array(corners)
-
-  
+    points_2d = np.array(corners).reshape(-1, 2)
+    return np.concatenate([points_2d, np.zeros([points_2d.shape[0], 1])], axis=1)
+      
   @property
   def num_points(self):
     return 4 * self.size[0] * self.size[1]
@@ -273,18 +275,21 @@ class AprilGrid(Parameters):
 
   def detect(self, image):    
     detections = self.grid.compute_observation(image)
-    corners = []
-    ids = []
 
-    for d in detections:
-      id = d.ids[0] * 4
-      ids.extend([id, id + 1, id + 2, id + 3])
-      corners.extend(d.corners)
+    if len(detections) == 0:
+      return empty_detection
 
-    return subpix_corners(image, corners, ids, self.subpix_region)
+    corner_detections = [struct(ids = id * 4 + k % 4, corners=corner)
+      for k, id, corner in zip(range(len(detections.ids)), detections.ids, detections.image_points)]
+
+    return subpix_corners(image, Table.stack(corner_detections), self.subpix_region)
+          
 
   def has_min_detections(self, detections):
-    return has_min_detections(self, detections)
+    tag_ids = detections.ids // 4
+    return has_min_detections_grid(self.size, tag_ids, min_points=self.min_points, min_rows=self.min_rows)
+
+
 
   def estimate_pose_points(self, camera, detections):
     return estimate_pose_points(self, camera, detections)

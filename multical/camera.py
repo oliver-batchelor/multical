@@ -74,7 +74,7 @@ class Camera(Parameters):
     flags = Camera.flags(model, fix_aspect) | flags
 
     err, K, dist, _, _ = cv2.calibrateCamera(points.object_points,
-                                             points.corners, image_size, None, None, criteria=criteria, flags=flags)
+            points.corners, image_size, None, None, criteria=criteria, flags=flags)
 
     return Camera(intrinsic=K, dist=dist, image_size=image_size,
                   model=model, fix_aspect=fix_aspect), err
@@ -156,7 +156,8 @@ def board_correspondences(board, detections):
 
   detections = transpose_structs(non_empty)
   return detections._extend(
-      object_points=[board.points[ids] for ids in detections.ids]
+      object_points=[board.points[ids].astype(np.float32) for ids in detections.ids],
+      corners=[corners.astype(np.float32) for corners in detections.corners]
   )
 
 

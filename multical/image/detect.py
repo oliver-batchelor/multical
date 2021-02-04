@@ -6,7 +6,8 @@ from natsort.natsort import natsorted
 from structs.numpy import shape
 
 from tqdm import tqdm
-from multiprocessing.pool import ThreadPool                                                
+from multiprocessing.pool import ThreadPool      
+from multiprocessing import Pool                                          
 
 import numpy as np
 from multical.camera import  stereo_calibrate
@@ -32,12 +33,12 @@ def common_image_size(images):
 
 
 
-def par_map_lists(f, xs_list, j=len(os.sched_getaffinity(0)) // 2, chunksize=1):
+def map_lists(f, xs_list, j=len(os.sched_getaffinity(0)) // 2, chunksize=1, pool=ThreadPool):
   """ Map over a list of lists in parallel by flattening then splitting at the end"""
   cam_lengths = map_list(len, xs_list)
   flat_files = concat_lists(xs_list)
 
-  with ThreadPool(processes=j) as pool:
+  with pool(processes=j) as pool:
     iter = pool.imap(f, flat_files, chunksize=chunksize)
     results = list(tqdm(iter, total=len(flat_files)))
     return split_list(results, cam_lengths)
@@ -48,14 +49,13 @@ def load_images(filenames, prefix=None, **map_options):
       filenames = [[path.join(prefix, file) for file in camera_files]
         for camera_files in filenames]
 
-    return par_map_lists(load_image, filenames, **map_options)
+    return map_lists(load_image, filenames, **map_options)
 
+def detect_image(image, boards):
+  return [board.detect(image) for board in boards]
 
 def detect_images(boards, images, **map_options):
-  def detect_image(image):
-    return [board.detect(image) for board in boards]
-
-  return par_map_lists(detect_image, images, **map_options)
+  return map_lists(partial(detect_image, boards=boards), images, **map_options, pool=Pool)
 
 
 

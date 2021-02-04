@@ -5,7 +5,7 @@ import numpy as np
 
 from multical import tables
 from multical.transform import matrix, rtvec
-from multical.display import display_pose_projections
+# from multical.display import display_pose_projections
 from multical.io.logging import LogWriter, info
 
 from . import parameters
@@ -173,7 +173,6 @@ class Calibration(parameters.Parameters):
     return Table.create(
       poses = self.motion_estimates if self.motion_estimates is not None\
         else rig.poses,
-        #else np.broadcast_to(np.expand_dims(np.eye(4), 0), rig.poses.shape),
       valid = rig.valid
     )
 
@@ -355,10 +354,10 @@ class Calibration(parameters.Parameters):
 
 
 
-  def display(self, images):
-    """ Display images with poses and reprojections from original detections """
-    display_pose_projections(self.point_table, self.pose_table, self.board,
-       self.cameras, images, inliers=self.inliers)    
+  # def display(self, images):
+  #   """ Display images with poses and reprojections from original detections """
+  #   display_pose_projections(self.point_table, self.pose_table, self.board,
+  #      self.cameras, images, inliers=self.inliers)    
 
 
   def report(self, stage):

@@ -1,6 +1,6 @@
 
 boards:
-  board:
+  aprilgrid_9x9:
     _type_: 'aprilgrid'
     size: [9, 9]
     tag_family: t36h11 # ['t16h5', 't25h7', 't25h9', 't36h11']

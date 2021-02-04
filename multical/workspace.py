@@ -10,15 +10,11 @@ from . import tables, image
 from .camera import calibrate_cameras
 
 from .io.logging import MemoryHandler, info, warning, debug
-import palettable.colorbrewer.qualitative as palettes
+from .display import make_palette
 
 import pickle
 
 
-def make_palette(n):
-  n_colors = max(n, 4)
-  colors = getattr(palettes, f"Set1_{n_colors}").colors
-  return np.array(colors) / 255
 
 
 def num_threads():
@@ -103,6 +99,7 @@ class Workspace:
       self.detected_points = image.detect.detect_images(self.boards, self.images, j=j)   
 
       if cache_file is not None:
+        info(f"Writing detection cache to {cache_file}")
         self.write_detections(cache_file)
 
     self.point_table = tables.make_point_table(self.detected_points, self.boards)

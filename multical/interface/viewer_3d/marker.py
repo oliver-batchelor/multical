@@ -71,8 +71,7 @@ class View():
 
 
 def board_mesh(board):
-  mesh = board.mesh
-  return pv.PolyData(mesh.points, mesh.polygons)
+  return pv.PolyData(board.mesh.points, board.mesh.polygons)
 
 
 def board_object(viewer, board, color, transform=None):

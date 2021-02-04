@@ -288,13 +288,13 @@ class AprilGrid(Parameters):
     return markers
 
   @cached_property
-  def mesh(points, size):
-    w, h = size
-    indices = np.arange(points.shape[0]).reshape(h, w)
+  def mesh(self):
+    w, h = self.size
+    indices = np.arange(h * w).reshape(h, w)
     tag_quad = np.arange(0, 4)
 
     quads = tag_quad.reshape(1, 4) + indices.reshape(-1, 1)
-    return struct(points=points, polygons=quad_polygons(quads))
+    return struct(points=self.adjusted_points, polygons=quad_polygons(quads))
 
 
   def __str__(self):

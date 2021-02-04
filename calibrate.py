@@ -84,19 +84,19 @@ def main():
 
 
     ws.calibrate("calibration", loss=args.loss,  
-      rolling=True, 
+      # rolling=True, 
       intrinsics=True, 
       # board=True,
       auto_scale=auto_scale, outliers=outliers)
 
 
-    ws.calibrate("final", loss=args.loss,  
-      tolerance = 1e-5, max_iterations=30, 
-      num_adjustments=1,
-      rolling=True, 
-      intrinsics=True, 
-      board=True,
-      auto_scale=auto_scale, outliers=outliers)
+    # ws.calibrate("final", loss=args.loss,  
+    #   tolerance = 1e-5, max_iterations=30, 
+    #   num_adjustments=1,
+    #   # rolling=True, 
+    #   intrinsics=True, 
+    #   board=True,
+    #   auto_scale=auto_scale, outliers=outliers)
 
 
     ws.export(export_file)

@@ -318,7 +318,7 @@ class Calibration(parameters.Parameters):
     return self.copy(inlier_mask = inliers)
 
   def adjust_outliers(self, num_adjustments=4, auto_scale=None, outliers=None, **kwargs):
-    info(f"Beginning adjustments ({num_adjustments}) options {self.optimize}")
+    info(f"Beginning adjustments ({num_adjustments}) enabled: {self.optimize}, options: {kwargs}")
 
     for i in range(num_adjustments):
       self.report(f"Adjust_outliers {i}")

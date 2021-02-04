@@ -71,16 +71,8 @@ class View():
 
 
 def board_mesh(board):
-  corners = board.adjusted_points
-  w, h = board.size
-
-  indices = np.arange(corners.shape[0]).reshape(h - 1, w - 1)
-  quad = np.array([indices[0, 0], indices[1, 0], indices[1, 1], indices[0, 1]])
-  offsets = indices[: h - 2, :w - 2]
-
-  quads = quad.reshape(1, 4) + offsets.reshape(-1, 1)
-  quads = np.concatenate([np.full( (quads.shape[0], 1), 4), quads], axis=1)
-  return pv.PolyData(corners, quads)
+  mesh = board.mesh
+  return pv.PolyData(mesh.points, mesh.polygons)
 
 
 def board_object(viewer, board, color, transform=None):

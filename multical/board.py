@@ -67,6 +67,23 @@ def subpix_corners(image, detections, window):
   return detections._extend(corners=refined.reshape(-1, 2))
 
 
+def quad_polygons(quads):
+  assert quads.ndim == 2 and quads.shape[1] == 4
+
+  # Append 4 (number of sides) to each quad
+  return np.concatenate([np.full( (quads.shape[0], 1), 4), quads], axis=1)
+
+def grid_mesh(points, size):
+  w, h = size
+  indices = np.arange(points.shape[0]).reshape(h - 1, w - 1)
+  quad = np.array([indices[0, 0], indices[1, 0], indices[1, 1], indices[0, 1]])
+  offsets = indices[: h - 2, :w - 2]
+
+  quads = quad.reshape(1, 4) + offsets.reshape(-1, 1)
+  return struct(points=points, polygons=quad_polygons(quads))
+
+
+
 class CharucoBoard(Parameters):
   def __init__(self, size, square_length, marker_length, min_rows=3, min_points=20, 
     adjusted_points=None, aruco_params=None, aruco_dict='4X4_100', aruco_offset=0):
@@ -122,6 +139,11 @@ class CharucoBoard(Parameters):
   @property 
   def ids(self):
     return np.arange(self.num_points)
+
+  @cached_property
+  def mesh(self):
+    return grid_mesh(self.adjusted_points, self.size)
+
 
   def draw(self, square_length=50, margin=20):
     image_size = [dim * square_length for dim in self.size]
@@ -265,6 +287,16 @@ class AprilGrid(Parameters):
 
     return markers
 
+  @cached_property
+  def mesh(points, size):
+    w, h = size
+    indices = np.arange(points.shape[0]).reshape(h, w)
+    tag_quad = np.arange(0, 4)
+
+    quads = tag_quad.reshape(1, 4) + indices.reshape(-1, 1)
+    return struct(points=points, polygons=quad_polygons(quads))
+
+
   def __str__(self):
       d = self.export()
       return "AprilGrid " + pformat(d)
@@ -276,7 +308,7 @@ class AprilGrid(Parameters):
   def detect(self, image):    
     detections = self.grid.compute_observation(image)
 
-    if len(detections) == 0:
+    if not detections.success:
       return empty_detection
 
     corner_detections = [struct(ids = id * 4 + k % 4, corners=corner)

@@ -86,13 +86,15 @@ class CharucoBoard(Parameters):
       self.board.dictionary, parameters=aruco_config(self.aruco_params))     
     if ids is None: return empty_detection
 
-    _, corners, ids = cv2.aruco.interpolateCornersCharuco(corners, ids, image, self.board)
+    _, corners, ids = cv2.aruco.interpolateCornersCharuco(
+        corners, ids, image, self.board)
+    
     if ids is None: return empty_detection
-
     return struct(corners = corners.squeeze(1), ids = ids.squeeze(1))
 
   def has_min_detections(self, detections):
-    return has_min_detections_grid(self, detections.ids, min_points=self.min_points, min_rows=self.min_rows)
+    return has_min_detections_grid(self.size, detections.ids, 
+      min_points=self.min_points, min_rows=self.min_rows)
 
   def estimate_pose_points(self, camera, detections):
     return estimate_pose_points(self, camera, detections)

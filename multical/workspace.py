@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from os import path
 from multical.io.export import export, export_cameras
 from multical.image.detect import common_image_size
 import numpy as np
@@ -178,15 +179,25 @@ class Workspace:
     with open(filename, "wb") as file:
       pickle.dump(self, file)
 
+  @staticmethod
+  def load(filename):
+    assert path.isfile(filename)
+    with open(filename, "rb") as file:
+      ws = pickle.load(file)
+      ws.load_images()
+
+      return ws
+
   def __getstate__(self):
-    d = subset(self.__dict__, ['calibrations', 'detections', 'boards', 
-      'board_colors', 'filenames', 'image_path', 'names', 'image_sizes',
-      'point_table', 'pose_table', 'log_handler'
+    d = subset(self.__dict__, [
+       'calibrations', 'detections', 'boards', 
+       'board_colors', 'filenames', 'image_path', 'names', 'image_sizes',
+       'point_table', 'pose_table', 'log_handler'
     ])
     return d
 
   def __setstate__(self, d):
-    for k, v in d:
-      self.__dict__[k] = d  
+    for k, v in d.items():
+      self.__dict__[k] = v
 
     self.images = None

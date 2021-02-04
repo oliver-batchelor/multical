@@ -106,11 +106,22 @@ class AprilGrid(Parameters):
   @cached_property
   def mesh(self):
     w, h = self.size
-    indices = np.arange(h * w).reshape(h, w)
-    tag_quad = np.arange(0, 4)
+    tag_offsets = np.arange(h * w).reshape(h, w) * 4
+    tag_quad = np.arange(0, 4).reshape(1, 4)
 
-    quads = tag_quad.reshape(1, 4) + indices.reshape(-1, 1)
-    return struct(points=self.adjusted_points, polygons=quad_polygons(quads))
+    inner_quad = np.array([[
+        tag_offsets[0, 0] + 2, tag_offsets[0, 1] + 3, 
+        tag_offsets[1, 0] + 1, tag_offsets[1, 1] + 0
+      ]])
+
+    tag_quads = tag_quad + tag_offsets.reshape(-1, 1)
+    inner_quads = inner_quad + tag_offsets[:h - 1, :w - 1]
+    quads = np.concatenate([tag_quads, inner_quads])
+
+    return struct(
+      points=self.adjusted_points, 
+      polygons=quad_polygons(quads)
+    )
 
 
   def __str__(self):

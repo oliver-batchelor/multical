@@ -34,6 +34,8 @@ def main():
     parser.add_argument('--cameras', default=None, help="comma separated list of camera directories")
     
     parser.add_argument('--iter', default=3, help="iterations of bundle adjustment/outlier rejection")
+    parser.add_argument('--rolling', default=False, action="store_true", help='single frame rolling shutter estimation')
+
 
     parser.add_argument('--fix_aspect', default=False, action="store_true", help='set same focal length ')
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
@@ -83,11 +85,11 @@ def main():
     # outliers = None
 
 
-    ws.calibrate("calibration", loss=args.loss,  
-      # rolling=True, 
-      intrinsics=True, 
-      # board=True,
-      auto_scale=auto_scale, outliers=outliers)
+    # ws.calibrate("calibration", loss=args.loss,  
+    #   rolling=args.rolling, 
+    #   intrinsics=True, 
+    #   # board=True,
+    #   auto_scale=auto_scale, outliers=outliers)
 
 
     # ws.calibrate("final", loss=args.loss,  
@@ -103,7 +105,7 @@ def main():
     ws.dump(workspace_file)
 
     # ws.calibrate("full", enable_intrinsics=True, enable_board=True, loss=args.loss)
-    visualizer.visualize(ws)
+    # visualizer.visualize(ws)
 
 
 if __name__ == '__main__':

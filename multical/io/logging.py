@@ -44,6 +44,9 @@ class MemoryHandler(logging.Handler):
   def __getstate__(self):
     return struct(records = self.records)
 
+  def __setstate__(self, state):
+    self.records = state.records
+
 
 class LogWriter():
   def __init__(self, level=logging.INFO, ignore_newline=True):

@@ -8,7 +8,6 @@ from structs.numpy import shape_info, struct, Table, shape
 from .transform import rtvec, matrix
 from . import graph
 
-from scipy.spatial.transform import Rotation as R
 
 
 def fill_sparse(n, values, ids):
@@ -73,7 +72,6 @@ def make_point_table(detections, boards):
   return make_nd_table(points, n = 3)
   
   
-
 def make_nd_table(items, n):
   if n > 1:
     rows = [make_nd_table(row, n - 1) for row in items]
@@ -119,8 +117,6 @@ def matching_points(points, board, cam1, cam2):
     ))
 
   return transpose_structs(matching)
-
-
 
 
 def pattern_overlaps(table, axis=0):

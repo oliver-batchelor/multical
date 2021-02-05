@@ -29,7 +29,6 @@ def main():
     parser.add_argument('--save', default=None, help='save calibration as json default: input/calibration.json')
 
     parser.add_argument('--j', default=len(os.sched_getaffinity(0)), type=int, help='concurrent jobs')
-    parser.add_argument('--show', default=False, action="store_true", help='show detections')
 
     parser.add_argument('--cameras', default=None, help="comma separated list of camera directories")
     
@@ -48,6 +47,8 @@ def main():
 
     parser.add_argument('--loss', default='linear', help='loss function in optimizer (linear|soft_l1|huber|cauchy|arctan)')
     parser.add_argument('--no_cache', default=False, action='store_true', help="don't load detections from cache")
+
+    parser.add_argument('--show', default=False, action="store_true", help='show calibration result')
 
 
     args = parser.parse_args()
@@ -85,27 +86,28 @@ def main():
     # outliers = None
 
 
-    # ws.calibrate("calibration", loss=args.loss,  
-    #   rolling=args.rolling, 
-    #   intrinsics=True, 
-    #   # board=True,
-    #   auto_scale=auto_scale, outliers=outliers)
+    ws.calibrate("calibration", loss=args.loss,  
+      rolling=args.rolling, 
+      # intrinsics=True, 
+      # board=True,
+      auto_scale=auto_scale, outliers=outliers)
 
 
-    # ws.calibrate("final", loss=args.loss,  
-    #   tolerance = 1e-5, max_iterations=30, 
-    #   num_adjustments=1,
-    #   # rolling=True, 
-    #   intrinsics=True, 
-    #   board=True,
-    #   auto_scale=auto_scale, outliers=outliers)
+    ws.calibrate("final", loss=args.loss,  
+      tolerance = 1e-5, max_iterations=30, 
+      num_adjustments=1,
+      rolling=args.rolling, 
+      intrinsics=True, 
+      # board=True,
+      auto_scale=auto_scale, outliers=outliers)
 
 
     ws.export(export_file)
     ws.dump(workspace_file)
 
     # ws.calibrate("full", enable_intrinsics=True, enable_board=True, loss=args.loss)
-    # visualizer.visualize(ws)
+    if args.show:
+      visualizer.visualize(ws)
 
 
 if __name__ == '__main__':

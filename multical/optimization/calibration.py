@@ -113,7 +113,6 @@ class Calibration(parameters.Parameters):
     start_frame = np.expand_dims(poses.rig.poses, (0, 2, 3))
     end_frame = np.expand_dims(self.frame_motion.poses, (0, 2, 3))
     
-
     frame_poses = interpolate_poses(start_frame, end_frame, self.times)
     view_poses = np.expand_dims(poses.camera.poses, (1, 2, 3)) @ frame_poses  
 

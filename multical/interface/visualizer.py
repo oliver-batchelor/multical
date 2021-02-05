@@ -69,6 +69,11 @@ class Visualizer(QtWidgets.QMainWindow):
     self.view_frame.setLayout(h_layout(self.viewer_3d, margin=0))
     self.image_frame.setLayout(h_layout(self.viewer_image, margin=0))
 
+    self.controllers = struct(
+        moving_cameras=MovingCameras(self.viewer_3d),
+        moving_board=MovingBoard(self.viewer_3d)
+    )
+
     self.controller = None
     self.splitter.setStretchFactor(0, 10)
     self.splitter.setStretchFactor(1, 1)
@@ -134,19 +139,14 @@ class Visualizer(QtWidgets.QMainWindow):
           self.calibration.pose_estimates.camera))
 
       self.viewer_3d.enable(False)
-
-  
-      self.controllers = struct(
-          moving_cameras=MovingCameras(
-              self.viewer_3d, self.calibration, ws.board_colors),
-          moving_board=MovingBoard(
-              self.viewer_3d, self.calibration, ws.board_colors)
-      )
+ 
+      for controller in self.controllers.values():
+        controller.set_content(self.calibration, ws.boards, ws.board_colors)
 
       self.setup_view_table(self.calibration)
+      
       self.viewer_3d.enable(True)
       self.viewer_3d.fix_camera()
-
       
     self.update_controller()
 

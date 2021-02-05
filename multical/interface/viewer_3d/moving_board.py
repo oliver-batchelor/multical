@@ -3,19 +3,21 @@ import numpy as np
 from .marker import View, board_mesh, view_marker
 from structs.numpy import shape
 from multical import tables
-from numba import jit
 
-@jit(forceobj=True)
 def camera_markers(viewer, camera_poses, cameras, scale=1.0):
   def add_view(camera_pose, camera):
-
-    if camera_pose.valid:
-        return View(viewer, view_marker(camera), np.linalg.inv(camera_pose.poses), scale)
+    pose = np.linalg.inv(camera_pose.poses) if camera_pose.valid else None
+    return View(viewer, view_marker(camera), pose, scale)
 
   return [add_view(camera_pose, camera)
     for camera_pose, camera in zip(camera_poses._sequence(), cameras)]
  
-@jit(forceobj=True)
+def set_poses(camera_poses, views):
+  for camera_pose, view in zip(camera_poses._sequence(), views):
+    pose = np.linalg.inv(camera_pose.poses) if camera_pose.valid else None
+    view.set_pose(pose)
+
+
 def board_objects(viewer, board, pose_estimates, color):
   mesh = board_mesh(board)
 
@@ -28,21 +30,31 @@ def board_objects(viewer, board, pose_estimates, color):
    
 
 class MovingBoard(object):
-  @jit(forceobj=True)
-  def __init__(self, viewer, calib, board_colors, scale=0.05):
+  def __init__(self, viewer, board_colors, scale=0.05):
     self.viewer = viewer
 
     self.scale = scale
-    self.views = camera_markers(self.viewer, calib.pose_estimates.camera, 
-      calib.cameras, scale=self.scale)
-
-    board_poses = tables.expand_boards(calib.pose_estimates)
-
-    self.boards = [board_objects(self.viewer, board, board_pose, color)
-      for board, color, board_pose in zip(calib.boards, board_colors, board_poses._sequence(1))]
     self.board_colors = board_colors
 
+    self.views = []
+    self.boards = []
+    self.calib = None
+
     self.show(False)
+
+
+  def set_calibration(self, calib):
+    
+    if self.calib is None:
+      self.views = camera_markers(self.viewer, calib.pose_estimates.camera, 
+        calib.cameras, scale=self.scale)
+
+      board_poses = tables.expand_boards(calib.pose_estimates)
+      self.boards = [board_objects(self.viewer, board, board_pose, color)
+        for board, color, board_pose in zip(calib.boards, self.board_colors, board_poses._sequence(1))]
+    else:
+
+
 
   def show(self, shown):
     for view in self.views:

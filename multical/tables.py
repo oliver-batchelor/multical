@@ -189,11 +189,12 @@ def table_info( valid, names):
     info(board_points)
 
 
-def estimate_relative_poses(table, axis=0, hop_penalty=0.9, axis_names=dimension_name):
+def estimate_relative_poses(table, axis=0, hop_penalty=0.9, name=None, names=None):
+  name = name or dimension_name[axis]
   n = table._shape[axis]
   overlaps = pattern_overlaps(table, axis=axis)
 
-  info(f"Axis {axis_names[axis]} overlaps:")
+  info(f"Overlaps by {name}:")
   info(overlaps)
 
   master, pairs = graph.select_pairs(overlaps, hop_penalty)

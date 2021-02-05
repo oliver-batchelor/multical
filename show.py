@@ -16,8 +16,11 @@ def main():
 
     args = parser.parse_args()
 
-    ws = Workspace.load(args.workspace_file)
-
+    filename = args.workspace_file
+    if path.isdir(filename):
+      filename = path.join(filename, "workspace.pkl")
+      
+    ws = Workspace.load(filename)
     visualizer.visualize(ws)
 
 

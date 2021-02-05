@@ -20,8 +20,8 @@ def interpolate_poses(m1, m2, times):
   q1 = quaternion.from_rotation_matrix(r1)
   q2 = quaternion.from_rotation_matrix(r2)
 
-  q = np.slerp_vectorized(q1, q2, times)
-  # q = nlerp(q1, q2, times)
+  # q = np.slerp_vectorized(q1, q2, times)
+  q = nlerp(q1, q2, times)
 
   r = quaternion.as_rotation_matrix(q)
   return matrix.join(r, t)

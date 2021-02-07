@@ -3,8 +3,7 @@ import math
 
 from .viewer_3d.viewer_3d import Viewer3D
 from .viewer_3d.moving_board import MovingBoard
-from .viewer_3d.camera_view import CameraView
-from .viewer_3d.moving_cameras import MovingCameras
+# from .viewer_3d.moving_cameras import MovingCameras
 
 from . import camera_params, view_table
 from .layout import h_layout, v_layout, widget
@@ -69,13 +68,10 @@ class Visualizer(QtWidgets.QMainWindow):
     self.view_frame.setLayout(h_layout(self.viewer_3d, margin=0))
     self.image_frame.setLayout(h_layout(self.viewer_image, margin=0))
 
-    self.controllers = struct(
-        moving_cameras=MovingCameras(self.viewer_3d),
-        moving_board=MovingBoard(self.viewer_3d)
-    )
-
     self.controller = None
-    self.splitter.setStretchFactor(0, 10)
+    self.controllers = None
+
+    self.splitter.setStretchFactor(0, 2)
     self.splitter.setStretchFactor(1, 1)
 
     self.params_viewer = camera_params.ParamsViewer(self)
@@ -107,9 +103,6 @@ class Visualizer(QtWidgets.QMainWindow):
       self.tab_3d.setEnabled(has_calibrations)
       self.cameras_tab.setEnabled(has_calibrations)
 
-      self.viewer_3d.clear()
-      self.controllers = None
-
       calib_names, calibs = split_dict(calibrations)
 
       self.calibrations_combo.clear()
@@ -139,9 +132,16 @@ class Visualizer(QtWidgets.QMainWindow):
           self.calibration.pose_estimates.camera))
 
       self.viewer_3d.enable(False)
- 
-      for controller in self.controllers.values():
-        controller.set_content(self.calibration, ws.boards, ws.board_colors)
+      scale=self.camera_size()
+
+      if self.controllers is None:
+        self.controllers = struct(
+          # moving_cameras=MovingCameras(self.viewer_3d),
+          moving_board=MovingBoard(self.viewer_3d, self.calibration, ws.board_colors, scale)
+        )
+      else:
+        for controller in self.controllers.values():
+          controller.set_calibration(self.calibration)
 
       self.setup_view_table(self.calibration)
       
@@ -296,10 +296,13 @@ class Visualizer(QtWidgets.QMainWindow):
     if self.controller is not None:
       self.controller.disable()
 
-    if self.moving_cameras_check.isChecked():
-      self.controller = self.controllers.moving_cameras
-    else:
-      self.controller = self.controllers.moving_board
+    # if self.moving_cameras_check.isChecked():
+    #   self.controller = self.controllers.moving_cameras
+    # else:
+    #   self.controller = self.controllers.moving_board
+
+    self.controller = self.controllers.moving_board
+
 
     self.controller.enable(self.state())
 

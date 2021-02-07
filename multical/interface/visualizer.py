@@ -141,7 +141,7 @@ class Visualizer(QtWidgets.QMainWindow):
         )
       else:
         for controller in self.controllers.values():
-          controller.set_calibration(self.calibration)
+          controller.update_calibration(self.calibration)
 
       self.setup_view_table(self.calibration)
       

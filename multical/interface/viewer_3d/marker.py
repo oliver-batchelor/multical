@@ -1,6 +1,7 @@
+from functools import partial
 from multical import tables
 from structs.numpy import shape
-from structs.struct import choose, struct
+from structs.struct import choose, map_list, struct
 from .vtk_tools import vtk_transform
 import numpy as np
 
@@ -28,33 +29,35 @@ def view_projection(camera, size=1):
 
 view_triangles = np.hstack([[3, 0, 2, 1], [3, 0, 3, 2], [3, 0, 4, 3], [3, 0, 1, 4]])
 
-def projection_corners(camera):
+def projection_corners(camera, scale=1):
   return np.concatenate([
       np.zeros((1, 3)),
-      view_projection(camera, size=1)
+      view_projection(camera, size=scale)
   ])
 
-def axis_marker():
-  red =   [1, 0, 0]
-  green = [0, 1, 0]
-  blue =  [0, 0, 1]
-
-  colors = np.array([red, red, green, green, blue, blue])
-
+def axis_points(scale=1):
   origin = [0, 0, 0]
   corners = np.array([
       origin, [1, 0, 0], origin, [0, 1, 0], origin, [0, 0, 1],
     ]
   )
+  return corners * scale
 
+def axis_marker(scale = 1):
+  red =   [1, 0, 0]
+  green = [0, 1, 0]
+  blue =  [0, 0, 1]
+
+  colors = np.array([red, red, green, green, blue, blue])
   lines = np.array([
     [2, 0, 1],
     [2, 2, 3],
-    [2, 3, 4]
+    [2, 4, 5]
   ])
 
-  mesh = pv.PolyData(corners, lines)
-  mesh['colors'] = colors
+  mesh = pv.PolyData(axis_points(scale))
+  mesh.lines = lines
+  mesh['colors'] = colors * 255
   return mesh
 
 
@@ -91,6 +94,10 @@ class Marker():
     p.SetColor(*color)
     p.SetOpacity(opacity)    
 
+  def set_point_size(self, size):
+    p = self.actor.GetProperty()
+    p.SetPointSize(size)
+
 
   def show(self, shown):
     self.showing = shown
@@ -98,18 +105,31 @@ class Marker():
 
    
 class SceneMeshes():
-  def __init__(self, calib):
+  def __init__(self, calib, camera_scale=1):
     self.board =  [pv.PolyData(board.mesh.points, board.mesh.polygons)
        for board in calib.boards]
 
-    self.camera = [pv.PolyData(projection_corners(camera), view_triangles) 
-      for camera in calib.cameras]
+    self.camera_scale = camera_scale
+
+    self.camera_projections = [projection_corners(camera, scale=1) for camera in calib.cameras]
+    self.camera = [pv.PolyData(self.camera_scale * proj, view_triangles) 
+      for proj in self.camera_projections]
+     
+    self.axis = axis_marker()
+
+  def set_camera_scale(self, scale):
+    self.camera_scale = scale
+    for mesh, points in zip(self.camera, self.camera_projections):
+      mesh.points = points * scale
+    
+    self.axis.points = axis_points(scale * 3)
 
 
   def update(self, calib):
-    for mesh, camera in zip(self.camera, calib.cameras):
-      mesh.points = projection_corners(camera)
+    self.camera_projections = [projection_corners(camera) 
+      for camera in calib.cameras]
 
+    self.set_camera_scale(self.camera_scale)
     for mesh, board in zip(self.board, calib.boards):
       mesh.points = board.mesh.points
 
@@ -120,30 +140,42 @@ camera_colors = struct(
 )
 
 
+class AxisSet():
+  def __init__(self, viewer, axis_mesh, poses):
+
+    options = struct(rgb=True, scalars='colors', show_edges=True)
+    self.instances = [
+      Marker(viewer, pv.PolyData(axis_mesh), pose, options=options)
+        for pose in poses._sequence()]
+
+    for instance in self.instances:
+      instance.set_point_size(0)
 
 
-class CameraSet():
-  def __init__(self, viewer, camera_poses, camera_meshes, scale):
-    poses = tables.inverse(camera_poses)
-    options = dict(show_edges=True)
-    self.instances = [Marker(viewer, mesh, pose, options, scale) 
-      for mesh, pose in zip(camera_meshes, poses._sequence()) ]
-
-    # self.axis_mesh = axis_marker()
-    # self.axis_markers = [Marker(viewer, pv.PolyData(self.axis_mesh), )
-
-
-  def update_poses(self, camera_poses):
-    poses = tables.inverse(camera_poses)
+  def update_poses(self, poses):
     for pose, marker in zip(poses._sequence(), self.instances):
       marker.update(pose=pose)
 
-  def update(self, highlight, scale, active=True):
+  def show(self, shown):
+    for marker in self.instances: 
+      marker.show(shown)
+
+
+class CameraSet():
+  def __init__(self, viewer, camera_poses, camera_meshes):
+    options = dict(show_edges=True)
+    self.instances = [Marker(viewer, mesh, pose, options) 
+      for mesh, pose in zip(camera_meshes, camera_poses._sequence()) ]
+
+  def update_poses(self, camera_poses):
+    for pose, marker in zip(camera_poses._sequence(), self.instances):
+      marker.update(pose=pose)
+
+  def update(self, highlight, active=True):
       for i, marker in enumerate(self.instances):
         color = (camera_colors.inactive if not active
           else camera_colors.active_camera if i == highlight 
           else camera_colors.active_set)
-        marker.set_transform(pose=marker.pose, scale=scale)
         marker.set_color(color)
 
   def show(self, shown):

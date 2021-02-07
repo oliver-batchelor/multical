@@ -69,7 +69,9 @@ def id_marker(id, point, color, font):
   item.setFont(font)
   
   container = group([item])
-  container.setPos(QPointF(*point))
+
+  x, y = point
+  container.setPos(QPointF(x - 2, y - 2))
   return container
 
 
@@ -89,7 +91,7 @@ def add_marker(scene, corner, id, options, pen, color, font):
 
 def add_point_markers(scene, points, board, color, options):
   marker_font = QFont()
-  marker_font.setPixelSize(options.marker_size)
+  marker_font.setPixelSize(options.marker_size * 0.75)
 
   pen = cosmetic_pen(color, options.line_width)
   corners = points.points[points.valid]
@@ -99,7 +101,7 @@ def add_point_markers(scene, points, board, color, options):
 
 def add_reprojections(scene, points, projected, inliers, boards, valid_boards, options):
   marker_font = QFont()
-  marker_font.setPixelSize(options.marker_size)
+  marker_font.setPixelSize(options.marker_size * 0.75)
 
   frame_table = points._extend(proj=projected.points, inlier=inliers)
 

@@ -3,14 +3,14 @@ import math
 
 from .viewer_3d.viewer_3d import Viewer3D
 from .viewer_3d.moving_board import MovingBoard
-# from .viewer_3d.moving_cameras import MovingCameras
+from .viewer_3d.moving_cameras import MovingCameras
 
 from . import camera_params, view_table
 from .layout import h_layout, v_layout, widget
 import PyQt5.QtWidgets as QtWidgets
 
 from PyQt5 import uic, QtCore
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QStringListModel, Qt
 
 from multical import image, tables
 
@@ -78,6 +78,7 @@ class Visualizer(QtWidgets.QMainWindow):
     self.cameras_tab.setLayout(h_layout(self.params_viewer))
     self.ready = False
 
+
     action = QtWidgets.QAction(qta.icon('fa.folder-open'), "new", self)
     self.toolBar.addAction(action)
 
@@ -88,11 +89,14 @@ class Visualizer(QtWidgets.QMainWindow):
     self.toolBar.addAction(action)
 
     self.toolBar.addSeparator()
-
     self.calibrations_combo = QtWidgets.QComboBox(self)
 
     toolbar_combo = widget(h_layout(QtWidgets.QLabel("Stage"), self.calibrations_combo), self)
     self.toolBar.addWidget(toolbar_combo)
+
+    self.current_boards = []
+    self.current_metrics = []
+    
 
     self.setDisabled(True)
 
@@ -118,6 +122,7 @@ class Visualizer(QtWidgets.QMainWindow):
       self.layer_combo.clear()
       self.layer_combo.addItems(layer_labels)
     self.update_controller()
+    
 
 
   def set_calibration(self, index):
@@ -132,12 +137,11 @@ class Visualizer(QtWidgets.QMainWindow):
           self.calibration.pose_estimates.camera))
 
       self.viewer_3d.enable(False)
-      scale=self.camera_size()
 
       if self.controllers is None:
         self.controllers = struct(
-          # moving_cameras=MovingCameras(self.viewer_3d),
-          moving_board=MovingBoard(self.viewer_3d, self.calibration, ws.board_colors, scale)
+          moving_cameras=MovingCameras(self.viewer_3d, self.calibration, ws.board_colors),
+          moving_board=MovingBoard(self.viewer_3d, self.calibration, ws.board_colors)
         )
       else:
         for controller in self.controllers.values():
@@ -151,28 +155,31 @@ class Visualizer(QtWidgets.QMainWindow):
     self.update_controller()
 
   def setup_view_table(self, calibration):
-    
+    selection = self.selection()
+
     with(self.updating):
-
       ws = self.workspace
-      board_labels = ["All boards"] + \
-          [f"Board: {name}" for name in self.workspace.names.board]
-
-      self.boards_combo.clear()
-      self.boards_combo.addItems(board_labels)
 
       self.view_model = view_table.ViewModelDetections(ws.point_table, ws.names)\
           if calibration is None else view_table.ViewModelCalibrated(calibration, ws.names)
 
       self.view_table.setModel(self.view_model)
       self.view_table.setSelectionMode(
-          QtWidgets.QAbstractItemView.SingleSelection)
+            QtWidgets.QAbstractItemView.SingleSelection)
+      self.view_table.selectionModel().selectionChanged.connect(self.update_frame)
 
-      self.metric_combo.clear()
-      self.metric_combo.addItems(self.view_model.metric_labels)
+      board_labels = ["All boards"] + \
+          [f"Board: {name}" for name in self.workspace.names.board]
 
-    self.select(0, 0)
+      if self.current_boards != board_labels:
+        self.boards_combo.clear()
+        self.boards_combo.addItems(board_labels)
 
+      if self.current_metrics != self.view_model.metric_labels:
+        self.metric_combo.clear()
+        self.metric_combo.addItems(self.view_model.metric_labels)
+
+    self.select(*selection)
 
   @property
   def updating(self):
@@ -219,10 +226,12 @@ class Visualizer(QtWidgets.QMainWindow):
         index, QtCore.QItemSelectionModel.ClearAndSelect)
 
   def selection(self):
-    selection = self.view_table.selectionModel().selectedIndexes()
-    assert len(selection) == 1
-
-    return selection[0].row(), selection[0].column()
+    view_model = self.view_table.selectionModel()
+    if view_model is not None:
+      selection = view_model.selectedIndexes()
+      if len(selection) > 0:
+        return selection[0].row(), selection[0].column()
+    return (0, 0)
 
   def state(self):
     frame, camera = self.selection()
@@ -254,6 +263,7 @@ class Visualizer(QtWidgets.QMainWindow):
   @void
   def update_frame(self):
     state = self.state()
+
     if self.controller is not None:
       self.controller.update(state)
 
@@ -296,28 +306,31 @@ class Visualizer(QtWidgets.QMainWindow):
     if self.controller is not None:
       self.controller.disable()
 
-    # if self.moving_cameras_check.isChecked():
-    #   self.controller = self.controllers.moving_cameras
-    # else:
-    #   self.controller = self.controllers.moving_board
-
-    self.controller = self.controllers.moving_board
-
-
+    if self.moving_cameras_check.isChecked():
+      self.controller = self.controllers.moving_cameras
+    else:
+      self.controller = self.controllers.moving_board
     self.controller.enable(self.state())
+    self.update_viewer()
+
+  @void
+  def update_viewer(self):
+    self.viewer_3d.set_line_size(self.line_size_slider.value())
 
   @void
   @if_ready
   def update_view_table(self):
+    selection = self.selection()
+
     metric_selected = self.metric_combo.currentIndex()
     board_index = self.boards_combo.currentIndex()    
     board = None if board_index <= 0 else board_index - 1
 
     self.view_model.set_metric(metric_selected, board)
+    self.select(*selection)
 
   def connect_ui(self):
     self.camera_size_slider.valueChanged.connect(self.update_frame)
-    self.view_table.selectionModel().selectionChanged.connect(self.update_frame)
     self.metric_combo.currentIndexChanged.connect(self.update_view_table)
     self.boards_combo.currentIndexChanged.connect(self.update_view_table)
     self.calibrations_combo.currentIndexChanged.connect(self.set_calibration)
@@ -329,5 +342,5 @@ class Visualizer(QtWidgets.QMainWindow):
     self.marker_size_slider.valueChanged.connect(self.update_image)
     self.line_width_slider.valueChanged.connect(self.update_image)
 
-    self.line_size_slider.valueChanged.connect(self.viewer_3d.set_line_size)
+    self.line_size_slider.valueChanged.connect(self.update_viewer)
     self.moving_cameras_check.toggled.connect(self.update_controller)

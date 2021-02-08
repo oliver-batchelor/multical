@@ -151,7 +151,7 @@ def annotate_image(workspace, calibration, layer, state, options):
 
   elif layer == "detected_poses":
     board_poses = workspace.pose_table._index[state.camera, state.frame]
-    camera = workspace.cameras[state.camera]
+    camera = workspace.initialisation.cameras[state.camera]
 
     for board, pose, color in zip(workspace.boards, board_poses._sequence(0), workspace.board_colors):
       if pose.valid:

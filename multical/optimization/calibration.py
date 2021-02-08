@@ -28,28 +28,7 @@ def select_threshold(quantile=0.95, factor=1.0):
     return np.quantile(reprojection_error, quantile) * factor
   return f
 
-def stack_boards(boards):
-  padded_points = max([board.num_points for board in boards])
 
-  def pad_points(board):
-    points = board.adjusted_points.astype(np.float64)
-    return struct(
-      points=np.pad(points, [(0, padded_points - points.shape[0]), (0, 0)]),
-      valid = np.arange(padded_points) < board.num_points
-    )
-    
-  return Table.stack([pad_points(board) for board in boards]) 
-
-def transform_points(pose_table, board_table):
-
-  points = matrix.transform_homog(
-    t      = np.expand_dims(pose_table.poses, 3),
-    points = np.expand_dims(board_table.points, [0, 1])
-  )    
-
-
-  valid = (np.expand_dims(pose_table.valid, axis=3) & np.expand_dims(board_table.valid, axis=(0, 1)))
-  return Table.create(points=points, valid=valid)
 
 
 class Calibration(parameters.Parameters):
@@ -95,50 +74,12 @@ class Calibration(parameters.Parameters):
 
   @cached_property
   def stacked_boards(self):
-    return stack_boards(self.boards)
-
+    return tables.stack_boards(self.boards)
 
   @cached_property
   def transformed_points(self):
-    return transform_points(self.pose_table, self.stacked_boards)
+    return tables.transform_points(self.pose_table, self.stacked_boards)
 
-  @cached_property
-  def times(self):
-    image_heights = np.array([camera.image_size[1] for camera in self.cameras])    
-    return self.point_table.points[..., 1] / np.expand_dims(image_heights, (1,2,3))
-
-  @cached_property
-  def transformed_rolling(self):
-    poses = self.pose_estimates
-    start_frame = np.expand_dims(poses.rig.poses, (0, 2, 3))
-    end_frame = np.expand_dims(self.frame_motion.poses, (0, 2, 3))
-    
-    frame_poses = interpolate_poses(start_frame, end_frame, self.times)
-    view_poses = np.expand_dims(poses.camera.poses, (1, 2, 3)) @ frame_poses  
-
-    board_points = self.stacked_boards
-    board_points_t = matrix.transform_homog(t = np.expand_dims(poses.board.poses, 1), points = board_points.points)
-
-    return struct(
-      points = matrix.transform_homog(t = view_poses, points = np.expand_dims(board_points_t, (0, 1))),
-      valid = self.valid
-    )
-
-  @cached_property
-  def transformed_rolling_linear(self):
-    poses_start = self.pose_estimates
-    poses_end = poses_start._extend(rig=self.frame_motion)
-
-    table_start = tables.expand_poses(poses_start)
-    table_end = tables.expand_poses(poses_end)
-
-    start_frame = transform_points(table_start, self.stacked_boards)
-    end_frame = transform_points(table_end, self.stacked_boards)
-
-    return struct(
-      points = lerp(start_frame.points, end_frame.points, self.times),
-      valid = start_frame.valid & end_frame.valid
-    )
 
 
   @cached_property
@@ -350,13 +291,6 @@ class Calibration(parameters.Parameters):
     axs[1].hist(errors[valid], bins=50, range=(0, np.quantile(errors[valid], 0.999)))
 
     plt.show()
-
-
-
-  # def display(self, images):
-  #   """ Display images with poses and reprojections from original detections """
-  #   display_pose_projections(self.point_table, self.pose_table, self.board,
-  #      self.cameras, images, inliers=self.inliers)    
 
 
   def report(self, stage):

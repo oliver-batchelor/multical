@@ -1,65 +1,52 @@
 
-# import numpy as np
-# from .marker import board_object, View, view_marker
-# from multical import tables
+import numpy as np
+from .marker import AxisSet, SceneMeshes, CameraSet, BoardSet
+from multical import tables
 
 
-# def view_markers(viewer, pose_estimates, cameras, scale=1.0):
-#   view_poses = tables.inverse(tables.expand_views(pose_estimates))
-
-#   def add_view(view_pose, camera):
-#     if view_pose.valid:
-#       return View(viewer, camera, view_pose.poses, scale)
-
-#   marker_meshes = [view_marker(camera) for camera in cameras]
-         
-#   return [[add_view(view_pose, marker.copy())
-#     for view_pose, marker in zip(camera_poses._sequence(), marker_meshes)]
-#         for camera_poses in view_poses._sequence(1)]
 
 
-# class MovingCameras(object):
-#   def __init__(self, viewer, calib, board_colors):
-#     self.viewer = viewer
+class MovingCameras(object):
+  def __init__(self, viewer, calib, board_colors):
+    self.viewer = viewer
+    self.view_poses = tables.inverse(tables.expand_views(calib.pose_estimates))
+    self.meshes = SceneMeshes(calib)
 
-#     board_poses = calib.pose_estimates.board.poses
+    self.board_set = BoardSet(self.viewer, calib.pose_estimates.board, self.meshes.board, board_colors)
+    self.camera_sets = [CameraSet(self.viewer, poses, self.meshes.camera)
+        for poses in self.view_poses._sequence(1)]
 
-#     self.views = view_markers(self.viewer, calib.pose_estimates, calib.cameras)
-#     self.boards = [board_object(self.viewer, board, color, transform=t) 
-#       for board, color, t in zip(calib.boards, board_colors, board_poses)]
 
-#   def show(self, is_shown):
-#     for board in self.boards:
-#       board.SetVisibility(is_shown)
-  
-#     for view in self.valid_views:
-#       view.show(is_shown)
+    self.axis_set = AxisSet(self.viewer, self.meshes.axis, self.view_poses._index[:, 0])
+    self.show(False)
 
-#   @property
-#   def valid_views(self):
-#     return [view for frame_views in self.views
-#       for view in frame_views
-#         if view is not None]
+  def update_calibration(self, calib):
+      self.meshes.update(calib)
+      self.view_poses = tables.inverse(tables.expand_views(calib.pose_estimates))
 
-#   def update(self, state):
-#     for i, frame_views in enumerate(self.views):
-#       for j, view in enumerate(frame_views): 
-#           color = (0.5, 0.5, 0.5)
-#           if i == state.frame: 
-#             color = (1, 1, 0) if j == state.camera else (0.5, 1, 0)
+      for camera_set, pose in zip(self.camera_sets, self.view_poses._sequence(1)):
+       camera_set.update_poses(pose)
 
-#           if view is not None:
-#             view.set_color(color)
-#             view.set_scale(state.scale)
+      self.board_set.update_poses(calib.pose_estimates.board)
 
-#     self.viewer.update()
+  def show(self, shown):
+    for marker in (self.camera_sets + [self.board_set, self.axis_set]):
+      marker.show(shown)
 
-#   def enable(self, state):
-#     self.show(True)
-#     self.update(state)
+  def update(self, state):
+    self.meshes.set_camera_scale(state.scale)
+    for i, camera_set in enumerate(self.camera_sets):
+      camera_set.update(active=(i == state.frame), highlight=state.camera)
 
-#   def disable(self):
-#     self.show(False)
+    self.axis_set.update_poses(self.view_poses._index[:, state.frame])
+    self.viewer.update()
+
+  def enable(self, state):
+    self.update(state)
+    self.show(True)
+
+  def disable(self):
+    self.show(False)
 
 
 

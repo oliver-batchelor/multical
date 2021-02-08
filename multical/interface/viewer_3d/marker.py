@@ -77,11 +77,11 @@ def scaled(pose, scale):
 
 class Marker():
   def __init__(self, viewer, mesh, pose, options, scale=1):
-    self.actor = viewer.add_mesh(mesh, **options)
+    self.actor = viewer.add_mesh(pv.PolyData(mesh), **options)
     self.showing = True
     self.set_transform(pose, scale)
 
-  def set_transform(self, pose, scale):
+  def set_transform(self, pose, scale=1):
     self.pose = pose
     self.scale = scale
 
@@ -93,6 +93,10 @@ class Marker():
     p = self.actor.GetProperty()
     p.SetColor(*color)
     p.SetOpacity(opacity)    
+
+  def set_ambient(self, ambient):
+    p = self.actor.GetProperty()
+    p.SetAmbient(ambient)
 
   def set_point_size(self, size):
     p = self.actor.GetProperty()
@@ -154,7 +158,7 @@ class AxisSet():
 
   def update_poses(self, poses):
     for pose, marker in zip(poses._sequence(), self.instances):
-      marker.update(pose=pose)
+      marker.set_transform(pose=pose)
 
   def show(self, shown):
     for marker in self.instances: 
@@ -163,20 +167,21 @@ class AxisSet():
 
 class CameraSet():
   def __init__(self, viewer, camera_poses, camera_meshes):
-    options = dict(show_edges=True)
+    options = dict(show_edges=True, ambient=0.5)
     self.instances = [Marker(viewer, mesh, pose, options) 
       for mesh, pose in zip(camera_meshes, camera_poses._sequence()) ]
 
   def update_poses(self, camera_poses):
     for pose, marker in zip(camera_poses._sequence(), self.instances):
-      marker.update(pose=pose)
+      marker.set_transform(pose=pose)
 
   def update(self, highlight, active=True):
       for i, marker in enumerate(self.instances):
         color = (camera_colors.inactive if not active
           else camera_colors.active_camera if i == highlight 
           else camera_colors.active_set)
-        marker.set_color(color)
+
+        marker.set_color(color, 0.2 if not active else 1.0)
 
   def show(self, shown):
     for marker in self.instances: 
@@ -186,17 +191,16 @@ class BoardSet():
   def __init__(self, viewer, board_poses, board_meshes, board_colors):
 
     def instance(mesh, pose, color):
-      options = dict(style="wireframe", ambient=0.5, color=color, show_edges=True)
-      return Marker(viewer, pv.PolyData(mesh), pose, options)
+      options = dict(style="wireframe", color=color, show_edges=True)
+      return Marker(viewer, mesh, pose, options)
 
     self.board_colors = board_colors
     self.instances = [instance(mesh, pose, color)
         for mesh, color, pose in zip(board_meshes, board_colors, board_poses._sequence())]
 
   def update_poses(self, board_poses):
-    for board_frames, board_poses in zip(self.instances,  board_poses._sequence()):
-      for marker, pose in zip(board_frames, board_poses._sequence()):
-        marker.update(pose=pose)
+    for instance, pose in zip(self.instances, board_poses._sequence()):
+      instance.set_transform(pose=pose)
       
 
   def update(self, active):
@@ -204,7 +208,10 @@ class BoardSet():
     for board_color, marker in zip(self.board_colors, self.instances):
         color = board_color if active else inactive
         opacity = 1 if active else 0.1
+        ambient = 0.8 if active else 0.0
+        
         marker.set_color(color, opacity)
+        marker.set_ambient(ambient)
 
   def show(self, shown):
     for marker in self.instances: 

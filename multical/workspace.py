@@ -21,6 +21,12 @@ import pickle
 def num_threads():
   return len(os.sched_getaffinity(0))
 
+def log_cameras(camera_names, cameras, errs):
+  for name, camera, err in zip(camera_names, cameras, errs):
+    info(f"Calibrated {name}, with RMS={err:.2f}")
+    info(camera)
+    info("")
+
 
 class Workspace:
   def __init__(self):
@@ -116,10 +122,7 @@ class Workspace:
     self.cameras, errs = calibrate_cameras(self.boards, self.detected_points, 
       self.image_size, model=camera_model, fix_aspect=fix_aspect, max_images=max_images)
     
-    for name, camera, err in zip(self.names.camera, self.cameras, errs):
-      info(f"Calibrated {name}, with RMS={err:.2f}")
-      info(camera)
-      info("---------------")
+    log_cameras(self.names.cameras, self.cameras, errs)
 
 
   def initialise_poses(self):
@@ -148,6 +151,10 @@ class Workspace:
   @property
   def sizes(self):
     return self.names._map(len)
+
+  @property
+  def initialisation(self):
+    return self.calibrations['initialisation']
 
   @property
   def latest_calibration(self):

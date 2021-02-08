@@ -155,7 +155,7 @@ def estimate_transform(table, i, j, axis=0):
   info(f"Estimate transform axis={axis}, pair {(i, j)}, "
        f"inliers {inliers.sum()}/{valid.sum()}, "
        f"RMS (frobius) {err_inlier:.4f} ({err:.4f})")
-  print(t)
+  info(t)
   return t
 
 def fill_poses(pose_dict, n):
@@ -340,7 +340,30 @@ def initialise_poses(pose_table):
   )
 
 
-
 def stereo_calibrate(points, board, cameras, i, j, **kwargs):
   matching = matching_points(points, board, i, j)
   return stereo_calibrate((cameras[i], cameras[j]), matching, **kwargs)
+
+
+
+def stack_boards(boards):
+  padded_points = max([board.num_points for board in boards])
+
+  def pad_points(board):
+    points = board.adjusted_points.astype(np.float64)
+    return struct(
+      points=np.pad(points, [(0, padded_points - points.shape[0]), (0, 0)]),
+      valid = np.arange(padded_points) < board.num_points
+    )
+  return Table.stack([pad_points(board) for board in boards]) 
+  
+
+def transform_points(pose_table, board_table):
+
+  points = matrix.transform_homog(
+    t      = np.expand_dims(pose_table.poses, 3),
+    points = np.expand_dims(board_table.points, [0, 1])
+  )    
+
+  valid = (np.expand_dims(pose_table.valid, axis=3) & np.expand_dims(board_table.valid, axis=(0, 1)))
+  return Table.create(points=points, valid=valid)

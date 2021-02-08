@@ -79,6 +79,8 @@ def lerp_table(t, x, y):
 
   return lerp(et, ex, ey)
 
+
+
 class ViewModelCalibrated(QAbstractTableModel):
   def __init__(self, calib, names):
     super(ViewModelCalibrated, self).__init__()
@@ -131,13 +133,15 @@ class ViewModelCalibrated(QAbstractTableModel):
     self.modelReset.emit()
 
   def data(self, index, role):
+    def format_nan(x):
+      return "" if math.isnan(x) else f"{x:.2f}"
 
     all = self.view_table[index.column(), index.row()]
     inlier = self.view_table_inl[index.column(), index.row()]
 
     if role == Qt.DisplayRole:
       return f"{inlier} ({all})" if isinstance(inlier, Integral)\
-        else f"{inlier:.2f} ({all:.2f})" 
+        else f"{format_nan(inlier)} ({format_nan(all)})" 
 
     if role == Qt.BackgroundRole:
       hsl = self.cell_color_table[index.column(), index.row()]

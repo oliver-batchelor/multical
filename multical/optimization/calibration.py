@@ -32,27 +32,24 @@ def select_threshold(quantile=0.95, factor=1.0):
 
 
 class Calibration(parameters.Parameters):
-  def __init__(self, cameras, boards, point_table, pose_estimates, motion_estimates=None, inlier_mask=None, 
-      optimize=default_optimize):
+  def __init__(self, cameras, boards, point_table, camera_poses, board_poses, 
+    motion_model, inlier_mask=None, optimize=default_optimize):
 
     self.cameras = cameras
     self.boards = boards
 
     self.point_table = point_table
-    self.pose_estimates = pose_estimates
+    self.camera_poses = camera_poses
+    self.board_poses = board_poses
 
-    self.motion_estimates = motion_estimates
 
     self.optimize = optimize    
     self.inlier_mask = inlier_mask
     
     assert len(self.cameras) == self.size.cameras
-    assert pose_estimates.camera._shape[0] == self.size.cameras
-    assert pose_estimates.rig._shape[0] == self.size.rig_poses
-    assert pose_estimates.board._shape[0] == self.size.boards
+    assert camera_poses._shape[0] == self.size.cameras
+    assert board_poses._shape[0] == self.size.boards
 
-    assert motion_estimates is None\
-       or motion_estimates.shape == pose_estimates.rig.poses.shape
 
    
   @cached_property 

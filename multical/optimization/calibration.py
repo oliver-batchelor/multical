@@ -43,7 +43,6 @@ class Calibration(parameters.Parameters):
     self.board_poses = board_poses
     self.motion = motion
 
-
     self.optimize = optimize    
     self.inlier_mask = inlier_mask
     
@@ -52,7 +51,6 @@ class Calibration(parameters.Parameters):
     assert board_poses._shape[0] == self.size.boards
 
 
-   
   @cached_property 
   def size(self):
     cameras, rig_poses, boards, points = self.point_table._prefix
@@ -60,59 +58,48 @@ class Calibration(parameters.Parameters):
 
   @cached_property
   def valid(self):
-    return tables.valid(self.pose_estimates, self.point_table) 
- 
-  @cached_property
-  def pose_table(self):
-    return tables.expand_poses(self.pose_estimates)
+    valid = (np.expand_dims(self.camera_poses.valid, [1, 2]) & 
+      np.expand_dims(self.motion.valid_frames, [0, 2]) &
+      np.expand_dims(self.board_poses.valid, [0, 1]))
+
+    return self.point_table.valid & np.expand_dims(valid, valid.ndim)
+
 
   @cached_property
   def inliers(self):
     return choose(self.inlier_mask, self.valid)
 
+
   @cached_property
-  def stacked_boards(self):
+  def board_points(self):
     return tables.stack_boards(self.boards)
 
   @cached_property
-  def transformed_points(self):
-    return tables.transform_points(self.pose_table, self.stacked_boards)
-
-
-
-  @cached_property
   def projected(self):
-    """ Projected points from multiplying out poses and then projecting to each image. 
+    """ Projected points to each image. 
     Returns a table of points corresponding to point_table"""
 
-    transformed = self.transformed_rolling_linear if self.optimize.rolling\
-      else self.transformed_points
+    return self.motion.project(self.cameras, self.camera_poses, 
+      self.board_poses, self.board_points)
 
-    image_points = [camera.project(p) for camera, p in 
-      zip(self.cameras, transformed.points)]
+  @cached_property
+  def reprojected(self):
+    """ Uses the measured points to compute projection motion (if any), 
+    to estimate rolling shutter. Only valid for detected points.
+    """
+    return self.motion.reproject(self.cameras, self.camera_poses, 
+      self.board_poses, self.board_points, self.point_table)
 
-    return Table.create(points=np.stack(image_points), valid=transformed.valid)
-
-  
 
   @cached_property
   def reprojection_error(self):
-    return tables.valid_reprojection_error(self.projected, self.point_table)
+    return tables.valid_reprojection_error(self.reprojected, self.point_table)
 
   @cached_property
   def reprojection_inliers(self):
     inlier_table = self.point_table._extend(valid=choose(self.inliers, self.valid))
-    return tables.valid_reprojection_error(self.projected, inlier_table)
+    return tables.valid_reprojection_error(self.reprojected, inlier_table)
 
-  @cached_property
-  def frame_motion(self):
-    rig = self.pose_estimates.rig
-
-    return Table.create(
-      poses = self.motion_estimates if self.motion_estimates is not None\
-        else rig.poses,
-      valid = rig.valid
-    )
 
 
   @cached_property
@@ -123,20 +110,20 @@ class Calibration(parameters.Parameters):
         return rtvec.from_matrix(poses.poses).ravel()
 
     return struct(
-      camera_pose = get_pose_params(self.pose_estimates.camera),
-      board_pose = get_pose_params(self.pose_estimates.camera),
+      camera_pose = get_pose_params(self.camera_poses),
+      board_pose = get_pose_params(self.board_poses),
+
+      motion = self.motion.param_vec,
 
       camera  = [camera.param_vec for camera in self.cameras
         ] if self.optimize.intrinsics else [], 
       board   = [board.param_vec for board in self.boards
-        ] if self.optimize.board else [],
-
-      motion = self.motion.param_vec 
+        ] if self.optimize.board else []
     )    
   
   def with_params(self, params):
     """ Return a new Calibration object with updated parameters unpacked from given parameter struct
-    sets pose_estimates of rig and camera, 
+    sets pose_estimates of boards and cameras, 
     sets camera intrinsic parameters (if optimized),
     sets adjusted board points (if optimized)
     """
@@ -144,7 +131,10 @@ class Calibration(parameters.Parameters):
       m = rtvec.to_matrix(pose_params.reshape(-1, 6))
       return pose_estimates._update(poses=m)
 
-    pose_estimates = self.pose_estimates._zipWith(update_pose, params.pose)
+    camera_poses = update_pose(params.camera_poses)
+    board_poses = update_pose(params.board_poses)
+
+    motion = self.motion.with_param_vec(params.motion)
 
     cameras = self.cameras
     if self.optimize.intrinsics:
@@ -156,12 +146,9 @@ class Calibration(parameters.Parameters):
       boards = [board.with_param_vec(board_params) 
         for board, board_params in zip(boards, params.board)]
 
-    motion_estimates = self.motion_estimates
-    if self.optimize.rolling:
-      motion_estimates = rtvec.to_matrix(params.motion.reshape(-1, 6))
 
-    return self.copy(cameras=cameras, pose_estimates=pose_estimates, 
-      boards=boards, motion_estimates=motion_estimates)
+    return self.copy(cameras=cameras, camera_poses=camera_poses, board_poses=board_poses,
+      boards=boards, motion=motion)
 
   @cached_property
   def sparsity_matrix(self):
@@ -184,9 +171,9 @@ class Calibration(parameters.Parameters):
         for i, optimized in enumerate(poses.valid)]
 
     param_mappings = (
-      pose_mapping(self.pose_estimates.camera, axis=0) +
-      pose_mapping(self.pose_estimates.rig, axis=1) +
-      pose_mapping(self.pose_estimates.board, axis=2) +
+      pose_mapping(self.camera_poses, axis=0) +
+      pose_mapping(self.board_poses, axis=2) +
+      self.motion.sparsity(indices),
 
       param_indexes(0, self.params.camera) +
       concat_lists([param_indexes(3, board.reshape(-1, 3)) 
@@ -206,7 +193,7 @@ class Calibration(parameters.Parameters):
 
     def evaluate(param_vec):
       calib = self.with_param_vec(param_vec)
-      return (calib.projected.points - calib.point_table.points)[self.inliers].ravel()
+      return (calib.reprojected.points - calib.point_table.points)[self.inliers].ravel()
 
     with contextlib.redirect_stdout(LogWriter.info()):
       res = optimize.least_squares(evaluate, self.param_vec, jac_sparsity=self.sparsity_matrix, 
@@ -223,8 +210,8 @@ class Calibration(parameters.Parameters):
     return self.copy(optimize=optimize)
 
   def __getstate__(self):
-    attrs = ['cameras', 'boards', 'point_table', 'pose_estimates', 
-      'motion_estimates', 'inlier_mask', 'optimize'
+    attrs = ['cameras', 'boards', 'point_table', 'camera_poses', 'board_poses', 
+      'motion', 'inlier_mask', 'optimize'
     ]
     return subset(self.__dict__, attrs)
 
@@ -243,7 +230,7 @@ class Calibration(parameters.Parameters):
   def reject_outliers(self, threshold):
     """ Set outlier threshold """
 
-    errors, valid = tables.reprojection_error(self.projected, self.point_table)
+    errors, valid = tables.reprojection_error(self.reprojected, self.point_table)
     inliers = (errors < threshold) & valid
     
     num_outliers = valid.sum() - inliers.sum()
@@ -276,7 +263,7 @@ class Calibration(parameters.Parameters):
     import matplotlib.pyplot as plt
 
     fig, axs = plt.subplots(2, 1, tight_layout=True)
-    errors, valid = tables.reprojection_error(self.projected, self.point_table)
+    errors, valid = tables.reprojection_error(self.reprojected, self.point_table)
     errors, valid = errors.ravel(), valid.ravel()
 
     inliers = self.inliers.ravel()

@@ -132,10 +132,11 @@ class Workspace:
     info("Pose counts:")
     tables.table_info(self.pose_table.valid, self.names)
 
-    pose_initialisation = tables.initialise_poses(self.pose_table)
-    motion = create_motion(pose_initialisation.frames)
+    pose_init = tables.initialise_poses(self.pose_table)
+    motion = create_motion(pose_init.times)
 
-    calib = Calibration(self.cameras, self.boards, self.point_table, pose_initialisation)
+    calib = Calibration(self.cameras, self.boards, 
+      self.point_table, pose_init.camera, pose_init.board, motion)
     #calib = calib.reject_outliers_quantile(0.75, 5)
     calib.report(f"Initialisation")
 

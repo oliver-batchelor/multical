@@ -33,8 +33,7 @@ def export_extrinsics(camera_names, camera_poses, master=None):
 def export(filename, calib, names):  
   pose_sets = calib.pose_estimates
 
-  valid_frames = np.flatnonzero(pose_sets.rig.valid)
-  rig_poses = pose_sets.rig.poses[valid_frames]
+  valid_frames = np.flatnonzero(pose_sets.times.valid)
   board_poses = pose_sets.board.poses
 
   image_names = np.array(names.image)[valid_frames].tolist()
@@ -44,7 +43,7 @@ def export(filename, calib, names):
     extrinsics = export_extrinsics(camera_names=names.camera, 
       camera_poses=tables.inverse(pose_sets.camera)),
 
-    rig_poses = [t.tolist() for t in rig_poses],
+    motion = calib.motion.export(),
     board_poses = [t.tolist() for t in board_poses],
 
     boards = [board.export() for board in calib.boards],

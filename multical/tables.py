@@ -215,7 +215,7 @@ def estimate_relative_poses_inv(table, axis=2, hop_penalty=0.9):
 
 def valid(estimates, point_table):
   valid = (np.expand_dims(estimates.camera.valid, [1, 2]) & 
-    np.expand_dims(estimates.rig.valid, [0, 2]) &
+    np.expand_dims(estimates.times.valid, [0, 2]) &
     np.expand_dims(estimates.board.valid, [0, 1]))
 
   return point_table.valid & np.expand_dims(valid, valid.ndim)
@@ -276,10 +276,10 @@ def expand(table, dims):
 
 
 def expand_views(estimates):
-  return multiply_expand(estimates.camera, 1, estimates.rig, 0) 
+  return multiply_expand(estimates.camera, 1, estimates.times, 0) 
 
 def expand_boards(estimates):
-  return multiply_expand(estimates.rig, 1, estimates.board, 0) 
+  return multiply_expand(estimates.times, 1, estimates.board, 0) 
 
 
 def expand_poses(estimates):
@@ -356,7 +356,7 @@ def stack_boards(boards):
       valid = np.arange(padded_points) < board.num_points
     )
   return Table.stack([pad_points(board) for board in boards]) 
-  
+
 
 def transform_points(pose_table, board_table):
 

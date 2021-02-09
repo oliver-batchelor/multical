@@ -33,7 +33,7 @@ def select_threshold(quantile=0.95, factor=1.0):
 
 class Calibration(parameters.Parameters):
   def __init__(self, cameras, boards, point_table, camera_poses, board_poses, 
-    motion_model, inlier_mask=None, optimize=default_optimize):
+    motion, inlier_mask=None, optimize=default_optimize):
 
     self.cameras = cameras
     self.boards = boards
@@ -41,6 +41,7 @@ class Calibration(parameters.Parameters):
     self.point_table = point_table
     self.camera_poses = camera_poses
     self.board_poses = board_poses
+    self.motion = motion
 
 
     self.optimize = optimize    
@@ -121,17 +122,16 @@ class Calibration(parameters.Parameters):
     def get_pose_params(poses):
         return rtvec.from_matrix(poses.poses).ravel()
 
-    pose    = self.pose_estimates._map(get_pose_params)
-
     return struct(
-      pose    = struct(camera=pose.camera, rig=pose.rig, board=pose.board),
+      camera_pose = get_pose_params(self.pose_estimates.camera),
+      board_pose = get_pose_params(self.pose_estimates.camera),
+
       camera  = [camera.param_vec for camera in self.cameras
         ] if self.optimize.intrinsics else [], 
       board   = [board.param_vec for board in self.boards
         ] if self.optimize.board else [],
 
-      motion = (get_pose_params(self.frame_motion) 
-      if self.optimize.rolling else [])
+      motion = self.motion.param_vec 
     )    
   
   def with_params(self, params):

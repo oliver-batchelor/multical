@@ -331,10 +331,10 @@ def initialise_poses(pose_table):
   
   # solve for unknown rig 
   expanded = broadcast_to(expand(camera, [1, 2]), board_relative)
-  rig = relative_between_n(expanded, board_relative, axis=1, inv=True)
+  times = relative_between_n(expanded, board_relative, axis=1, inv=True)
 
   return struct(
-    rig = rig,
+    times = times,
     camera = camera,
     board = board
   )

@@ -125,7 +125,7 @@ class Workspace:
     log_cameras(self.names.cameras, self.cameras, errs)
 
 
-  def initialise_poses(self):
+  def initialise_poses(self, create_motion):
     assert self.cameras is not None
     self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
     
@@ -133,6 +133,8 @@ class Workspace:
     tables.table_info(self.pose_table.valid, self.names)
 
     pose_initialisation = tables.initialise_poses(self.pose_table)
+    motion = create_motion(pose_initialisation.frames)
+
     calib = Calibration(self.cameras, self.boards, self.point_table, pose_initialisation)
     #calib = calib.reject_outliers_quantile(0.75, 5)
     calib.report(f"Initialisation")

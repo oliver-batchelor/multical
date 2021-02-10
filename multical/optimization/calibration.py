@@ -87,7 +87,7 @@ class Calibration(parameters.Parameters):
     """ Uses the measured points to compute projection motion (if any), 
     to estimate rolling shutter. Only valid for detected points.
     """
-    return self.motion.reproject(self.cameras, self.camera_poses, 
+    return self.motion.project(self.cameras, self.camera_poses, 
       self.board_poses, self.board_points, self.point_table)
 
 

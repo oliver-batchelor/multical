@@ -70,3 +70,26 @@ def build_sparse(params, valid_mask):
     param_count += num_params
 
   return sparsity[valid_mask.ravel()]
+
+
+
+class ProjectionMapper():
+  """ 
+  Small utility to handle mapping parameters to outputs, 
+  especially for the construction of the jacobian sparsity matrix.
+  """
+  def __init__(self, valid_mask):
+
+    self.mask_coords = np.broadcast_to(np.expand_dims(valid_mask, -1), [*valid_mask.shape, 2]) 
+    self.indices = np.arange(self.mask_coords.size).reshape(*self.mask_coords.shape)
+
+    def point_indexes(i, axis, optimized=True):
+      return np.take(indices, i, axis=axis).ravel() if optimized else None
+
+    def param_indexes(axis, params):
+      return [(p.size, point_indexes(i, axis=axis))
+        for i, p in enumerate(params)]
+
+    def pose_mapping(poses, axis):
+      return [(6, point_indexes(i, axis, optimized))
+        for i, optimized in enumerate(poses.valid)]

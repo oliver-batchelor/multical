@@ -1,7 +1,7 @@
 
 from operator import add
 import numpy as np
-from structs.numpy import map_arrays, reduce_arrays
+from structs.numpy import map_arrays, reduce_arrays, shape
 
 from cached_property import cached_property
 from scipy.sparse import lil_matrix
@@ -32,7 +32,6 @@ class Parameters(object):
     return self.with_params(updated)
 
 
-
 def count(params):
   return reduce_arrays(params, np.size, add, 0) 
 
@@ -54,12 +53,12 @@ def join(params):
   return np.concatenate([param.ravel() for param in params_list])
 
 
-def build_sparse(params, valid_mask):
+def build_sparse(params, mapper):
   """ Build a scipy sparse matrix based on pairs of parameter counts and given point indexes 
   """
 
   total_params = sum([n for n, _ in params])
-  sparsity = lil_matrix((valid_mask.size, total_params), dtype='int16')
+  sparsity = lil_matrix((mapper.mask_coords.size, total_params), dtype='int16')
 
   param_count = 0
   for (num_params, point_indexes) in params:
@@ -69,27 +68,26 @@ def build_sparse(params, valid_mask):
 
     param_count += num_params
 
-  return sparsity[valid_mask.ravel()]
+  return sparsity[mapper.mask_coords.ravel()]
 
 
 
-class ProjectionMapper():
+class IndexMapper(object):
   """ 
   Small utility to handle mapping parameters to outputs, 
   especially for the construction of the jacobian sparsity matrix.
   """
   def __init__(self, valid_mask):
-
     self.mask_coords = np.broadcast_to(np.expand_dims(valid_mask, -1), [*valid_mask.shape, 2]) 
     self.indices = np.arange(self.mask_coords.size).reshape(*self.mask_coords.shape)
 
-    def point_indexes(i, axis, optimized=True):
-      return np.take(indices, i, axis=axis).ravel() if optimized else None
+  def point_indexes(self, i, axis, enabled=True):
+    return np.take(self.indices, i, axis=axis).ravel() if enabled else None
 
-    def param_indexes(axis, params):
-      return [(p.size, point_indexes(i, axis=axis))
-        for i, p in enumerate(params)]
+  def param_indexes(self, axis, params):
+    return [(p.size, self.point_indexes(i, axis=axis))
+      for i, p in enumerate(params)]
 
-    def pose_mapping(poses, axis):
-      return [(6, point_indexes(i, axis, optimized))
-        for i, optimized in enumerate(poses.valid)]
+  def pose_mapping(self, poses, axis):
+    return [(6, self.point_indexes(i, axis, optimized))
+      for i, optimized in enumerate(poses.valid)]

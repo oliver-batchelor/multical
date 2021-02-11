@@ -33,7 +33,7 @@ def main():
     parser.add_argument('--cameras', default=None, help="comma separated list of camera directories")
     
     parser.add_argument('--iter', default=3, help="iterations of bundle adjustment/outlier rejection")
-    parser.add_argument('--rolling', default=False, action="store_true", help='single frame rolling shutter estimation')
+    #parser.add_argument('--rolling', default=False, action="store_true", help='single frame rolling shutter estimation')
 
 
     parser.add_argument('--fix_aspect', default=False, action="store_true", help='set same focal length ')
@@ -87,7 +87,6 @@ def main():
 
 
     ws.calibrate("calibration", loss=args.loss,  
-      rolling=args.rolling, 
       # intrinsics=True, 
       # board=True,
       auto_scale=auto_scale, outliers=outliers)
@@ -96,7 +95,6 @@ def main():
     # ws.calibrate("final", loss=args.loss,  
     #   tolerance = 1e-5, max_iterations=30, 
     #   num_adjustments=1,
-    #   rolling=args.rolling, 
     #   intrinsics=True, 
     #   # board=True,
     #   auto_scale=auto_scale, outliers=outliers)

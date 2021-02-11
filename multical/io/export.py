@@ -30,27 +30,28 @@ def export_extrinsics(camera_names, camera_poses, master=None):
     for k, pose, valid in zip(camera_names, camera_poses.poses, camera_poses.valid) 
       if valid}
 
+
+def export_poses(pose_table):
+  return {i:t.poses.tolist() for i, t in enumerate(pose_table._sequence()) 
+    if t.valid}
+
+
 def export(filename, calib, names):  
-  pose_sets = calib.pose_estimates
 
-  valid_frames = np.flatnonzero(pose_sets.times.valid)
-  board_poses = pose_sets.board.poses
-
-  image_names = np.array(names.image)[valid_frames].tolist()
-
+  board_poses = calib.board_poses.poses
   data = struct(
     cameras = export_cameras(names.camera, calib.cameras),
     extrinsics = export_extrinsics(camera_names=names.camera, 
-      camera_poses=tables.inverse(pose_sets.camera)),
+      camera_poses=tables.inverse(calib.camera_poses)),
 
     motion = calib.motion.export(),
-    board_poses = [t.tolist() for t in board_poses],
+    board_poses = {k:t.tolist() for k, t in zip(names.board, board_poses)},
 
     boards = [board.export() for board in calib.boards],
 
     image_sets = struct(
       rgb = [{camera : path.join(camera, image) for camera in names.camera}
-        for image in image_names]
+        for image in names.image]
     ),
 
     board_points = [board.adjusted_points.tolist() for board in calib.boards]

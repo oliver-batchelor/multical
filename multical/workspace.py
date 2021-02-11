@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from multical.motion.static import Static
 from os import path
 from multical.io.export import export, export_cameras
 from multical.image.detect import common_image_size
@@ -122,10 +123,10 @@ class Workspace:
     self.cameras, errs = calibrate_cameras(self.boards, self.detected_points, 
       self.image_size, model=camera_model, fix_aspect=fix_aspect, max_images=max_images)
     
-    log_cameras(self.names.cameras, self.cameras, errs)
+    log_cameras(self.names.camera, self.cameras, errs)
 
 
-  def initialise_poses(self, create_motion):
+  def initialise_poses(self, motion_model=Static):
     assert self.cameras is not None
     self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
     
@@ -133,7 +134,7 @@ class Workspace:
     tables.table_info(self.pose_table.valid, self.names)
 
     pose_init = tables.initialise_poses(self.pose_table)
-    motion = create_motion(pose_init.times)
+    motion = motion_model(pose_init.times)
 
     calib = Calibration(self.cameras, self.boards, 
       self.point_table, pose_init.camera, pose_init.board, motion)

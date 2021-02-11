@@ -58,6 +58,7 @@ class Calibration(parameters.Parameters):
 
   @cached_property
   def valid(self):
+
     valid = (np.expand_dims(self.camera_poses.valid, [1, 2]) & 
       np.expand_dims(self.motion.valid_frames, [0, 2]) &
       np.expand_dims(self.board_poses.valid, [0, 1]))
@@ -131,8 +132,8 @@ class Calibration(parameters.Parameters):
       m = rtvec.to_matrix(pose_params.reshape(-1, 6))
       return pose_estimates._update(poses=m)
 
-    camera_poses = update_pose(params.camera_poses)
-    board_poses = update_pose(params.board_poses)
+    camera_poses = update_pose(self.camera_poses, params.camera_pose)
+    board_poses = update_pose(self.board_poses, params.board_pose)
 
     motion = self.motion.with_param_vec(params.motion)
 
@@ -156,34 +157,20 @@ class Calibration(parameters.Parameters):
     Mapping between input parameters and output (point) errors.
     Optional - but optimization runs much faster.
     """
-    inlier_mask = np.broadcast_to(np.expand_dims(self.inliers, -1), [*self.inliers.shape, 2]) 
-    indices = np.arange(inlier_mask.size).reshape(*inlier_mask.shape)
-
-    def point_indexes(i, axis, optimized=True):
-      return np.take(indices, i, axis=axis).ravel() if optimized else None
-
-    def param_indexes(axis, params):
-      return [(p.size, point_indexes(i, axis=axis))
-        for i, p in enumerate(params)]
-
-    def pose_mapping(poses, axis):
-      return [(6, point_indexes(i, axis, optimized))
-        for i, optimized in enumerate(poses.valid)]
+    mapper = parameters.IndexMapper(self.inliers)
 
     param_mappings = (
-      pose_mapping(self.camera_poses, axis=0) +
-      pose_mapping(self.board_poses, axis=2) +
-      self.motion.sparsity(indices),
+      mapper.pose_mapping(self.camera_poses, axis=0),
+      mapper.pose_mapping(self.board_poses, axis=2),
+      self.motion.sparsity(mapper),
 
-      param_indexes(0, self.params.camera) +
-      concat_lists([param_indexes(3, board.reshape(-1, 3)) 
+      mapper.param_indexes(0, self.params.camera),
+      concat_lists([mapper.param_indexes(3, board.reshape(-1, 3)) 
         for board in self.params.board])
     )
 
-    if self.optimize.rolling:
-      param_mappings += pose_mapping(self.frame_motion, axis=1) 
 
-    return parameters.build_sparse(param_mappings, inlier_mask)
+    return parameters.build_sparse(sum(param_mappings, []), mapper)
 
   
   def bundle_adjust(self, tolerance=1e-4, f_scale=1.0, max_iterations=100, loss='linear'):

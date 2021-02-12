@@ -134,7 +134,7 @@ class Visualizer(QtWidgets.QMainWindow):
 
       self.calibration = calibs[index]
       self.params_viewer.set_cameras(self.calibration.cameras, tables.inverse(
-          self.calibration.pose_estimates.camera))
+          self.calibration.camera_poses.pose_table))
 
       self.viewer_3d.enable(False)
 

@@ -1,6 +1,7 @@
 import numpy as np
 from structs.numpy import shape
 from structs.struct import choose
+from . import common
 
 def homog_points(points):
   padding = np.ones([*points.shape[:-1], 1])
@@ -59,7 +60,7 @@ def mean_robust(m):
   from . import rtvec
 
   rtvecs = rtvec.from_matrix(m)
-  return rtvec.to_matrix(rtvec.mean_robust(rtvecs))
+  return rtvec.to_matrix(common.mean_robust(rtvecs))
 
 def align_transforms_ls(m1, m2):
   """ Least squares solution for XA = B for aligning a collection of

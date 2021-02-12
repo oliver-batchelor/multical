@@ -1,6 +1,5 @@
 import numpy as np
-from scipy.cluster.hierarchy import linkage, fcluster
-from scipy.cluster.vq import whiten
+
 
 from collections import Counter
 from scipy.spatial.transform import Rotation as R
@@ -53,17 +52,3 @@ def as_rtvec(extrinsic):
     assert False, f"expected extrinsic of shape 6 or 4x4, got: {extrinsic.shape}"
 
 
-def cluster(vectors, min_clusters=3, cluster_size=10):
-    Z = linkage(whiten(vectors), 'ward')
-    n_clust = max(vectors.shape[0] / cluster_size, min_clusters)
-
-    clusters = fcluster(Z, t=n_clust, criterion='maxclust')
-    cc = Counter(clusters[clusters >= 0])
-    most = cc.most_common(n=1)[0][0]
-
-    return clusters == most
- 
-
-def mean_robust(rtvecs):
-  return rtvecs[cluster(rtvecs)].mean(axis=0) if len(rtvecs) > 1\
-    else rtvecs[0]

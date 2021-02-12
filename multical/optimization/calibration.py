@@ -79,18 +79,24 @@ class Calibration(parameters.Parameters):
   def inliers(self):
     return choose(self.inlier_mask, self.valid)
 
-
   @cached_property
   def board_points(self):
     return tables.stack_boards(self.boards)
+
+  @cached_property
+  def pose_estimates(self):
+    return struct(camera = self.camera_poses.pose_table, 
+      board = self.board_poses.pose_table, 
+      times = self.motion.frame_poses
+    )
 
   @cached_property
   def projected(self):
     """ Projected points to each image. 
     Returns a table of points corresponding to point_table"""
 
-    return self.motion.project(self.cameras, self.camera_poses, 
-      self.board_poses, self.board_points)
+    return self.motion.project(self.cameras, self.camera_poses.pose_table, 
+      self.board_poses.pose_table, self.board_points)
 
   @cached_property
   def reprojected(self):

@@ -127,7 +127,7 @@ class Calibration(parameters.Parameters):
     """ Extract parameters as a structs and lists (to be flattened to a vector later)
     """
     all_params =  self.param_objects._map(lambda p: p.param_vec)
-    isEnabled = lambda k: k in self.optimize 
+    isEnabled = lambda k: self.optimize[k] is True 
     return all_params._filterWithKey(isEnabled)
 
 
@@ -161,7 +161,7 @@ class Calibration(parameters.Parameters):
     )
 
     mapping_list = [mapping for k, mapping in param_mappings.items() 
-      if k in self.optimize]
+      if self.optimize[k] is True]
 
     return parameters.build_sparse(sum(mapping_list, []), mapper)
 

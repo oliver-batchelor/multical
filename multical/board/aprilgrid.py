@@ -1,3 +1,4 @@
+from multical.board.board import Board
 from structs.numpy import Table
 from multical.board.common import *
 from pprint import pformat
@@ -11,7 +12,7 @@ from multical.optimization.parameters import Parameters
 import aprilgrid
 
 
-class AprilGrid(Parameters):
+class AprilGrid(Parameters, Board):
   def __init__(self, size, tag_length, 
       tag_spacing, tag_family='t36h11', border_bits=2, min_rows=2, min_points=12, subpix_region=5, adjusted_points=None):
     

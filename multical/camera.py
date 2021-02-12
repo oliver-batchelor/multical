@@ -125,6 +125,7 @@ class Camera(Parameters):
     )
 
   def with_params(self, params):
+
     f = params.focal_length
     fx, fy = f if not self.fix_aspect else (f[0], f[0])
 

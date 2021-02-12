@@ -1,5 +1,11 @@
 import contextlib
 import math
+from multical.motion.motion_model import MotionModel
+from multical.optimization.pose_set import PoseSet
+from multical.board.board import Board
+from multical.camera import Camera
+
+from typing import List
 from multical.transform.interpolate import interpolate_poses, lerp
 import numpy as np
 
@@ -9,6 +15,7 @@ from multical.transform import matrix, rtvec
 from multical.io.logging import LogWriter, info
 
 from . import parameters
+from .parameters import ParamList
 
 from structs.numpy import Table, shape
 from structs.struct import concat_lists, apply_none, struct, choose, subset, when
@@ -18,9 +25,12 @@ from scipy import optimize
 from cached_property import cached_property
 
 default_optimize = struct(
-  intrinsics = False,
-  board = False,
-  rolling = False
+  cameras = False,
+  boards = False,
+
+  camera_poses = True,
+  board_poses = True,
+  motion = True
 )
 
 def select_threshold(quantile=0.95, factor=1.0):
@@ -29,11 +39,10 @@ def select_threshold(quantile=0.95, factor=1.0):
   return f
 
 
-
-
 class Calibration(parameters.Parameters):
-  def __init__(self, cameras, boards, point_table, camera_poses, board_poses, 
-    motion, inlier_mask=None, optimize=default_optimize):
+  def __init__(self, cameras : ParamList[Camera], boards : ParamList[Board], point_table : Table, 
+    camera_poses : PoseSet, board_poses : PoseSet, 
+    motion : MotionModel, inlier_mask=None, optimize=default_optimize):
 
     self.cameras = cameras
     self.boards = boards
@@ -47,8 +56,8 @@ class Calibration(parameters.Parameters):
     self.inlier_mask = inlier_mask
     
     assert len(self.cameras) == self.size.cameras
-    assert camera_poses._shape[0] == self.size.cameras
-    assert board_poses._shape[0] == self.size.boards
+    assert camera_poses.size == self.size.cameras
+    assert board_poses.size == self.size.boards
 
 
   @cached_property 
@@ -60,7 +69,7 @@ class Calibration(parameters.Parameters):
   def valid(self):
 
     valid = (np.expand_dims(self.camera_poses.valid, [1, 2]) & 
-      np.expand_dims(self.motion.valid_frames, [0, 2]) &
+      np.expand_dims(self.motion.valid, [0, 2]) &
       np.expand_dims(self.board_poses.valid, [0, 1]))
 
     return self.point_table.valid & np.expand_dims(valid, valid.ndim)
@@ -88,8 +97,8 @@ class Calibration(parameters.Parameters):
     """ Uses the measured points to compute projection motion (if any), 
     to estimate rolling shutter. Only valid for detected points.
     """
-    return self.motion.project(self.cameras, self.camera_poses, 
-      self.board_poses, self.board_points, self.point_table)
+    return self.motion.project(self.cameras, self.camera_poses.pose_table, 
+      self.board_poses.pose_table, self.board_points, self.point_table)
 
 
   @cached_property
@@ -102,54 +111,34 @@ class Calibration(parameters.Parameters):
     return tables.valid_reprojection_error(self.reprojected, inlier_table)
 
 
+  @cached_property
+  def param_objects(self):
+    return struct(
+      camera_poses = self.camera_poses,
+      board_poses = self.board_poses,
+      motion = self.motion,
+
+      cameras = self.cameras,
+      boards = self.boards
+    )
 
   @cached_property
   def params(self):
     """ Extract parameters as a structs and lists (to be flattened to a vector later)
     """
-    def get_pose_params(poses):
-        return rtvec.from_matrix(poses.poses).ravel()
+    all_params =  self.param_objects._map(lambda p: p.param_vec)
+    isEnabled = lambda k: k in self.optimize 
+    return all_params._filterWithKey(isEnabled)
 
-    return struct(
-      camera_pose = get_pose_params(self.camera_poses),
-      board_pose = get_pose_params(self.board_poses),
 
-      motion = self.motion.param_vec,
-
-      camera  = [camera.param_vec for camera in self.cameras
-        ] if self.optimize.intrinsics else [], 
-      board   = [board.param_vec for board in self.boards
-        ] if self.optimize.board else []
-    )    
-  
   def with_params(self, params):
-    """ Return a new Calibration object with updated parameters unpacked from given parameter struct
-    sets pose_estimates of boards and cameras, 
-    sets camera intrinsic parameters (if optimized),
-    sets adjusted board points (if optimized)
-    """
-    def update_pose(pose_estimates, pose_params):
-      m = rtvec.to_matrix(pose_params.reshape(-1, 6))
-      return pose_estimates._update(poses=m)
+    """ Return a new Calibration object with updated parameters 
+    """ 
 
-    camera_poses = update_pose(self.camera_poses, params.camera_pose)
-    board_poses = update_pose(self.board_poses, params.board_pose)
+    updated = {k:self.param_objects[k].with_param_vec(param_vec) 
+      for k, param_vec in params.items()}
 
-    motion = self.motion.with_param_vec(params.motion)
-
-    cameras = self.cameras
-    if self.optimize.intrinsics:
-      cameras = [camera.with_param_vec(p) for p, camera in 
-        zip(params.camera, self.cameras)]
-
-    boards = self.boards
-    if self.optimize.board:
-      boards = [board.with_param_vec(board_params) 
-        for board, board_params in zip(boards, params.board)]
-
-
-    return self.copy(cameras=cameras, camera_poses=camera_poses, board_poses=board_poses,
-      boards=boards, motion=motion)
+    return self.copy(**updated)
 
   @cached_property
   def sparsity_matrix(self):
@@ -158,19 +147,23 @@ class Calibration(parameters.Parameters):
     Optional - but optimization runs much faster.
     """
     mapper = parameters.IndexMapper(self.inliers)
+    camera_params = self.cameras.param_vec.reshape(self.size.cameras, -1)
 
-    param_mappings = (
-      mapper.pose_mapping(self.camera_poses, axis=0),
-      mapper.pose_mapping(self.board_poses, axis=2),
-      self.motion.sparsity(mapper),
+    param_mappings = struct(
+      camera_poses = self.camera_poses.sparsity(mapper, axis=0),
+      board_poses = self.board_poses.sparsity(mapper, axis=2),
+      motion = self.motion.sparsity(mapper, axis=1),
 
-      mapper.param_indexes(0, self.params.camera),
-      concat_lists([mapper.param_indexes(3, board.reshape(-1, 3)) 
-        for board in self.params.board])
+      cameras = mapper.param_indexes(camera_params, axis=0),
+      boards = concat_lists(
+        [mapper.param_indexes(board.param_vec.reshape(-1, 3), axis=3) 
+          for board in self.boards])
     )
 
+    mapping_list = [mapping for k, mapping in param_mappings.items() 
+      if k in self.optimize]
 
-    return parameters.build_sparse(sum(param_mappings, []), mapper)
+    return parameters.build_sparse(sum(mapping_list, []), mapper)
 
   
   def bundle_adjust(self, tolerance=1e-4, f_scale=1.0, max_iterations=100, loss='linear'):
@@ -203,7 +196,7 @@ class Calibration(parameters.Parameters):
     return subset(self.__dict__, attrs)
 
   def copy(self, **k):
-    """Copy calibration environment and change some parameters (no mutation)"""
+    """Copy calibration environment and change some attributes (no mutation)"""
     d = self.__getstate__()
     d.update(k)
     return Calibration(**d)

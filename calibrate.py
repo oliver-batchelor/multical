@@ -87,8 +87,8 @@ def main():
 
 
     ws.calibrate("calibration", loss=args.loss,  
-      # intrinsics=True, 
-      # board=True,
+      cameras=True, 
+      # boards=True,
       auto_scale=auto_scale, outliers=outliers)
 
 

@@ -31,8 +31,8 @@ def export_extrinsics(camera_names, camera_poses, master=None):
       if valid}
 
 
-def export_poses(pose_table):
-  return {i:t.poses.tolist() for i, t in enumerate(pose_table._sequence()) 
+def export_poses(pose_table, names):
+  return {i:t.poses.tolist() for i, t in zip(names, pose_table._sequence()) 
     if t.valid}
 
 

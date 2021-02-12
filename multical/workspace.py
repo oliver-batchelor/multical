@@ -1,5 +1,7 @@
 from collections import OrderedDict
-from multical.motion.static import Static
+from multical.optimization.parameters import ParamList
+from multical.optimization.pose_set import PoseSet
+from multical.motion import StaticFrames
 from os import path
 from multical.io.export import export, export_cameras
 from multical.image.detect import common_image_size
@@ -126,7 +128,7 @@ class Workspace:
     log_cameras(self.names.camera, self.cameras, errs)
 
 
-  def initialise_poses(self, motion_model=Static):
+  def initialise_poses(self, motion_model=StaticFrames):
     assert self.cameras is not None
     self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
     
@@ -134,10 +136,15 @@ class Workspace:
     tables.table_info(self.pose_table.valid, self.names)
 
     pose_init = tables.initialise_poses(self.pose_table)
-    motion = motion_model(pose_init.times)
 
-    calib = Calibration(self.cameras, self.boards, 
-      self.point_table, pose_init.camera, pose_init.board, motion)
+    calib = Calibration(
+      ParamList(self.cameras, self.names.camera),
+      ParamList(self.boards, self.names.board), 
+      self.point_table, 
+      PoseSet(pose_init.camera, self.names.camera), 
+      PoseSet(pose_init.board, self.names.board), 
+      motion_model(pose_init.times))
+ 
     #calib = calib.reject_outliers_quantile(0.75, 5)
     calib.report(f"Initialisation")
 
@@ -145,8 +152,11 @@ class Workspace:
     return calib
 
 
-  def calibrate(self, name, intrinsics=False, board=False, rolling=False, **opt_args):
-    calib = self.latest_calibration.enable(intrinsics=intrinsics, board=board, rolling=rolling)
+  def calibrate(self, name, camera_poses=True, motion=True, board_poses=True, cameras=False, boards=False, **opt_args):
+    calib = self.latest_calibration.enable(
+        cameras=cameras, boards=boards,
+        camera_poses=camera_poses, motion=motion, board_poses=board_poses
+        )
     calib = calib.adjust_outliers(**opt_args)
 
     self.calibrations[name] = calib

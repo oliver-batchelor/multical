@@ -1,3 +1,4 @@
+from multical.board.board import Board
 from pprint import pformat
 from cached_property import cached_property
 import cv2
@@ -7,7 +8,7 @@ from .common import *
 from structs.struct import struct, choose, subset
 from multical.optimization.parameters import Parameters
 
-class CharucoBoard(Parameters):
+class CharucoBoard(Parameters, Board):
   def __init__(self, size, square_length, marker_length, min_rows=3, min_points=20, 
     adjusted_points=None, aruco_params=None, aruco_dict='4X4_100', aruco_offset=0):
     

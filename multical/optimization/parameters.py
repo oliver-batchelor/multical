@@ -1,10 +1,28 @@
 
 from operator import add
+from pprint import pformat
+from typing import Any, Dict, Generic, List, TypeVar
 import numpy as np
 from structs.numpy import map_arrays, reduce_arrays, shape
 
 from cached_property import cached_property
 from scipy.sparse import lil_matrix
+from structs.struct import subset
+from numbers import Number
+
+
+class Copyable(object):
+  def __init__(self, attrs):
+    self._attrs = attrs
+
+  def __getstate__(self):
+    return subset(self.__dict__, self._attrs)
+
+  def copy(self, **k):
+    """Copy object and change some attribute (no mutation)"""
+    d = self.__getstate__()
+    d.update(k)
+    return self.__class__(**d)
 
 
 class Parameters(object):
@@ -30,6 +48,40 @@ class Parameters(object):
   def with_param_vec(self, param_vec):
     updated = split(param_vec, self.params)
     return self.with_params(updated)
+
+T = TypeVar('T')
+
+class ParamList(Parameters, Generic[T]):
+  def __init__(self, param_objects : List[Parameters], names : List [str] = None):
+    self.param_objects = param_objects
+    self.names = names
+
+  def __getitem__(self, index):
+    if not isinstance(index, Number) and self.names is not None:
+      index = self.names.index(index)
+    return self.param_objects[index]  
+
+  def __iter__(self):
+    return self.param_objects.__iter__()
+
+  def __len__(self):
+    return self.param_objects.__len__()
+
+  def __repr__(self):
+    if self.names is None:
+      return "ParamList " + pformat(self.param_objects)
+    else:
+      d = {k:obj for k, obj in zip(self.names, self.param_objects)}
+      return "ParamList " + pformat(d)
+
+  @cached_property      
+  def params(self):
+    return [p.param_vec for p in self.param_objects]
+
+  def with_params(self, params):
+
+    return ParamList([obj.with_param_vec(p) 
+      for obj, p in zip(self.param_objects, params)])
 
 
 def count(params):
@@ -84,7 +136,8 @@ class IndexMapper(object):
   def point_indexes(self, i, axis, enabled=True):
     return np.take(self.indices, i, axis=axis).ravel() if enabled else None
 
-  def param_indexes(self, axis, params):
+  def param_indexes(self, params, axis):
+
     return [(p.size, self.point_indexes(i, axis=axis))
       for i, p in enumerate(params)]
 

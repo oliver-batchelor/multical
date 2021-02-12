@@ -122,7 +122,7 @@ class Workspace:
     self.cameras, errs = calibrate_cameras(self.boards, self.detected_points, 
       self.image_size, model=camera_model, fix_aspect=fix_aspect, max_images=max_images)
     
-    log_cameras(self.names.cameras, self.cameras, errs)
+    log_cameras(self.names.camera, self.cameras, errs)
 
 
   def initialise_poses(self):

@@ -62,7 +62,8 @@ def main():
     workspace_file = path.join(output_path, "workspace.pkl")
     
     ws = workspace.Workspace()
-    setup_logging(log_file, args.log_level, [ws.log_handler])
+    
+    setup_logging(args.log_level, [ws.log_handler], log_file=log_file)
  
     info(args) 
 

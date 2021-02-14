@@ -6,6 +6,7 @@ from multical.workspace import Workspace
 
 from multical.interface import visualizer
 from multical.io.logging import warning, info
+from multical.io.logging import setup_logging
 
 
 def main(): 
@@ -21,6 +22,11 @@ def main():
       filename = path.join(filename, "workspace.pkl")
       
     ws = Workspace.load(filename)
+
+    setup_logging('INFO', [ws.log_handler])
+
+
+
     visualizer.visualize(ws)
 
 

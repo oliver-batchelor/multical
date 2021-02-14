@@ -79,24 +79,24 @@ class IndentFormatter(logging.Formatter):
       return header + msg
 
 
-def setup_logging(log_file, console_level='INFO', handlers=[]):
+def setup_logging(console_level='INFO', handlers=[], log_file=None):
 
+  for handler in handlers:
+    logger.addHandler(handler)
 
-    stream_handler = logging.StreamHandler(stream=stdout)
-    stream_handler.setLevel(getattr(logging, console_level))
-    stream_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
+  stream_handler = logging.StreamHandler(stream=stdout)
+  stream_handler.setLevel(getattr(logging, console_level))
+  stream_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
+  logger.addHandler(stream_handler)    
 
+  if log_file is not None:
     file_handler = logging.FileHandler(log_file, mode='a')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
-    
+    logger.addHandler(file_handler)
 
-    handlers = handlers + [stream_handler, file_handler]
 
-    for handler in handlers:
-      logger.addHandler(handler)
-
-    logger.setLevel(logging.DEBUG)
-    info(f"Logging to {log_file}")
+  logger.setLevel(logging.DEBUG)
+  info(f"Logging to {log_file}")
 
  

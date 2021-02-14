@@ -11,6 +11,7 @@ def transform_points(points, rtvec):
   rvec, tvec = split(rtvec)
   return R.from_rotvec(rvec).apply(points) + tvec
 
+size = 6
 
 def split(rtvec):
   assert rtvec.shape[-1] == 6

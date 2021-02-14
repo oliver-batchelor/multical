@@ -1,11 +1,38 @@
 from cached_property import cached_property
+import numpy as np
 from structs.struct import struct, subset
 from .motion_model import MotionModel
 
 from multical.optimization.parameters import IndexMapper, Parameters
 from multical import tables
+from structs.numpy import Table
 
 from multical.transform import rtvec
+from multical.transform.interpolate import lerp
+
+
+def times(cameras, point_table):
+  image_heights = np.array([camera.image_size[1] for camera in cameras])    
+  return point_table.points[..., 1] / np.expand_dims(image_heights, (1,2,3))  
+
+
+def transformed_linear(self, camera_poses, board_poses, board_points, times):
+  
+  pose_start = struct(camera=camera_poses, board=board_poses, times=self.pose_start)
+  pose_end = pose_start._extend(times=self.pose_end)
+
+  table_start = tables.expand_poses(pose_start)
+  table_end = tables.expand_poses(pose_end)
+
+  start_frame = tables.transform_points(table_start, board_points)
+  end_frame = tables.transform_points(table_end, board_points)
+
+  return struct(
+    points = lerp(start_frame.points, end_frame.points, times),
+    valid = start_frame.valid & end_frame.valid
+  )
+
+
 
 class RollingFrames(MotionModel, Parameters):
 
@@ -23,6 +50,15 @@ class RollingFrames(MotionModel, Parameters):
   def valid(self):
     return self.pose_table.valid
 
+  @cached_property
+  def start_table(self):
+     return Table.build(poses=self.pose_start, valid=self.valid)
+  
+  @cached_property
+  def end_table(self):
+    return Table.build(poses=self.pose_end, valid=self.valid)
+  
+
   @staticmethod
   def init(pose_table, names=None):
     size = pose_table.valid.size
@@ -36,13 +72,13 @@ class RollingFrames(MotionModel, Parameters):
       rtvec.from_matrix(self.pose_end).ravel()
     ]
       
-
   def with_params(self, params):
-    m = rtvec.to_matrix(params.reshape(-1, 6))
-    return self.copy(pose_table = self.pose_table._update(poses=m))
+    start, end = [rtvec.to_matrix(m.reshape(-1, 6)) for m in params]
+    return self.copy(pose_start=start, pose_end=end)
 
   def sparsity(self, index_mapper : IndexMapper, axis : int):
-    return index_mapper.pose_mapping(self.pose_table, axis=axis)
+    return [index_mapper.pose_mapping(t, axis=axis, param_size=6) 
+      for t in [self.start_table, self.end_table]]
 
   def export(self):
     return {i:struct(start=start.poses.tolist(), end=end.poses.tolist()) 
@@ -59,11 +95,8 @@ class RollingFrames(MotionModel, Parameters):
     d.update(k)
     return self.__class__(**d)
   
-  
-  # @cached_property
-  # def times(self):
-  #   image_heights = np.array([camera.image_size[1] for camera in self.cameras])    
-  #   return self.point_table.points[..., 1] / np.expand_dims(image_heights, (1,2,3))
+
+
 
   # @cached_property
   # def transformed_rolling(self):
@@ -83,18 +116,3 @@ class RollingFrames(MotionModel, Parameters):
   #   )
 
  
-  #  @cached_property
-  # def transformed_rolling_linear(self):
-  #   poses_start = self.pose_estimates
-  #   poses_end = poses_start._extend(rig=self.frame_motion)
-
-  #   table_start = tables.expand_poses(poses_start)
-  #   table_end = tables.expand_poses(poses_end)
-
-  #   start_frame = transform_points(table_start, self.stacked_boards)
-  #   end_frame = transform_points(table_end, self.stacked_boards)
-
-  #   return struct(
-  #     points = lerp(start_frame.points, end_frame.points, self.times),
-  #     valid = start_frame.valid & end_frame.valid
-  #   )

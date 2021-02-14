@@ -4,7 +4,7 @@ from multical.optimization.parameters import Parameters
 from cached_property import cached_property
 from multical.io.export import export_poses
 
-from multical.transform import rtvec
+from multical.transform import rtvec as transform_vec
 from .parameters import IndexMapper
 
 class PoseSet(Parameters):
@@ -30,14 +30,14 @@ class PoseSet(Parameters):
 
   @cached_property
   def params(self):
-    return rtvec.from_matrix(self.poses).ravel()
+    return transform_vec.from_matrix(self.poses).ravel()
 
   def with_params(self, params):
-    m = rtvec.to_matrix(params.reshape(-1, 6))
+    m = transform_vec.to_matrix(params.reshape(-1, transform_vec.size))
     return self.copy(pose_table = self.pose_table._update(poses=m))
 
   def sparsity(self, index_mapper : IndexMapper, axis : int):
-    return index_mapper.pose_mapping(self.pose_table, axis=axis)
+    return index_mapper.pose_mapping(self.pose_table, axis=axis, param_size=transform_vec.size)
 
   def export(self):
     return struct(poses = export_poses(self.pose_table, self.names))

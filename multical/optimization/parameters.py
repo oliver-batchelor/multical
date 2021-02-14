@@ -140,6 +140,6 @@ class IndexMapper(object):
     return [(p.size, self.point_indexes(i, axis=axis))
       for i, p in enumerate(params)]
 
-  def pose_mapping(self, poses, axis):
-    return [(6, self.point_indexes(i, axis, optimized))
+  def pose_mapping(self, poses, axis, param_size):
+    return [(param_size, self.point_indexes(i, axis, optimized))
       for i, optimized in enumerate(poses.valid)]

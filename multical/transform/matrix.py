@@ -3,6 +3,9 @@ from structs.numpy import shape
 from structs.struct import choose
 from . import common
 
+from scipy.spatial.transform import Rotation as R
+
+
 def homog_points(points):
   padding = np.ones([*points.shape[:-1], 1])
   return  np.concatenate([points, padding], axis=points.ndim - 1)

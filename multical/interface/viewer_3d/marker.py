@@ -198,6 +198,8 @@ class BoardSet():
     self.instances = [instance(mesh, pose, color)
         for mesh, color, pose in zip(board_meshes, board_colors, board_poses._sequence())]
 
+    self.update(True)
+
   def update_poses(self, board_poses):
     for instance, pose in zip(self.instances, board_poses._sequence()):
       instance.set_transform(pose=pose)
@@ -209,7 +211,7 @@ class BoardSet():
         color = board_color if active else inactive
         opacity = 1 if active else 0.1
         ambient = 0.8 if active else 0.0
-        
+
         marker.set_color(color, opacity)
         marker.set_ambient(ambient)
 

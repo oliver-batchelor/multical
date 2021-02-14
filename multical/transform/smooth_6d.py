@@ -10,31 +10,32 @@ def join(rvec, tvec):
   assert rvec.shape[-1] == 6 and tvec.shape[-1] == 3
   return np.hstack([rvec, tvec])
 
+size = 9
 
 def renormalise(rvec):
+  def normalise(v):
+    return v / np.linalg.norm(v)
+
   assert rvec.shape[-1] == 6, f"got: {rvec.shape}"
+  rvec = rvec.reshape(*rvec.shape[:-1], 2, 3)
 
-  x = rvec[..., 0:3]
-  y = rvec[..., 3:6]
+  a1 = rvec[..., 0, :]
+  a2 = rvec[..., 1, :]
 
+  b1 = normalise(a1)
+  b2 = normalise(a2 - (b1 * a2).sum(-1, keepdims=True) * b1)
 
-  e1 = x / np.linalg.norm(x)
-  u = y - (e1 * y).sum(-1, keepdims=True) * e1
-
-  e2 = u / np.linalg.norm(u)
-  e3 = np.cross(e1, e2)
-
-  return np.stack([e1, e2, e3], axis=-1)
+  b3 = np.cross(b1, b2)
+  return np.stack([b1, b2, b3], axis=-2)
 
 
 def truncate(rot):
   s = rot.shape[:-2]
-  return rot[..., :2].reshape(*s, 6)
+  return rot[..., :2, :].reshape(*s, 6)
 
 def to_matrix(rtvec):
   rvec, tvec = split(rtvec)
   rotation = renormalise(rvec)
-  print(rotation.shape, rvec.shape)
 
   return matrix.join(rotation, tvec)
 

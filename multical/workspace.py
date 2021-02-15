@@ -205,8 +205,6 @@ class Workspace:
     assert path.isfile(filename)
     with open(filename, "rb") as file:
       ws = pickle.load(file)
-      ws.load_images()
-
       return ws
 
   def __getstate__(self):

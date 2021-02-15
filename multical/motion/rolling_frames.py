@@ -1,3 +1,4 @@
+from multical.motion.static_frames import project_cameras
 from cached_property import cached_property
 import numpy as np
 from structs.struct import struct, subset
@@ -11,7 +12,7 @@ from multical.transform import rtvec
 from multical.transform.interpolate import lerp
 
 
-def times(cameras, point_table):
+def rolling_times(cameras, point_table):
   image_heights = np.array([camera.image_size[1] for camera in cameras])    
   return point_table.points[..., 1] / np.expand_dims(image_heights, (1,2,3))  
 
@@ -64,6 +65,15 @@ class RollingFrames(MotionModel, Parameters):
     size = pose_table.valid.size
     names = names or [str(i) for i in range(size)]
 
+
+  def project(self, cameras, camera_poses, board_poses, board_points, estimates=None):
+    times = rolling_times(cameras, estimates) if estimates is not None\
+      else np.full(board_points.points.shape, 0.5)
+    
+    transformed = transformed_linear(self, camera_poses, 
+      board_poses, board_points, times)
+      
+    return project_cameras(cameras, transformed)
 
   @cached_property
   def params(self):

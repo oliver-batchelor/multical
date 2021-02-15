@@ -42,9 +42,10 @@ class MemoryHandler(logging.Handler):
         self.handleError(record)
 
   def __getstate__(self):
-    return struct(records = self.records)
+    return struct(records = self.records, level=self.level)
 
   def __setstate__(self, state):
+    self.__init__(level=state.get('level', logging.DEBUG))
     self.records = state.records
 
 
@@ -93,10 +94,11 @@ def setup_logging(console_level='INFO', handlers=[], log_file=None):
     file_handler = logging.FileHandler(log_file, mode='a')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(IndentFormatter('%(levelname)s - %(message)s'))
+
+    info(f"Logging to {log_file}")
     logger.addHandler(file_handler)
 
 
   logger.setLevel(logging.DEBUG)
-  info(f"Logging to {log_file}")
 
  

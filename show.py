@@ -22,9 +22,9 @@ def main():
       filename = path.join(filename, "workspace.pkl")
       
     ws = Workspace.load(filename)
-
     setup_logging('INFO', [ws.log_handler])
 
+    ws.load_images()
 
 
     visualizer.visualize(ws)

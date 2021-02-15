@@ -7,6 +7,13 @@ from structs.struct import struct, subset
 from multical import tables
 
 
+def project_cameras(cameras, local_points):
+  image_points = [camera.project(p) for camera, p in 
+      zip(cameras, local_points.points)]
+
+  return Table.create(points=np.stack(image_points), valid=local_points.valid)
+
+
 
 class StaticFrames(PoseSet, MotionModel):
   def __init__(self, pose_table, names):
@@ -16,13 +23,9 @@ class StaticFrames(PoseSet, MotionModel):
     pose_estimates = struct(camera = camera_poses, board=board_poses, times=self.pose_table)
 
     pose_table = tables.expand_poses(pose_estimates)
-    transformed = tables.transform_points(pose_table, board_points)
+    return project_cameras(cameras, tables.transform_points(pose_table, board_points))
 
-    image_points = [camera.project(p) for camera, p in 
-      zip(cameras, transformed.points)]
-
-    return Table.create(points=np.stack(image_points), valid=transformed.valid)
-
+  
   @staticmethod
   def init(pose_table, names=None):
     return StaticFrames(pose_table, names)

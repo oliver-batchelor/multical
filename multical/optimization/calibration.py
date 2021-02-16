@@ -85,7 +85,8 @@ class Calibration(parameters.Parameters):
 
   @cached_property
   def world_points(self):
-    return tables.transform_points(self.board_poses.pose_table, self.board_points)
+    return tables.transform_points(tables.expand_dims(self.board_poses.pose_table, 1), 
+      self.board_points)
 
   @cached_property
   def pose_estimates(self):
@@ -108,13 +109,8 @@ class Calibration(parameters.Parameters):
   def reprojected(self):
     """ Uses the measured points to compute projection motion (if any), 
     to estimate rolling shutter. Only valid for detected points.
-    """
-  
-    print(self.size, shape(self.world_points))
-    p = self.motion.project(self.cameras, self.camera_poses.pose_table, self.world_points)
-    print(shape(p), shape(self.point_table))
-
-    return p
+    """ 
+    return self.motion.project(self.cameras, self.camera_poses.pose_table, self.world_points)
 
     # return self.motion.project(self.cameras, self.camera_poses.pose_table, 
     #   self.board_poses.pose_table, self.board_points, self.point_table)

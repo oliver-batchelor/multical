@@ -358,19 +358,14 @@ def stack_boards(boards):
   return Table.stack([pad_points(board) for board in boards]) 
 
 
+
+def expand_dims(table, axis):
+  return table._map(partial(np.expand_dims, axis=axis))
+
+
 def transform_points(pose_table, board_points):
-  pose_dim = pose_table.poses.ndim
-  point_dim = board_points.points.ndim
-
-  axes1 = (pose_dim - 2,)
-  axes2 = tuple(range(point_dim - pose_dim))
-
-  print("********", shape(pose_table), shape(board_points), axes1, axes2)
-
-  points = matrix.transform_homog(
-    t      = np.expand_dims(pose_table.poses, axes1),
-    points = np.expand_dims(board_points.points, axes2)
-  )    
-
-  valid = (np.expand_dims(pose_table.valid, axis=axes1) & np.expand_dims(board_points.valid, axis=axes2))
-  return Table.create(points=points, valid=valid)
+  assert can_broadcast(pose_table._shape, board_points._shape)
+  return Table.create(
+    points = matrix.transform_homog(t = pose_table.poses,  points = board_points.points),
+    valid = pose_table.valid & board_points.valid
+  )

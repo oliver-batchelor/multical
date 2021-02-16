@@ -2,7 +2,7 @@ from cached_property import cached_property
 from multical.motion.motion_model import MotionModel
 from multical.optimization.pose_set import PoseSet
 import numpy as np
-from structs.numpy import Table
+from structs.numpy import Table, shape
 from structs.struct import struct, subset
 from multical import tables
 
@@ -21,9 +21,14 @@ class StaticFrames(PoseSet, MotionModel):
 
   def project(self, cameras, camera_poses, world_points, estimates=None):
     pose_estimates = struct(camera = camera_poses,  times=self.pose_table)
-
     pose_table = tables.expand_views(pose_estimates)
-    return project_cameras(cameras, tables.transform_points(pose_table, world_points))
+
+    points = tables.transform_points( 
+      tables.expand_dims(pose_table, (2, 3)), 
+      tables.expand_dims(world_points, (0, 1))
+    )
+
+    return project_cameras(cameras, points)
 
   
   @staticmethod

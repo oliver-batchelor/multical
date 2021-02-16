@@ -13,9 +13,6 @@ def homog_points(points):
 
 def transform_homog(t, points):
   points = np.expand_dims(homog_points(points), points.ndim)
-
-  print(shape(t), shape(points))
-
   transformed = (t @ points).squeeze(points.ndim - 1)
   return transformed[..., :3]
 

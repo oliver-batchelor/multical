@@ -1,5 +1,6 @@
 import logging
 import math
+from multical.motion.rolling_frames import RollingFrames
 from multical.optimization.calibration import select_threshold
 from multical.io.logging import setup_logging
 from os import path
@@ -33,7 +34,7 @@ def main():
     parser.add_argument('--cameras', default=None, help="comma separated list of camera directories")
     
     parser.add_argument('--iter', default=3, help="iterations of bundle adjustment/outlier rejection")
-    #parser.add_argument('--rolling', default=False, action="store_true", help='single frame rolling shutter estimation')
+    parser.add_argument('--rolling', default=False, action="store_true", help='single frame rolling shutter estimation')
 
 
     parser.add_argument('--fix_aspect', default=False, action="store_true", help='set same focal length ')
@@ -81,7 +82,7 @@ def main():
     
     ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
 
-    ws.initialise_poses()
+    ws.initialise_poses(motion_model=RollingFrames)
     outliers =  select_threshold(quantile=0.75, factor=6)
     auto_scale = select_threshold(quantile=0.75, factor=2)
     # outliers = None

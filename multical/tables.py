@@ -333,17 +333,12 @@ def initialise_poses(pose_table):
   expanded = broadcast_to(expand(camera, [1, 2]), board_relative)
   times = relative_between_n(expanded, board_relative, axis=1, inv=True)
 
-  return struct(
-    times = times,
-    camera = camera,
-    board = board
-  )
+  return struct(times=times, camera=camera, board=board)
 
 
 def stereo_calibrate(points, board, cameras, i, j, **kwargs):
   matching = matching_points(points, board, i, j)
   return stereo_calibrate((cameras[i], cameras[j]), matching, **kwargs)
-
 
 
 def stack_boards(boards):
@@ -357,8 +352,6 @@ def stack_boards(boards):
     )
   return Table.stack([pad_points(board) for board in boards]) 
 
-
-
 def expand_dims(table, axis):
   return table._map(partial(np.expand_dims, axis=axis))
 
@@ -366,6 +359,6 @@ def expand_dims(table, axis):
 def transform_points(pose_table, board_points):
   assert can_broadcast(pose_table._shape, board_points._shape)
   return Table.create(
-    points = matrix.transform_homog(t = pose_table.poses,  points = board_points.points),
+    points = matrix.transform_homog(t = pose_table.poses, points=board_points.points),
     valid = pose_table.valid & board_points.valid
   )

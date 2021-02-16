@@ -6,7 +6,7 @@ from .motion_model import MotionModel
 
 from multical.optimization.parameters import IndexMapper, Parameters
 from multical import tables
-from structs.numpy import Table
+from structs.numpy import Table, shape
 
 from multical.transform import rtvec
 from multical.transform.interpolate import lerp
@@ -14,19 +14,24 @@ from multical.transform.interpolate import lerp
 
 def rolling_times(cameras, point_table):
   image_heights = np.array([camera.image_size[1] for camera in cameras])    
-  return point_table.points[..., 1] / np.expand_dims(image_heights, (1,2,3))  
+  times = point_table.points[..., 1] / np.expand_dims(image_heights, (1,2,3))  
 
+  return times
 
-def transformed_linear(self, camera_poses, board_poses, board_points, times):
-  
-  pose_start = struct(camera=camera_poses, board=board_poses, times=self.pose_start)
-  pose_end = pose_start._extend(times=self.pose_end)
+def transformed_linear(self, camera_poses, world_points, times):
+  def transform(time_poses):
 
-  table_start = tables.expand_poses(pose_start)
-  table_end = tables.expand_poses(pose_end)
+    pose_table = tables.expand_views(
+        struct(camera=camera_poses, times=time_poses))
 
-  start_frame = tables.transform_points(table_start, board_points)
-  end_frame = tables.transform_points(table_end, board_points)
+    return tables.transform_points( 
+      tables.expand_dims(pose_table, (2, 3)), 
+      tables.expand_dims(world_points, (0, 1))
+    )
+
+  start_frame = transform(self.start_table)
+  end_frame = transform(self.end_table)
+
 
   return struct(
     points = lerp(start_frame.points, end_frame.points, times),
@@ -37,11 +42,12 @@ def transformed_linear(self, camera_poses, board_poses, board_points, times):
 
 class RollingFrames(MotionModel, Parameters):
 
-  def __init__(self, pose_start, pose_end, valid, names):
+  def __init__(self, pose_start, pose_end, valid, names, max_iterations=4):
     self.pose_start = pose_start
     self.pose_end = pose_end
     self.valid = valid
     self.names = names
+    self.max_iterations = max_iterations
 
   @property
   def size(self):
@@ -53,31 +59,38 @@ class RollingFrames(MotionModel, Parameters):
 
   @cached_property
   def start_table(self):
-     return Table.build(poses=self.pose_start, valid=self.valid)
+     return Table.create(poses=self.pose_start, valid=self.valid)
   
   @cached_property
   def end_table(self):
-    return Table.build(poses=self.pose_end, valid=self.valid)
+    return Table.create(poses=self.pose_end, valid=self.valid)
   
 
   @staticmethod
-  def init(pose_table, names=None):
+  def init(pose_table, names=None, max_iterations=4):
     size = pose_table.valid.size
     names = names or [str(i) for i in range(size)]
 
-
-  def _project(self, cameras, camera_poses, board_poses, board_points, estimates):
+    return RollingFrames(pose_table.poses, pose_table.poses, 
+      pose_table.valid, names, max_iterations=max_iterations)
+ 
+  def _project(self, cameras, camera_poses, world_points, estimates=None):
     times = rolling_times(cameras, estimates) if estimates is not None\
-      else np.full(board_points.points.shape, 0.5)
+      else np.full(world_points.points.shape, 0.5)
     
-    transformed = transformed_linear(self, camera_poses, 
-      board_poses, board_points, times)
-
+    transformed = transformed_linear(self, camera_poses, world_points, times)
     return project_cameras(cameras, transformed)
 
-  def project(self, cameras, camera_poses, board_poses, board_points, estimates=None):
-    if estimates is not None:
-      return self._project(cameras, camera_poses, board_poses, estimates)
+  def project(self, cameras, camera_poses, world_points, estimates=None):
+    points = self._project(cameras, camera_poses, world_points, estimates)
+
+    if estimates is None:
+      for i in range(0, self.max_iterations):
+        points = self._project(cameras, camera_poses, world_points, points)
+    
+
+    return points
+
 
 
   @cached_property
@@ -92,16 +105,20 @@ class RollingFrames(MotionModel, Parameters):
     return self.copy(pose_start=start, pose_end=end)
 
   def sparsity(self, index_mapper : IndexMapper, axis : int):
-    return [index_mapper.pose_mapping(t, axis=axis, param_size=6) 
+    start, end = [index_mapper.pose_mapping(t, axis=axis, param_size=6) 
       for t in [self.start_table, self.end_table]]
 
+    return start + end
+    
+
+
   def export(self):
-    return {i:struct(start=start.poses.tolist(), end=end.poses.tolist()) 
+    return {i:struct(start=start.tolist(), end=end.tolist()) 
       for i, start, end, valid in zip(self.names, self.pose_start, self.pose_end, self.valid) 
         if valid}
 
   def __getstate__(self):
-    attrs = ['pose_start', 'pose_end', 'valid']
+    attrs = ['pose_start', 'pose_end', 'valid', 'names', 'max_iterations']
     return subset(self.__dict__, attrs)
 
   def copy(self, **k):

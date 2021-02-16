@@ -100,20 +100,18 @@ class Calibration(parameters.Parameters):
     """ Projected points to each image. 
     Returns a table of points corresponding to point_table"""
 
-    return self.motion.project(self.cameras, self.camera_poses.pose_table, self.world_points)
+    return self.motion.project(self.cameras, 
+      self.camera_poses.pose_table, self.world_points)
 
-    # return self.motion.project(self.cameras, self.camera_poses.pose_table, 
-    #   self.board_poses.pose_table, self.board_points)
 
   @cached_property
   def reprojected(self):
     """ Uses the measured points to compute projection motion (if any), 
     to estimate rolling shutter. Only valid for detected points.
     """ 
-    return self.motion.project(self.cameras, self.camera_poses.pose_table, self.world_points)
+    return self.motion.project(self.cameras, 
+      self.camera_poses.pose_table, self.world_points, self.point_table)
 
-    # return self.motion.project(self.cameras, self.camera_poses.pose_table, 
-    #   self.board_poses.pose_table, self.board_points, self.point_table)
 
 
   @cached_property
@@ -243,7 +241,7 @@ class Calibration(parameters.Parameters):
       self.report(f"Adjust_outliers {i}")
       f_scale = apply_none(auto_scale, self.reprojection_error) or 1.0
       if auto_scale is not None:
-        info(f"Auto scaling for outliers influence at {f_scale}")
+        info(f"Auto scaling for outliers influence at {f_scale:.2f} pixels")
       
       if outliers is not None:
         self = self.reject_outliers(outliers(self.reprojection_error))

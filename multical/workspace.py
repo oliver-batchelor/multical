@@ -143,7 +143,7 @@ class Workspace:
       self.point_table, 
       PoseSet(pose_init.camera, self.names.camera), 
       PoseSet(pose_init.board, self.names.board), 
-      motion_model(pose_init.times, self.names.image))
+      motion_model.init(pose_init.times, self.names.image))
  
     #calib = calib.reject_outliers_quantile(0.75, 5)
     calib.report(f"Initialisation")

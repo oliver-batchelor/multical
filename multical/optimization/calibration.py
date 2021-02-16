@@ -110,7 +110,11 @@ class Calibration(parameters.Parameters):
     to estimate rolling shutter. Only valid for detected points.
     """
   
-    return self.motion.project(self.cameras, self.camera_poses.pose_table, self.world_points)
+    print(self.size, shape(self.world_points))
+    p = self.motion.project(self.cameras, self.camera_poses.pose_table, self.world_points)
+    print(shape(p), shape(self.point_table))
+
+    return p
 
     # return self.motion.project(self.cameras, self.camera_poses.pose_table, 
     #   self.board_poses.pose_table, self.board_points, self.point_table)

@@ -359,16 +359,18 @@ def stack_boards(boards):
 
 
 def transform_points(pose_table, board_points):
-  print(shape(pose_table), shape(board_points))
+  pose_dim = pose_table.poses.ndim
+  point_dim = board_points.points.ndim
 
-  t      = np.expand_dims(pose_table.poses, 3),
-  points = np.expand_dims(board_points.points, [0, 1])
-  print(shape(t), shape(points))   
+  axes1 = (pose_dim - 2,)
+  axes2 = tuple(range(point_dim - pose_dim))
+
+  print("********", shape(pose_table), shape(board_points), axes1, axes2)
 
   points = matrix.transform_homog(
-    t      = np.expand_dims(pose_table.poses, 3),
-    points = np.expand_dims(board_points.points, [0, 1])
+    t      = np.expand_dims(pose_table.poses, axes1),
+    points = np.expand_dims(board_points.points, axes2)
   )    
 
-  valid = (np.expand_dims(pose_table.valid, axis=3) & np.expand_dims(board_points.valid, axis=(0, 1)))
+  valid = (np.expand_dims(pose_table.valid, axis=axes1) & np.expand_dims(board_points.valid, axis=axes2))
   return Table.create(points=points, valid=valid)

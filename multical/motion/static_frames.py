@@ -19,11 +19,11 @@ class StaticFrames(PoseSet, MotionModel):
   def __init__(self, pose_table, names):
     super(StaticFrames, self).__init__(pose_table, names)
 
-  def project(self, cameras, camera_poses, board_poses, board_points, estimates=None):
-    pose_estimates = struct(camera = camera_poses, board=board_poses, times=self.pose_table)
+  def project(self, cameras, camera_poses, world_points, estimates=None):
+    pose_estimates = struct(camera = camera_poses,  times=self.pose_table)
 
-    pose_table = tables.expand_poses(pose_estimates)
-    return project_cameras(cameras, tables.transform_points(pose_table, board_points))
+    pose_table = tables.expand_views(pose_estimates)
+    return project_cameras(cameras, tables.transform_points(pose_table, world_points))
 
   
   @staticmethod

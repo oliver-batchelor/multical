@@ -84,6 +84,10 @@ class Calibration(parameters.Parameters):
     return tables.stack_boards(self.boards)
 
   @cached_property
+  def world_points(self):
+    return tables.transform_points(self.board_poses.pose_table, self.board_points)
+
+  @cached_property
   def pose_estimates(self):
     return struct(camera = self.camera_poses.pose_table, 
       board = self.board_poses.pose_table, 
@@ -95,16 +99,21 @@ class Calibration(parameters.Parameters):
     """ Projected points to each image. 
     Returns a table of points corresponding to point_table"""
 
-    return self.motion.project(self.cameras, self.camera_poses.pose_table, 
-      self.board_poses.pose_table, self.board_points)
+    return self.motion.project(self.cameras, self.camera_poses.pose_table, self.world_points)
+
+    # return self.motion.project(self.cameras, self.camera_poses.pose_table, 
+    #   self.board_poses.pose_table, self.board_points)
 
   @cached_property
   def reprojected(self):
     """ Uses the measured points to compute projection motion (if any), 
     to estimate rolling shutter. Only valid for detected points.
     """
-    return self.motion.project(self.cameras, self.camera_poses.pose_table, 
-      self.board_poses.pose_table, self.board_points, self.point_table)
+  
+    return self.motion.project(self.cameras, self.camera_poses.pose_table, self.world_points)
+
+    # return self.motion.project(self.cameras, self.camera_poses.pose_table, 
+    #   self.board_poses.pose_table, self.board_points, self.point_table)
 
 
   @cached_property

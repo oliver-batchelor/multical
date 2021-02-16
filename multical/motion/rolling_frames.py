@@ -66,14 +66,19 @@ class RollingFrames(MotionModel, Parameters):
     names = names or [str(i) for i in range(size)]
 
 
-  def project(self, cameras, camera_poses, board_poses, board_points, estimates=None):
+  def _project(self, cameras, camera_poses, board_poses, board_points, estimates):
     times = rolling_times(cameras, estimates) if estimates is not None\
       else np.full(board_points.points.shape, 0.5)
     
     transformed = transformed_linear(self, camera_poses, 
       board_poses, board_points, times)
-      
+
     return project_cameras(cameras, transformed)
+
+  def project(self, cameras, camera_poses, board_poses, board_points, estimates=None):
+    if estimates is not None:
+      return self._project(cameras, camera_poses, board_poses, estimates)
+
 
   @cached_property
   def params(self):

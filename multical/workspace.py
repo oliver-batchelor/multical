@@ -118,12 +118,12 @@ class Workspace:
 
 
 
-  def calibrate_single(self, camera_model, fix_aspect=False, max_images=None):
+  def calibrate_single(self, camera_model, fix_aspect=False, has_skew=False, max_images=None):
     assert self.detected_points is not None
 
     info("Calibrating single cameras..")
     self.cameras, errs = calibrate_cameras(self.boards, self.detected_points, 
-      self.image_size, model=camera_model, fix_aspect=fix_aspect, max_images=max_images)
+      self.image_size, model=camera_model, fix_aspect=fix_aspect, has_skew=has_skew, max_images=max_images)
     
     log_cameras(self.names.camera, self.cameras, errs)
 

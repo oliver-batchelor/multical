@@ -19,7 +19,7 @@ def main():
 
     filename = args.workspace_file
     if path.isdir(filename):
-      filename = path.join(filename, "workspace.pkl")
+      filename = path.join(filename, "calibration.pkl")
       
     ws = Workspace.load(filename)
     setup_logging('INFO', [ws.log_handler])

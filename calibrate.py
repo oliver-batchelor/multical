@@ -1,5 +1,6 @@
 import logging
 import math
+from multical.motion.static_frames import StaticFrames
 from multical.motion.rolling_frames import RollingFrames
 from multical.optimization.calibration import select_threshold
 from multical.io.logging import setup_logging
@@ -28,16 +29,22 @@ def main():
     parser.add_argument('image_path', help='input image path')
 
     parser.add_argument('--save', default=None, help='save calibration as json default: input/calibration.json')
+    parser.add_argument('--name', default='calibration', help='name for this calibration (used to name output files)')
+
+
 
     parser.add_argument('--j', default=len(os.sched_getaffinity(0)), type=int, help='concurrent jobs')
 
     parser.add_argument('--cameras', default=None, help="comma separated list of camera directories")
     
     parser.add_argument('--iter', default=3, help="iterations of bundle adjustment/outlier rejection")
-    parser.add_argument('--rolling', default=False, action="store_true", help='single frame rolling shutter estimation')
+    parser.add_argument('--motion_model', default="static", help='motion model (rolling|static)')
 
 
     parser.add_argument('--fix_aspect', default=False, action="store_true", help='set same focal length ')
+    parser.add_argument('--allow_skew', default=False, action="store_true", help='allow skew in intrinsic matrix')
+    
+    
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
     parser.add_argument('--boards', default=None, help='configuration file (YAML) for calibration boards')
  
@@ -56,11 +63,11 @@ def main():
     output_path = args.output_path or args.image_path
     pathlib.Path(output_path).mkdir(parents=True, exist_ok=True)
     
-    log_file = path.join(output_path, "calibration.log")
-    export_file = path.join(output_path, "calibration.json")
+    log_file = path.join(output_path, f"{args.name}.log")
+    export_file = path.join(output_path, f"{args.name}.json")
 
-    detection_cache = path.join(output_path, "detections.pkl")
-    workspace_file = path.join(output_path, "workspace.pkl")
+    detection_cache = path.join(output_path, f"detections.pkl")
+    workspace_file = path.join(output_path, f"{args.name}.pkl")
     
     ws = workspace.Workspace()
     
@@ -80,9 +87,20 @@ def main():
     ws.load_images(j=args.j)
     ws.detect_boards(boards, j=args.j, cache_file=detection_cache, load_cache=not args.no_cache)
     
-    ws.calibrate_single(args.model, args.fix_aspect, args.intrinsic_images)
+    ws.calibrate_single(args.model, fix_aspect=args.fix_aspect, 
+      has_skew=args.allow_skew, max_images=args.intrinsic_images)
 
-    ws.initialise_poses(motion_model=RollingFrames)
+    motion_model = None
+    if args.motion_model == "rolling":
+      motion_model = RollingFrames
+    elif args.motion_model == "static":
+      motion_model = StaticFrames
+    else:
+      assert False, f"unknown motion model {args.motion_model}, (static|rolling)"
+      
+
+
+    ws.initialise_poses(motion_model=motion_model)
     outliers =  select_threshold(quantile=0.75, factor=6)
     auto_scale = select_threshold(quantile=0.75, factor=2)
     # outliers = None

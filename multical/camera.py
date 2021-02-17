@@ -23,7 +23,7 @@ from structs.struct import split_list
 
 
 class Camera(Parameters):
-  def __init__(self, image_size, intrinsic, dist, model='standard', fix_aspect=False):
+  def __init__(self, image_size, intrinsic, dist, model='standard', fix_aspect=False, has_skew=False):
 
     assert model in Camera.model,\
         f"unknown camera model {model} options are {list(self.model.keys())}"
@@ -34,6 +34,7 @@ class Camera(Parameters):
     self.intrinsic = intrinsic
     self.dist = np.zeros(5) if dist is None else dist
     self.fix_aspect = fix_aspect
+    self.has_skew = has_skew
 
   model = struct(
       standard=0,
@@ -62,7 +63,7 @@ class Camera(Parameters):
 
   @staticmethod
   def calibrate(boards, detections, image_size, max_iter=10, eps=1e-3,
-                model='standard', fix_aspect=False, flags=0, max_images=None):
+                model='standard', fix_aspect=False, has_skew=False, flags=0, max_images=None):
 
     points = calibration_points(boards, detections)
     if max_images is not None:
@@ -77,7 +78,7 @@ class Camera(Parameters):
             points.corners, image_size, None, None, criteria=criteria, flags=flags)
 
     return Camera(intrinsic=K, dist=dist, image_size=image_size,
-                  model=model, fix_aspect=fix_aspect), err
+                  model=model, fix_aspect=fix_aspect, has_skew=has_skew), err
 
   def scale_image(self, factor):
     intrinsic = self.intrinsic.copy()
@@ -113,6 +114,11 @@ class Camera(Parameters):
     return np.array([self.intrinsic[0, 2], self.intrinsic[1, 2]])
 
   @cached_property
+  def skew(self):
+    return self.intrinsic[0, 1] if self.has_skew else 0.0
+
+
+  @cached_property
   def params(self):
     f = self.focal_length
     if self.fix_aspect:
@@ -121,6 +127,7 @@ class Camera(Parameters):
     return struct(
         focal_length=f,
         principle_point=self.principle_point,
+        skew = np.array([self.skew]),
         dist=self.dist
     )
 
@@ -130,9 +137,10 @@ class Camera(Parameters):
     fx, fy = f if not self.fix_aspect else (f[0], f[0])
 
     px, py = params.principle_point
+    skew, = params.skew
 
     intrinsic = [
-        [fx,  0,   px],
+        [fx,  skew,   px],
         [0,   fy,  py],
         [0,   0,   1],
     ]
@@ -141,7 +149,7 @@ class Camera(Parameters):
 
   def __getstate__(self):
     return subset(self.__dict__, 
-      ['image_size', 'intrinsic', 'dist', 'fix_aspect', 'model']
+      ['image_size', 'intrinsic', 'dist', 'fix_aspect', 'has_skew', 'model']
     )
 
   def copy(self, **k):

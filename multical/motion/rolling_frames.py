@@ -19,8 +19,11 @@ def rolling_times(cameras, point_table):
   return times
 
 def transformed_linear(self, camera_poses, world_points, times):
-  def transform(time_poses):
+  """ A linear approximation where the points are transformed at the start.
+      and end of the frame. Points are then computed by linear interpolation in between
+ """
 
+  def transform(time_poses):
     pose_table = tables.expand_views(
         struct(camera=camera_poses, times=time_poses))
 
@@ -32,29 +35,32 @@ def transformed_linear(self, camera_poses, world_points, times):
   start_frame = transform(self.start_table)
   end_frame = transform(self.end_table)
 
-
   return struct(
     points = lerp(start_frame.points, end_frame.points, times),
     valid = start_frame.valid & end_frame.valid
   )
 
 
-def transformed_rolling(self, camera_poses, world_points, times):
-  
+def transformed_interpolate(self, camera_poses, world_points, times):
+  """ Compute in-between transforms using interpolated poses 
+  (quanternion slerp and lerp)
+  """
   start_frame = np.expand_dims(self.pose_start, (0, 2, 3))
   end_frame = np.expand_dims(self.pose_end, (0, 2, 3))
   
   frame_poses = interpolate_poses(start_frame, end_frame, times)
   view_poses = np.expand_dims(camera_poses.poses, (1, 2, 3)) @ frame_poses  
 
-  print(view_poses.shape, world_points.shape)
+  valid = (np.expand_dims(camera_poses.valid, [1, 2, 3]) & 
+    np.expand_dims(self.valid, [0, 2, 3]) &
+    np.expand_dims(world_points.valid, [0, 1]))
 
   return struct(
-    points = matrix.transform_homog(t = view_poses, points=np.expand_dims(world_points.points, (0, 1))),
-    valid = self.valid
+    points = matrix.transform_homog(t = view_poses, 
+      points=np.expand_dims(world_points.points, (0, 1))),
+
+    valid = valid
   )
-
-
 
 
 class RollingFrames(MotionModel, Parameters):
@@ -82,6 +88,9 @@ class RollingFrames(MotionModel, Parameters):
   def end_table(self):
     return Table.create(poses=self.pose_end, valid=self.valid)
   
+  @cached_property
+  def frame_poses(self):
+    return self.start_table
 
   @staticmethod
   def init(pose_table, names=None, max_iterations=4):
@@ -92,10 +101,13 @@ class RollingFrames(MotionModel, Parameters):
       pose_table.valid, names, max_iterations=max_iterations)
  
   def _project(self, cameras, camera_poses, world_points, estimates=None):
+    num_frames = self.pose_start.shape[0]
+    num_cameras = camera_poses.valid.shape[0]
+
     times = rolling_times(cameras, estimates) if estimates is not None\
-      else np.full(world_points.points.shape, 0.5)
+      else np.full((num_cameras, num_frames, *world_points.valid.shape), 0.5)
     
-    transformed = transformed_rolling(self, camera_poses, world_points, times)
+    transformed = transformed_linear(self, camera_poses, world_points, times)
     return project_cameras(cameras, transformed)
 
   def project(self, cameras, camera_poses, world_points, estimates=None):

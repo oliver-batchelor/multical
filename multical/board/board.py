@@ -5,35 +5,35 @@ from structs.struct import struct
 class Board(object):
   
   def export(self):
-    raise NotImplemented()
+    raise NotImplementedError()
   
   def __eq__(self, other):
-    raise NotImplemented()
+    raise NotImplementedError()
   
   @property
   def points(self) -> np.array:
-    raise NotImplemented()
+    raise NotImplementedError()
   
   @property
   def num_points(self) -> int:
-    raise NotImplemented()
+    raise NotImplementedError()
   
   @property 
   def ids(self) -> np.array:
-    raise NotImplemented()
+    raise NotImplementedError()
   
   @property
   def mesh(self):
-    raise NotImplemented()
+    raise NotImplementedError()
   
   def draw(self, square_length=50, margin=20):
-    raise NotImplemented()
+    raise NotImplementedError()
   
   def detect(self, image : np.array) -> struct:    
-    raise NotImplemented()
+    raise NotImplementedError()
   
   def has_min_detections(self, detections) -> bool:
-    raise NotImplemented()
+    raise NotImplementedError()
 
   def estimate_pose_points(self, camera, detections):
-    raise NotImplemented()
+    raise NotImplementedError()

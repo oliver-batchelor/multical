@@ -8,8 +8,8 @@ from multical.optimization.parameters import IndexMapper, Parameters
 from multical import tables
 from structs.numpy import Table, shape
 
-from multical.transform import rtvec
-from multical.transform.interpolate import lerp
+from multical.transform import rtvec, matrix
+from multical.transform.interpolate import interpolate_poses, lerp
 
 
 def rolling_times(cameras, point_table):
@@ -37,6 +37,23 @@ def transformed_linear(self, camera_poses, world_points, times):
     points = lerp(start_frame.points, end_frame.points, times),
     valid = start_frame.valid & end_frame.valid
   )
+
+
+def transformed_rolling(self, camera_poses, world_points, times):
+  
+  start_frame = np.expand_dims(self.pose_start, (0, 2, 3))
+  end_frame = np.expand_dims(self.pose_end, (0, 2, 3))
+  
+  frame_poses = interpolate_poses(start_frame, end_frame, times)
+  view_poses = np.expand_dims(camera_poses.poses, (1, 2, 3)) @ frame_poses  
+
+  print(view_poses.shape, world_points.shape)
+
+  return struct(
+    points = matrix.transform_homog(t = view_poses, points=np.expand_dims(world_points.points, (0, 1))),
+    valid = self.valid
+  )
+
 
 
 
@@ -78,7 +95,7 @@ class RollingFrames(MotionModel, Parameters):
     times = rolling_times(cameras, estimates) if estimates is not None\
       else np.full(world_points.points.shape, 0.5)
     
-    transformed = transformed_linear(self, camera_poses, world_points, times)
+    transformed = transformed_rolling(self, camera_poses, world_points, times)
     return project_cameras(cameras, transformed)
 
   def project(self, cameras, camera_poses, world_points, estimates=None):
@@ -90,8 +107,6 @@ class RollingFrames(MotionModel, Parameters):
     
 
     return points
-
-
 
   @cached_property
   def params(self):
@@ -111,7 +126,6 @@ class RollingFrames(MotionModel, Parameters):
     return start + end
     
 
-
   def export(self):
     return {i:struct(start=start.tolist(), end=end.tolist()) 
       for i, start, end, valid in zip(self.names, self.pose_start, self.pose_end, self.valid) 
@@ -130,21 +144,5 @@ class RollingFrames(MotionModel, Parameters):
 
 
 
-  # @cached_property
-  # def transformed_rolling(self):
-  #   poses = self.pose_estimates
-  #   start_frame = np.expand_dims(poses.rig.poses, (0, 2, 3))
-  #   end_frame = np.expand_dims(self.frame_motion.poses, (0, 2, 3))
-    
-  #   frame_poses = interpolate_poses(start_frame, end_frame, self.times)
-  #   view_poses = np.expand_dims(poses.camera.poses, (1, 2, 3)) @ frame_poses  
-
-  #   board_points = self.stacked_boards
-  #   board_points_t = matrix.transform_homog(t = np.expand_dims(poses.board.poses, 1), points = board_points.points)
-
-  #   return struct(
-  #     points = matrix.transform_homog(t = view_poses, points = np.expand_dims(board_points_t, (0, 1))),
-  #     valid = self.valid
-  #   )
 
  

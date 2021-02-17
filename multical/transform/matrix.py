@@ -88,7 +88,7 @@ def test_outlier(errs, threshold=2.0):
   return errs < uq * threshold
 
 
-def align_transforms_robust(m1, m2, valid=None, threshold=2.0):
+def align_transforms_robust(m1, m2, valid=None, threshold=1.5):
   """ As align_transforms, with outlier rejection.
     threshold (float): factor of upper quartile to be determined as an outlier.
   """

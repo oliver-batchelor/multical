@@ -1,5 +1,6 @@
 import contextlib
 import math
+from numbers import Integral
 from multical.motion.motion_model import MotionModel
 from multical.optimization.pose_set import PoseSet
 from multical.board.board import Board
@@ -94,6 +95,22 @@ class Calibration(parameters.Parameters):
       board = self.board_poses.pose_table, 
       times = self.motion.frame_poses
     )
+
+  def with_master(self, camera):
+    if isinstance(camera, str):
+      camera = self.camera_poses.names.index(camera)
+
+    assert isinstance(camera, Integral)
+    return self.transform_views(self.camera_poses.poses[camera])
+
+
+  def transform_views(self, t):
+    """ Transform cameras by t^-1 and time poses by t (no change to calibration)
+    """ 
+    return self.copy(
+      camera_poses=self.camera_poses.post_transform(np.linalg.inv(t)), 
+      motion = self.motion.pre_transform(t))
+
 
   @cached_property
   def projected(self):

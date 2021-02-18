@@ -44,6 +44,8 @@ def main():
     parser.add_argument('--fix_aspect', default=False, action="store_true", help='set same focal length ')
     parser.add_argument('--allow_skew', default=False, action="store_true", help='allow skew in intrinsic matrix')
     
+    parser.add_argument('--master', default=None, help='use camera as master when exporting')
+
     
     parser.add_argument('--model', default="standard", help='camera model (standard|rational|thin_prism|tilted)')
     parser.add_argument('--boards', default=None, help='configuration file (YAML) for calibration boards')
@@ -83,7 +85,7 @@ def main():
 
     cameras = map_none(str.split, args.cameras, ",")
     
-    ws.find_images(args.image_path, cameras)
+    ws.find_images(args.image_path, cameras, master = args.master)
     ws.load_images(j=args.j)
     ws.detect_boards(boards, j=args.j, cache_file=detection_cache, load_cache=not args.no_cache)
     

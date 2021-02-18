@@ -28,6 +28,12 @@ class PoseSet(Parameters):
   def poses(self):
     return self.pose_table.poses
 
+  def pre_transform(self, t):   
+    return self.copy(pose_table = self.pose_table._extend(poses = t @ self.poses))
+
+  def post_transform(self, t):   
+    return self.copy(pose_table = self.pose_table._extend(poses = self.poses @ t))
+
   @cached_property
   def params(self):
     return transform_vec.from_matrix(self.poses).ravel()

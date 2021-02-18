@@ -15,6 +15,7 @@ from .camera import calibrate_cameras
 
 from .io.logging import MemoryHandler, info, warning, debug
 from .display import make_palette
+from numbers import Integral
 
 import pickle
 
@@ -49,16 +50,22 @@ class Workspace:
     self.point_table = None
     self.pose_table = None
 
+    self.master = None
+
     self.log_handler = MemoryHandler()
 
 
-  def find_images(self, image_path, camera_dirs=None):
+  def find_images(self, image_path, camera_dirs=None, master=None):
     camera_names, image_names, filenames = image.find.find_images(image_path, camera_dirs)
     info("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
     self.names = self.names._extend(camera = camera_names, image = image_names)
     self.filenames = filenames
     self.image_path = image_path
+
+    self.master = master
+    assert master is None or master in self.names.camera,\
+      f"master f{master} not found in cameras f{str(camera_names)}"
 
 
   def load_images(self, j=num_threads()):
@@ -193,7 +200,12 @@ class Workspace:
 
   def export(self, filename):
     info(f"Exporting calibration to {filename}")
-    export(filename, self.latest_calibration, self.names)
+
+    calib = self.latest_calibration
+    if self.master is not None:
+      calib = calib.with_master(self.master)
+
+    export(filename, calib, self.names)
 
   def dump(self, filename):
     info(f"Dumping state and history to {filename}")

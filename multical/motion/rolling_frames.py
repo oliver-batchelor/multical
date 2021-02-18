@@ -92,6 +92,18 @@ class RollingFrames(MotionModel, Parameters):
   def frame_poses(self):
     return self.start_table
 
+  def pre_transform(self, t):   
+    return self.copy(
+        pose_start = t @ self.pose_start, 
+        pose_end = t @ self.pose_end
+      )        
+
+  def post_transform(self, t):   
+    return self.copy(
+        pose_start = self.pose_start @ t, 
+        pose_end = self.pose_end @ t
+      )
+
   @staticmethod
   def init(pose_table, names=None, max_iterations=4):
     size = pose_table.valid.size

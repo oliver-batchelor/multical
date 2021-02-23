@@ -24,7 +24,7 @@ def export_extrinsic(extrinsic, parent):
 
 
 def export_extrinsics(camera_names, camera_poses, master=None):
-  master_name = "rig" if master is None else camera_names[master]
+  master_name = None if master is None else camera_names[master]
 
   return {k : export_extrinsic(pose, master_name) 
     for k, pose, valid in zip(camera_names, camera_poses.poses, camera_poses.valid) 
@@ -44,11 +44,11 @@ def export(filename, calib, names):
     cameras = export_cameras(names.camera, calib.cameras),
     extrinsics = calib.camera_poses.inverse.export(),
 
-    motion = calib.motion.export(),
-    board_poses = calib.board_poses.export(),
+    # motion = calib.motion.export(),
+    # board_poses = calib.board_poses.export(),
 
-    boards = [board.export() for board in calib.boards],
-    board_points = [board.adjusted_points.tolist() for board in calib.boards]
+    # boards = [board.export() for board in calib.boards],
+    # board_points = [board.adjusted_points.tolist() for board in calib.boards]
   )
   
 

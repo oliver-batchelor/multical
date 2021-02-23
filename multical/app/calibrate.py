@@ -20,7 +20,7 @@ from pprint import pprint
 
 from multical.io.logging import warning, info
 
-from .arguments import parse_arguments
+from .arguments import add_calibration_args, parse_arguments
 
 def get_paths(args):
     np.set_printoptions(precision=4, suppress=True)
@@ -97,8 +97,7 @@ def visualize(ws):
       print("Pyside2 is necessary to run the visualizer")
 
 
-def main(): 
-    args = parse_arguments()
+def calibrate(args): 
     paths = get_paths(args)
 
     ws = initialise(args, paths)
@@ -114,4 +113,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    add_calibration_args(parser)
+    args = parser.parse_args()
+
+    calibrate(args)

@@ -1,21 +1,17 @@
 from os import path
 import numpy as np
-import argparse
 
 from multical.workspace import Workspace
 
-from multical.interface import visualizer
 from multical.io.logging import warning, info
 from multical.io.logging import setup_logging
 
+from .arguments import add_show_args, parse_with
+from .calibrate import visualize
 
-def main(): 
+
+def show(args): 
     np.set_printoptions(precision=4, suppress=True)
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('workspace_file', help='workspace filename to load')
-
-    args = parser.parse_args()
 
     filename = args.workspace_file
     if path.isdir(filename):
@@ -23,12 +19,11 @@ def main():
       
     ws = Workspace.load(filename)
     setup_logging('INFO', [ws.log_handler])
-
     ws.load_images()
 
-
-    visualizer.visualize(ws)
+    visualize(ws)
 
 
 if __name__ == '__main__':
-    main()
+  args = parse_with(add_show_args)
+  show(args)

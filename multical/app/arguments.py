@@ -3,7 +3,7 @@ import argparse
 import os
 
 
-def add_arguments(parser):
+def add_calibration_args(parser):
 
     parser.add_argument('image_path', help='input image path')
 
@@ -37,9 +37,34 @@ def add_arguments(parser):
 
     parser.add_argument('--show', default=False, action="store_true", help='show calibration result')
 
+def add_boards_args(parser):
+    parser.add_argument('boards',  help='configuration file (YAML) for calibration boards')
+    parser.add_argument('--detect', default=None,  help='show detections from an image')
+
+
+def add_show_args(parser):
+    parser.add_argument('workspace_file', help='workspace filename to load')
+
+
+def parse_with(add_args, **kwargs):
+    parser = argparse.ArgumentParser(**kwargs)
+    add_args(parser)
+    return parser.parse_args()
+
 def parse_arguemnts():
-    parser = argparse.ArgumentParser()
-    add_arguments(parser)
+
+    parser = argparse.ArgumentParser(prog='multical')
+    subparsers = parser.add_subparsers()
+
+    calibrate_parser = subparsers.add_parser('calibrate')
+    add_calibration_args(calibrate_parser)
+
+    boards_parser = subparsers.add_parser('check_boards')
+    add_boards_args(boards_parser)
+
+    show_parser = subparsers.add_parser('show')
+    add_show_args(show_parser)
+
     return parser.parse_args()
 
 

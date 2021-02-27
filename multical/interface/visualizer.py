@@ -7,10 +7,10 @@ from .viewer_3d.moving_cameras import MovingCameras
 
 from . import camera_params, view_table
 from .layout import h_layout, v_layout, widget
-import PyQt5.QtWidgets as QtWidgets
+import pyqt.QtWidgets as QtWidgets
 
-from PyQt5 import uic, QtCore
-from PyQt5.QtCore import QStringListModel, Qt
+from pyqt import uic, QtCore
+from pyqt.QtCore import QStringListModel, Qt
 
 from multical import image, tables
 

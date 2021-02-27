@@ -1,6 +1,6 @@
 
-import PyQt5.QtWidgets as QtWidgets
-from PyQt5.QtCore import Qt
+import pyqt.QtWidgets as QtWidgets
+from pyqt.QtCore import Qt
 
 from  pyvistaqt import QtInteractor
 import pyvista as pv

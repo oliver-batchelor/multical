@@ -1,8 +1,8 @@
-import PyQt5.QtWidgets as QtWidgets
-from PyQt5 import QtCore
+import pyqt.QtWidgets as QtWidgets
+from pyqt import QtCore
 
-from PyQt5 import uic
-from PyQt5.QtCore import Qt
+from pyqt import uic
+from pyqt.QtCore import Qt
 import numpy as np
 
 from .layout import h_layout, h_stretch, v_stretch, v_layout, widget

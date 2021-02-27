@@ -1,26 +1,19 @@
-import logging
-import math
 from multical.motion.static_frames import StaticFrames
 from multical.motion.rolling_frames import RollingFrames
 from multical.optimization.calibration import select_threshold
 from multical.io.logging import setup_logging
+from multical import board, workspace
+from multical.io.logging import info
+
+from .arguments import add_calibration_args, parse_with
+from .show_result import visualize
+
+from structs.struct import struct, map_none
+
 from os import path
 import pathlib
-import os
-from sys import stdout
 import numpy as np
-import argparse
-import cv2
 
-from multical import tables, board, workspace
-
-from structs.struct import struct, transpose_lists, map_none
-from structs.numpy import shape, Table
-from pprint import pprint
-
-from multical.io.logging import warning, info
-
-from .arguments import add_calibration_args, parse_arguments
 
 def get_paths(args):
     np.set_printoptions(precision=4, suppress=True)
@@ -87,15 +80,6 @@ def optimize(args, ws):
       board=True,
       auto_scale=auto_scale, outliers=outliers)  
 
-def visualize(ws):
-    try:
-      from multical.interface import visualizer
-      visualizer.visualize(ws)
-
-    except ImportError as error:     
-      print(error.__class__.__name__ + ": " + error.message)
-      print("Pyside2 is necessary to run the visualizer")
-
 
 def calibrate(args): 
     paths = get_paths(args)
@@ -110,11 +94,6 @@ def calibrate(args):
       visualize(ws)
 
 
-
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    add_calibration_args(parser)
-    args = parser.parse_args()
-
+    args = parse_with(add_calibration_args)
     calibrate(args)

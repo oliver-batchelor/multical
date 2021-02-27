@@ -3,14 +3,22 @@ import numpy as np
 
 from multical.workspace import Workspace
 
-from multical.io.logging import warning, info
+from multical.io.logging import error
 from multical.io.logging import setup_logging
 
 from .arguments import add_show_args, parse_with
-from .calibrate import visualize
+
+def visualize(ws):
+    try:
+      from multical.interface import visualizer
+      visualizer.visualize(ws)
+
+    except ImportError as err:     
+      error(err.__class__.__name__ + ": " + err.message)
+      error("Pyside2 and pyvista are necessary to run the visualizer")
 
 
-def show(args): 
+def show_result(args): 
     np.set_printoptions(precision=4, suppress=True)
 
     filename = args.workspace_file
@@ -26,4 +34,4 @@ def show(args):
 
 if __name__ == '__main__':
   args = parse_with(add_show_args)
-  show(args)
+  show_result(args)

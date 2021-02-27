@@ -51,10 +51,10 @@ def parse_with(add_args, **kwargs):
     add_args(parser)
     return parser.parse_args()
 
-def parse_arguemnts():
+def parse_arguments():
 
     parser = argparse.ArgumentParser(prog='multical')
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(required=True)
 
     calibrate_parser = subparsers.add_parser('calibrate')
     add_calibration_args(calibrate_parser)
@@ -62,7 +62,7 @@ def parse_arguemnts():
     boards_parser = subparsers.add_parser('check_boards')
     add_boards_args(boards_parser)
 
-    show_parser = subparsers.add_parser('show')
+    show_parser = subparsers.add_parser('show_result')
     add_show_args(show_parser)
 
     return parser.parse_args()

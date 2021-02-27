@@ -48,7 +48,7 @@ def initialise(args, paths):
     ws.load_images(j=args.j)
     ws.detect_boards(boards, j=args.j, cache_file=paths.detection_cache, load_cache=not args.no_cache)
     
-    ws.calibrate_single(args.model, fix_aspect=args.fix_aspect, 
+    ws.calibrate_single(args.distortion_model, fix_aspect=args.fix_aspect, 
       has_skew=args.allow_skew, max_images=args.intrinsic_images)
 
     motion_model = None
@@ -64,21 +64,17 @@ def initialise(args, paths):
 
 def optimize(args, ws):
 
-    outliers =  select_threshold(quantile=0.75, factor=6)
-    auto_scale = select_threshold(quantile=0.75, factor=2)
-
+    outliers =  select_threshold(quantile=0.75, factor=args.outlier_threshold) 
+    auto_scale = select_threshold(quantile=0.75, factor=args.auto_scale)\
+      if args.auto_scale is not None else None
 
     ws.calibrate("calibration", loss=args.loss,  
-      cameras=True, 
       boards=args.adjust_board,
+      cameras=not args.fix_intrinsic,
+      camera_poses=not args.fix_camera_poses,
+      board_poses=not args.fix_board_poses,
+      motion=not args.fix_motion,
       auto_scale=auto_scale, outliers=outliers)
-
-    ws.calibrate("final", loss=args.loss,  
-      tolerance = 1e-5, max_iterations=30, 
-      num_adjustments=1,
-      intrinsics=True, 
-      board=True,
-      auto_scale=auto_scale, outliers=outliers)  
 
 
 def calibrate(args): 

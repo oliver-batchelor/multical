@@ -214,7 +214,7 @@ class Workspace:
 
   @staticmethod
   def load(filename):
-    assert path.isfile(filename)
+    assert path.isfile(filename), f"Workspace.load: file does not exist {filename}"
     with open(filename, "rb") as file:
       ws = pickle.load(file)
       return ws

@@ -26,7 +26,7 @@ def add_calibration_args(parser):
     camera.add_argument('--fix_aspect', default=False, action="store_true", help='force cameras to have same focal length')
     camera.add_argument('--allow_skew', default=False, action="store_true", help='allow skew in intrinsic matrix')
 
-    camera.add_argument('--distortion', default="standard", help='lens distortion model (standard|rational|thin_prism|tilted)')
+    camera.add_argument('--distortion_model', default="standard", help='lens distortion model (standard|rational|thin_prism|tilted)')
     camera.add_argument('--master', default=None, help='use camera as master when exporting (default use first camera)')
 
     optimization = parser.add_argument_group('general optimization settings')
@@ -35,7 +35,7 @@ def add_calibration_args(parser):
     optimization.add_argument('--boards', default=None, help='configuration file (YAML) for calibration boards')
     optimization.add_argument('--loss', default='linear', help='loss function in optimizer (linear|soft_l1|huber|cauchy|arctan)')
 
-    optimization.add_argument('--outlier', default=5.0, help='threshold for outliers (factor of upper quartile of reprojection error)')
+    optimization.add_argument('--outlier_threshold', default=5.0, help='threshold for outliers (factor of upper quartile of reprojection error)')
     optimization.add_argument('--auto_scale', default=None, help='threshold for auto_scale to reduce outlier influence (factor of upper quartile of reprojection error) - requires non-linear loss')
 
     enable = parser.add_argument_group('enable/disable optimization')
@@ -45,7 +45,7 @@ def add_calibration_args(parser):
     enable.add_argument('--fix_board_poses', default=False, action='store_true', help='fix relative board positions (rely on initialization)')
     enable.add_argument('--fix_motion', default=False, action='store_true', help='fix motion optimization (rely on initialization)')
     
-    enable.add_argument('--optimize_board', default=False, action='store_true', help='optimize non-planarity of board points')
+    enable.add_argument('--adjust_board', default=False, action='store_true', help='optimize non-planarity of board points')
     enable.add_argument('--motion_model', default="static", help='motion model (rolling|static)')
     
 
@@ -56,15 +56,20 @@ def add_calibration_args(parser):
     misc.add_argument('--no_cache', default=False, action='store_true', help="don't load detections from cache")
     misc.add_argument('--show', default=False, action="store_true", help='show result after calibration')
 
+    parser.set_defaults(which='calibrate')
 
 
 def add_boards_args(parser):
     parser.add_argument('boards',  help='configuration file (YAML) for calibration boards')
     parser.add_argument('--detect', default=None,  help='show detections from an image')
 
+    parser.set_defaults(which='check_boards')
+
 
 def add_show_args(parser):
     parser.add_argument('workspace_file', help='workspace filename to load')
+
+    parser.set_defaults(which='show_result')
 
 
 def parse_with(add_args, **kwargs):
@@ -77,13 +82,13 @@ def parse_arguments():
     parser = argparse.ArgumentParser(prog='multical')
     subparsers = parser.add_subparsers(required=True)
 
-    calibrate_parser = subparsers.add_parser('calibrate')
+    calibrate_parser = subparsers.add_parser('calibrate', help="run calibration process")
     add_calibration_args(calibrate_parser)
 
-    boards_parser = subparsers.add_parser('check_boards')
+    boards_parser = subparsers.add_parser('check_boards', help="check the board config matches expectations")
     add_boards_args(boards_parser)
 
-    show_parser = subparsers.add_parser('show_result')
+    show_parser = subparsers.add_parser('show_result', help="visualise the result of a calibration")
     add_show_args(show_parser)
 
     return parser.parse_args()

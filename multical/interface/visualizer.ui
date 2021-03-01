@@ -46,7 +46,7 @@
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_images">
            <attribute name="title">

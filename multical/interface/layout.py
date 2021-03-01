@@ -1,4 +1,4 @@
-from pyqt import QtWidgets
+from qtpy import QtWidgets
 
 
 def stretch():

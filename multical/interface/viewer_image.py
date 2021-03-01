@@ -1,9 +1,9 @@
 
 from collections import OrderedDict
 from functools import partial
-from pyqt import QtCore, QtGui, QtWidgets
-from pyqt.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QFont
-from pyqt.QtCore import QLineF, QPointF, QRectF, Qt
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QFont
+from qtpy.QtCore import QLineF, QPointF, QRectF, Qt
 from cached_property import cached_property
 
 import cv2

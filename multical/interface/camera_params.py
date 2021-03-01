@@ -1,8 +1,9 @@
-import pyqt.QtWidgets as QtWidgets
-from pyqt import QtCore
+import qtpy.QtWidgets as QtWidgets
+from qtpy import QtCore
 
-from pyqt import uic
-from pyqt.QtCore import Qt
+from .ui_files import load_ui
+
+from qtpy.QtCore import Qt
 import numpy as np
 
 from .layout import h_layout, h_stretch, v_stretch, v_layout, widget
@@ -64,7 +65,9 @@ class ParamsViewer(QtWidgets.QScrollArea):
 class CameraParams(QtWidgets.QWidget):
   def __init__(self, camera_name, parent=None):
     super(CameraParams, self).__init__(parent)
-    uic.loadUi('multical/interface/camera.ui', self)
+
+    load_ui(self, "camera.ui")
+
 
     self.groupBox.setTitle(f"{camera_name}")
     self.camera_name = camera_name

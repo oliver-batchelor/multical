@@ -17,6 +17,9 @@ setup(
         "Topic :: Scientific/Engineering :: Image Processing",
         "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera"
     ],
+
+    include_package_data=True,
+
     install_requires = [
         "numpy",
         "scipy",

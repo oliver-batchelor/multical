@@ -77,10 +77,10 @@ def parse_with(add_args, **kwargs):
     add_args(parser)
     return parser.parse_args()
 
-def parse_arguments():
+def parser():
 
     parser = argparse.ArgumentParser(prog='multical')
-    subparsers = parser.add_subparsers(required=True)
+    subparsers = parser.add_subparsers()
 
     calibrate_parser = subparsers.add_parser('calibrate', help="run calibration process")
     add_calibration_args(calibrate_parser)
@@ -91,6 +91,7 @@ def parse_arguments():
     show_parser = subparsers.add_parser('show_result', help="visualise the result of a calibration")
     add_show_args(show_parser)
 
-    return parser.parse_args()
+    return parser
+
 
 

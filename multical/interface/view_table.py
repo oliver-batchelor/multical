@@ -3,11 +3,11 @@ import math
 from numbers import Integral
 from os import path
 
-from pyqt.QtGui import QBrush, QColor
+from qtpy.QtGui import QBrush, QColor
 from multical import tables
 
-from pyqt.QtCore import Qt
-from pyqt.QtCore import QAbstractTableModel
+from qtpy.QtCore import Qt
+from qtpy.QtCore import QAbstractTableModel
 import numpy as np
 
 from structs.struct import struct, split_dict

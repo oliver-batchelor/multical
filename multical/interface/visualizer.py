@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import math
+from multical.interface.ui_files import load_ui
 
 from .viewer_3d.viewer_3d import Viewer3D
 from .viewer_3d.moving_board import MovingBoard
@@ -7,10 +8,10 @@ from .viewer_3d.moving_cameras import MovingCameras
 
 from . import camera_params, view_table
 from .layout import h_layout, v_layout, widget
-import pyqt.QtWidgets as QtWidgets
+import qtpy.QtWidgets as QtWidgets
 
-from pyqt import uic, QtCore
-from pyqt.QtCore import QStringListModel, Qt
+from qtpy import uic, QtCore
+from qtpy.QtCore import QStringListModel, Qt
 
 from multical import image, tables
 
@@ -57,7 +58,8 @@ def void(func):
 class Visualizer(QtWidgets.QMainWindow):
   def __init__(self):
     super(Visualizer, self).__init__()
-    uic.loadUi('multical/interface/visualizer.ui', self)
+    load_ui(self, "visualizer.ui")
+
 
     self.setFocusPolicy(Qt.StrongFocus)
     # self.grabKeyboard()

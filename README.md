@@ -2,6 +2,8 @@
 
 Multi-camera calibration using one or more calibration patterns. 
 
+![image](screenshots/image_view.png)
+![image](screenshots/3d_view.png)
 
 ## Install
 
@@ -73,7 +75,7 @@ It is a good idea to check your expectation against the configuration specified 
 
 ### Visualization of output
 
-To install the libraries needed for running visualization (pyqt, pyvista-qt principly) install the `interactive` option, `pip install multical[interactive]` - these may be installed separately depending on your preference (for example with conda).
+To install the libraries needed for running visualization (qtpy, pyvista-qt principly) install the `interactive` option, `pip install multical[interactive]` - these may be installed separately depending on your preference (for example with conda).
 
 Visualization can be run by specifying the output workspace state:
 `multical show_result /path/to/calibration/workspace.ws`

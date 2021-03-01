@@ -1,5 +1,5 @@
 
-from multical.app.arguments import add_boards_args
+from multical.app.arguments import add_boards_args, parse_with
 from multical.display import show_detections
 from multical import board
 from multical.image.display import display, display_stacked

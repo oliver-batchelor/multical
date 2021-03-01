@@ -3,16 +3,16 @@
 Example calibration file, camera intrinsics followed by camera poses.
 
 ## Intrinsics: 
-    - image_size: [width, height]
-    - model: lens distortion model type, one of: standard|rational|thin_prism|tilted
-    - K: 3x3 camera matrix 
-    - dist: 1x{4,5,8,11,14} distortion coefficients 
+- image_size: [width, height]
+- model: lens distortion model type, one of: standard|rational|thin_prism|tilted
+- K: 3x3 camera matrix 
+- dist: 1x{4,5,8,11,14} distortion coefficients 
 
 ## Camera poses: 
-    Relative poses of cameras, may either be an absolute camera pose e.g. "cam1", or a relative camera pose in the form of "cam2_to_cam1".
+Relative poses of cameras, may either be an absolute camera pose e.g. "cam1", or a relative camera pose in the form of "cam2_to_cam1".i
 
-    - R: 3x3 rotation 
-    - T: (3) translation
+- R: 3x3 rotation 
+- T: (3) translation
 
 
 ## Example file

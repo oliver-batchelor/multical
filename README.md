@@ -60,10 +60,10 @@ A fixed number of images will be chosen for initial intrinsic calibration (incre
 ### Outputs
 
 The outputs from `multical calibrate` are written to the `--output_path` which by default is the image path unless specified. 
-* calibration.json - camera summary, intrinsic parameters, relative camera poses and camera rig poses
-* calibration.log  - log file of the calibration history
-* detections.pkl   - cached calibration pattern detections, making repeated calibrations much faster
-* workspace.pkl    - serialized workspace containing all the details for visualization, resuming calibration etc.
+* `calibration.json` - camera summary, intrinsic parameters, relative camera poses and camera rig poses
+* `calibration.log`  - log file of the calibration history
+* `detections.pkl`   - cached calibration pattern detections, making repeated calibrations much faster
+* `workspace.pkl`    - serialized workspace containing all the details for visualization, resuming calibration etc.
 
 ### Calibration targets
 

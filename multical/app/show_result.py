@@ -15,7 +15,7 @@ def visualize(ws):
 
     except ImportError as err:     
       error(err.__class__.__name__ + ": " + err.message)
-      error("Pyside2 and pyvista are necessary to run the visualizer")
+      error("pyqt and pyvista are necessary to run the visualizer, install with 'pip install pyqt pyvista-qt'")
 
 
 def show_result(args): 

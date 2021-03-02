@@ -1,4 +1,6 @@
 from collections import OrderedDict
+
+from natsort.natsort import natsorted
 from multical.optimization.parameters import ParamList
 from multical.optimization.pose_set import PoseSet
 from multical.motion import StaticFrames
@@ -55,17 +57,29 @@ class Workspace:
     self.log_handler = MemoryHandler()
 
 
-  def find_images(self, image_path, camera_dirs=None, master=None):
-    camera_names, image_names, filenames = image.find.find_images(image_path, camera_dirs)
+  def find_images(self, image_path, cameras=None, camera_pattern=None,  master=None, extensions=image.find.image_extensions):   
+    camera_names, image_names, filenames = image.find.find_images(image_path, cameras=None, camera_pattern=None, extensions=extensions)
     info("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
 
     self.names = self.names._extend(camera = camera_names, image = image_names)
     self.filenames = filenames
     self.image_path = image_path
-
-    self.master = master
+    
+    self.master = master or self.names.camera[0]
     assert master is None or master in self.names.camera,\
       f"master f{master} not found in cameras f{str(camera_names)}"
+
+
+  def calibrate_intrinsic_images(self, image_path, cameras, camera_pattern=None, extensions=image.find.image_extensions, j=num_threads()):
+    camera_names, filenames = image.find.find_unmatched_files(image_path, cameras, camera_pattern, extensions=extensions)
+
+    length_dict = {name:len(images) for name, images in zip(camera_names, filenames)}
+    info(f"Found intrinsic only images in camera directories {length_dict}")
+
+    info("Loading  images..")
+
+    self.images = image.detect.load_images(self.filenames, j=j, prefix=self.image_path)
+    self.image_size = map_list(common_image_size, self.images)
 
 
   def load_images(self, j=num_threads()):

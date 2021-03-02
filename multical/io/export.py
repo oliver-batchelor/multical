@@ -18,9 +18,9 @@ def export_camera(camera):
 def export_cameras(camera_names, cameras):
     return {k : export_camera(camera) for k, camera in zip(camera_names, cameras)}
 
-def export_extrinsic(extrinsic, parent):
+def export_extrinsic(extrinsic):
     r, t = matrix.split(extrinsic)
-    return struct (R = r.tolist(), T=t.tolist(), parent=parent)
+    return struct (R = r.tolist(), T=t.tolist())
 
 
 def export_extrinsics(camera_names, camera_poses, master=None):
@@ -38,19 +38,11 @@ def export_poses(pose_table, names=None):
     if t.valid}
 
 
-def export(filename, calib, names):  
-
+def export(filename, calib, names, master=None):  
   data = struct(
     cameras = export_cameras(names.camera, calib.cameras),
-    extrinsics = calib.camera_poses.inverse.export(),
-
-    # motion = calib.motion.export(),
-    # board_poses = calib.board_poses.export(),
-
-    # boards = [board.export() for board in calib.boards],
-    # board_points = [board.adjusted_points.tolist() for board in calib.boards]
+    extrinsics = export_extrinsics(names.camera, calib.camera_poses.pose_table, master=master),
   )
   
-
   with open(filename, 'w') as outfile:
       json.dump(to_dicts(data), outfile)

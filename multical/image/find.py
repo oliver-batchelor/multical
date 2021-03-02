@@ -14,12 +14,28 @@ def find_image_files(filepath, extensions=image_extensions):
     return [filename for filename in natsorted(os.listdir(filepath))
                 if has_extension(extensions, path.join(filepath, filename))]
 
-def find_matching_files(filepath, cameras, extensions):
-  abs_dirs = [path.join(filepath, camera_name) for camera_name in cameras]
-  camera_files = [find_image_files(d, extensions) for d in abs_dirs]
+def find_unmatched_files(camera_paths, extensions):
+  camera_files = {k:find_image_files(d, extensions) for k, d in camera_paths.items()}
+  return natsorted(camera_files)
 
-  return natsorted(set.intersection(*[set(files) for files in camera_files]))
-    
+def find_matching_files(camera_paths, extensions):
+  camera_files = find_unmatched_files(camera_paths, extensions)
+  return natsorted(set.intersection(*[set(files) for files in camera_files.values()]))
+
+
+def find_cameras(base_dir, cameras, extensions=image_extensions):
+  if cameras is None:
+    cameras = find_nonempty_dirs(base_dir, extensions)
+    return natsorted(cameras)
+  else:
+    return cameras
+  
+
+def get_camera_paths(base_dir, cameras, camera_pattern=None):
+  camera_pattern = camera_pattern or "{camera}" 
+  return {camera:path.join(base_dir, camera_pattern.format(camera=camera)) for camera in cameras}
+  
+
 
 def find_nonempty_dirs(filepath, extensions=image_extensions):
     return [local_dir for local_dir in os.listdir(filepath)
@@ -27,15 +43,12 @@ def find_nonempty_dirs(filepath, extensions=image_extensions):
       if path.isdir(abs_dir) and len(find_image_files(abs_dir, extensions)) > 0 
     ]
 
-def find_images(base_dir, cameras=None, extensions=image_extensions):
-  if cameras is None:
-    cameras = find_nonempty_dirs(base_dir, extensions)
 
-  camera_names = natsorted(cameras)
-  image_names = find_matching_files(base_dir, cameras, extensions)
 
-  return camera_names, image_names, filenames(base_dir, camera_names, image_names)
+def find_images(camera_dirs, extensions=image_extensions):
+  image_names = find_matching_files(camera_dirs, extensions)
+  return image_names, filenames(image_names, camera_dirs.values())
 
-def filenames(base_dir, camera_names, image_names):
-  return [[path.join(base_dir, camera, image) for image in image_names]
-    for camera in camera_names]
+def filenames(camera_dirs, image_names):
+  return [[path.join(camera_dir, image) for image in image_names]
+    for camera_dir in camera_dirs]

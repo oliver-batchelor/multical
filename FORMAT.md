@@ -1,6 +1,6 @@
 # Calibration file format
 
-Example calibration file, camera intrinsics followed by camera poses.
+Example calibration json file, camera intrinsics followed by camera poses.
 
 ## Intrinsics: 
 - image_size: [width, height]
@@ -9,7 +9,7 @@ Example calibration file, camera intrinsics followed by camera poses.
 - dist: 1x{4,5,8,11,14} distortion coefficients 
 
 ## Camera poses: 
-Relative poses of cameras, may either be an absolute camera pose e.g. "cam1", or a relative camera pose in the form of "cam2_to_cam1".i
+Relative poses of cameras, may either be an absolute camera pose e.g. "cam1", or a relative camera pose in the form of "cam2_to_cam1".
 
 - R: 3x3 rotation 
 - T: (3) translation

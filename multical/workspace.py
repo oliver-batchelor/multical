@@ -77,9 +77,14 @@ class Workspace:
     info(f"Found intrinsic only images in camera directories {length_dict}")
 
     info("Loading  images..")
+    images = image.detect.load_images(filenames, j=j, prefix=self.image_path)
+    image_size = map_list(common_image_size, images)
 
-    self.images = image.detect.load_images(self.filenames, j=j, prefix=self.image_path)
-    self.image_size = map_list(common_image_size, self.images)
+    if self.image_size is not None:
+      for name, size, size_intrinsic in zip(camera_names, self.image_size, image_size):
+        assert size == size_intrinsic, f"{name} intrinsic size {size_intrinsic} does not match extrinsic size {size}"
+
+    
 
 
   def load_images(self, j=num_threads()):
@@ -93,45 +98,17 @@ class Workspace:
     info({k:image_size for k, image_size in zip(self.names.camera, self.image_size)})
 
 
-  def try_load_detections(self, filename):
-    try:
-      with open(filename, "rb") as file:
-        loaded = pickle.load(file)
-        # Check that the detections match the metadata
-        if (loaded.filenames == self.filenames and 
-            loaded.boards == self.boards and
-            loaded.image_sizes == self.image_sizes):
 
-          info(f"Loaded detections from {filename}")
-          return loaded.detected_points
-        else:
-          info(f"Config changed, not using loaded detections in {filename}")
-    except (OSError, IOError, EOFError, AttributeError) as e:
-      return None
-
-  def write_detections(self, filename):
-    data = struct(
-      filenames = self.filenames,
-      boards = self.boards,
-      image_sizes = self.image_sizes,
-      detected_points = self.detected_points
-    )
-    with open(filename, "wb") as file:
-      pickle.dump(data, file)
-
-  def detect_boards(self, boards, j=num_threads(), cache_file=None, load_cache=True):
+  def set_boards(self, boards):
     board_names, self.boards = split_dict(boards)
     self.names = self.names._extend(board = board_names)
     self.board_colors = make_palette(len(boards))
 
-    self.detected_points = self.try_load_detections(cache_file) if load_cache else None
-    if self.detected_points is None:
-      info("Detecting boards..")
-      self.detected_points = image.detect.detect_images(self.boards, self.images, j=j)   
 
-      if cache_file is not None:
-        info(f"Writing detection cache to {cache_file}")
-        self.write_detections(cache_file)
+  def detect_boards(self, cache_file=None, load_cache=True, j=num_threads()):
+    assert self.boards is not None
+    self.detected_points = self._detect_cached(self.images, cache_file, load_cache)
+
 
     self.point_table = tables.make_point_table(self.detected_points, self.boards)
     info("Detected point counts:")
@@ -246,3 +223,40 @@ class Workspace:
       self.__dict__[k] = v
 
     self.images = None
+
+
+def try_load_detections(self, filename):
+  try:
+    with open(filename, "rb") as file:
+      loaded = pickle.load(file)
+      # Check that the detections match the metadata
+      if (loaded.filenames == self.filenames and 
+          loaded.boards == self.boards and
+          loaded.image_sizes == self.image_sizes):
+
+        info(f"Loaded detections from {filename}")
+        return loaded.detected_points
+      else:
+        info(f"Config changed, not using loaded detections in {filename}")
+  except (OSError, IOError, EOFError, AttributeError) as e:
+    return None
+
+def write_detections(filename):
+  data = struct(
+    filenames = self.filenames,
+    boards = self.boards,
+    image_sizes = self.image_sizes,
+    detected_points = self.detected_points
+  )
+  with open(filename, "wb") as file:
+    pickle.dump(data, file)
+
+def _detect_cached(boards, images, cache_file=None, load_cache=True):
+  detected_points = try_load_detections(cache_file) if load_cache else None
+  if detected_points is None:
+    info("Detecting boards..")
+    detected_points = image.detect.detect_images(boards, images, j=j)   
+
+    if cache_file is not None:
+      info(f"Writing detection cache to {cache_file}")
+      write_detections(cache_file)

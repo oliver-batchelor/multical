@@ -32,9 +32,9 @@ The default method is to have folders named separately for each camera, with ima
     - image02.jpg
 ```    
 
-Camera names and image directories can be also specified by manually specifying camera names, and optionally specifying a pattern for the directory structure. Specifying separate extrinsic and intrinsic calibration images is also possible this way. An example for how to use the file structure from CALICO with a stereo camera:
+Camera names and image directories can be also specified by manually specifying camera names, and optionally specifying a pattern for the directory structure. 
 
-`multical calibrate --image_pattern '{camera}\extrinsic' --intrinsic_pattern '{camera}\intrinsic' --cameras cam1,cam2,cam3` 
+`multical calibrate --camera_pattern '{camera}\extrinsic' --cameras cam1,cam2,cam3` 
 
 Where `{camera}` is replaced by the camera names 
 

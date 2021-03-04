@@ -42,19 +42,9 @@ def initialise(args, paths):
     for name, b in boards.items():
       info(f"{name} {b}")
 
-    if args.cameras is not None:
-      cameras = map_none(str.split, args.cameras, ",")
-
-      if args.intrinsic_pattern is not None:
-        ws.find_intrinsic_images(args.image_path, cameras, args.intrinsic_pattern)
-
-      ws.find_images(args.image_path, cameras, args.image_pattern, master = args.master)
-  
-    else:    
-      assert args.intrinsic_pattern is None and args.extrinsic_pattern is None,\
-        "To use --intrinsic_pattern or --extrinsic_pattern, explicit --cameras is also required"
-
-      ws.find_images(args.image_path, master = args.master)
+    cameras = map_none(str.split, args.cameras, ",")
+    ws.find_images(args.image_path, cameras, args.camera_pattern, master = args.master)
+ 
 
     ws.load_images(j=args.j)
     ws.detect_boards(boards, j=args.j, cache_file=paths.detection_cache, load_cache=not args.no_cache)

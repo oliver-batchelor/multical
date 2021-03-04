@@ -15,8 +15,9 @@ def add_calibration_args(parser):
 
     image_paths = parser.add_argument_group('image paths')
 
-    image_paths.add_argument('--intrinsic_pattern', type=str, default=None, help='use separate images for intrinsic calibration example "{camera}/intrinsic"')
-    image_paths.add_argument('--image_pattern', type=str, default=None, help='pattern to find images for explicitly provided cameras example "{camera}/extrinsic"')
+    # image_paths.add_argument('--separate_intrinsic', type=str, default=None, help='use separate images for intrinsic calibration example "{camera}/intrinsic"')
+    
+    image_paths.add_argument('--camera_pattern', type=str, default=None, help='pattern to find images for explicitly provided cameras example "{camera}/extrinsic"')
 
     image_paths.add_argument('--cameras', default=None, help="explicit list of cameras (default: find subdirectories with matching images)")
     image_paths.add_argument('--intrinsic_images', type=int, default=50, help='limit images for initial intrinsic calibration (unlimited)')

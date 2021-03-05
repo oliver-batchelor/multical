@@ -1,5 +1,5 @@
 boards:
-  charuco_22x16:
+  charuco_16x22:
     _type_: charuco
     size: [16, 22]
     aruco_dict: 4X4_1000

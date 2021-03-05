@@ -63,6 +63,12 @@ def add_boards_args(parser):
     parser.add_argument('boards',  help='configuration file (YAML) for calibration boards')
     parser.add_argument('--detect', default=None,  help='show detections from an image')
 
+    parser.add_argument('--write', default=None,  help='directory to write board images instead of showing on screen')
+    parser.add_argument('--square_length', default=100,  help='square length in pixels')
+    parser.add_argument('--margin', default=20,  help='border width in pixels')
+    
+    parser.add_argument('--image_size', type=str, default=None,  help='centre board on image of specific size (WxH)')
+
     parser.set_defaults(which='check_boards')
 
 

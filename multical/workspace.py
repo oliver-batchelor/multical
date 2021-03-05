@@ -84,8 +84,13 @@ class Workspace:
 
 
   def find_images_matching(self, image_path, cameras=None, camera_pattern=None,  master=None, extensions=image.find.image_extensions):   
-    camera_names, image_names, filenames = image.find.find_images(image_path, cameras=cameras, camera_pattern=camera_pattern, extensions=extensions)
-    info("Found camera directories {} with {} matching images".format(str(camera_names), len(image_names)))
+        
+    camera_paths = image.find.find_cameras(image_path, cameras, camera_pattern, extensions=extensions)
+    camera_names = list(camera_paths.keys())
+
+    image_names, filenames = image.find.find_images(camera_paths, extensions=extensions)
+    info("Found camera directories {} with {} matching images".format(camera_names, len(image_names)))
+
 
     self.names = self.names._extend(camera = camera_names, image = image_names)
     self.filenames = filenames
@@ -108,14 +113,15 @@ class Workspace:
     info({k:image_size for k, image_size in zip(self.names.camera, self.image_size)})
 
 
-  def set_boards(self, boards):
+
+
+  def detect_boards(self, boards, cache_file=None, load_cache=True, j=num_threads()):
+    assert self.boards is None
+ 
     board_names, self.boards = split_dict(boards)
     self.names = self.names._extend(board = board_names)
     self.board_colors = make_palette(len(boards))
 
-
-  def detect_boards(self, cache_file=None, load_cache=True, j=num_threads()):
-    assert self.boards is not None
     self.detected_points = self.try_load_detections(cache_file) if load_cache else None
     if self.detected_points is None:
       info("Detecting boards..")
@@ -211,7 +217,7 @@ class Workspace:
     if self.master is not None:
       calib = calib.with_master(self.master)
 
-    export(filename, calib, self.names)
+    export(filename, calib, self.names, master=self.master)
 
   def dump(self, filename):
     info(f"Dumping state and history to {filename}")

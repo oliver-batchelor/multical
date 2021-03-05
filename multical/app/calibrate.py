@@ -43,11 +43,12 @@ def initialise(args, paths):
       info(f"{name} {b}")
 
     cameras = map_none(str.split, args.cameras, ",")
-    ws.find_images(args.image_path, cameras, args.camera_pattern, master = args.master)
+    ws.find_images_matching(args.image_path, cameras, args.camera_pattern, master = args.master)
  
 
     ws.load_images(j=args.j)
-    ws.detect_boards(boards, j=args.j, cache_file=paths.detection_cache, load_cache=not args.no_cache)
+    ws.detect_boards(boards, cache_file=paths.detection_cache, 
+      load_cache=not args.no_cache, j=args.j)
     
     ws.calibrate_single(args.distortion_model, fix_aspect=args.fix_aspect, 
       has_skew=args.allow_skew, max_images=args.intrinsic_images)

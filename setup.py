@@ -1,8 +1,15 @@
 from setuptools import setup, find_namespace_packages
+
+from os import path
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
+
 setup(
 
     name="multical",
-    version="0.1.0",
+    version="0.1.2",
     author="Oliver Batchelor",
     author_email="saulzar@gmail.com",
     description="Flexible multi-camera multi-board camera calibration library and application.",
@@ -17,6 +24,10 @@ setup(
         "Topic :: Scientific/Engineering :: Image Processing",
         "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera"
     ],
+
+
+    long_description=long_description,
+    long_description_content_type='text/markdown',
 
     include_package_data=True,
 

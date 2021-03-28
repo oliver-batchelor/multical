@@ -2,8 +2,8 @@
 
 Multi-camera calibration using one or more calibration patterns. 
 
-![image](screenshots/image_view.png)
-![image](screenshots/3d_view.png)
+![image](https://raw.githubusercontent.com/saulzar/multical/master/screenshots/image_view.png)
+![image](https://raw.githubusercontent.com/saulzar/multical/master/screenshots/3d_view.png)
 
 ## Install
 

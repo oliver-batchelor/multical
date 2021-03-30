@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 setup(
 
     name="multical",
-    version="0.1.2",
+    version="0.1.2.2",
     author="Oliver Batchelor",
     author_email="saulzar@gmail.com",
     description="Flexible multi-camera multi-board camera calibration library and application.",
@@ -33,6 +33,7 @@ setup(
 
     install_requires = [
         "numpy",
+        "numba",
         "scipy",
         "matplotlib",
         "opencv-python>=4.2.0.0",
@@ -40,11 +41,14 @@ setup(
 
         "natsort",
         "cached-property",
-        "py-structs>=0.2.1"
+        "py-structs>=0.2.1",
+        "apriltags2-ethz",
+        "palettable",
+        "numpy-quaternion"
     ],
 
     extras_require={
-        'interactive': ['matplotlib', 'qtpy', 'pyvista-qt', 'pyvista'],
+        'interactive': ['matplotlib', 'qtpy', 'pyvistaqt', 'pyvista', 'colour'],
     },
 
     python_requires='>=3.6',

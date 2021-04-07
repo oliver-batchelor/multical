@@ -54,7 +54,12 @@ def export(filename, calib, names, master=None):
     cameras = export_cameras(names.camera, calib.cameras),
     camera_poses = export_camera_poses(names.camera, camera_poses)\
       if master is None else export_relative(names.camera, camera_poses, master),
+    
+    image_sets = struct(
+      rgb = [{camera : path.join(camera, image) for camera in names.camera}
+        for image in names.image]
+    ),
   )
   
   with open(filename, 'w') as outfile:
-      json.dump(to_dicts(data), outfile)
+    json.dump(to_dicts(data), outfile, indent=2)

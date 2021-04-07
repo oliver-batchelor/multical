@@ -33,6 +33,7 @@ setup(
 
     install_requires = [
         "numpy",
+        "numba",
         "scipy",
         "matplotlib",
         "opencv-python>=4.2.0.0",
@@ -40,11 +41,14 @@ setup(
 
         "natsort",
         "cached-property",
-        "py-structs>=0.2.1"
+        "py-structs>=0.2.1",
+        "apriltags2-ethz",
+        "palettable",
+        "numpy-quaternion"
     ],
 
     extras_require={
-        'interactive': ['matplotlib', 'qtpy', 'pyvista-qt', 'pyvista'],
+        'interactive': ['matplotlib', 'qtpy', 'pyvistaqt', 'pyvista', 'colour'],
     },
 
     python_requires='>=3.6',

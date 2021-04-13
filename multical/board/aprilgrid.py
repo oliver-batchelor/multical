@@ -1,3 +1,4 @@
+from logging import error
 from multical.board.board import Board
 from structs.numpy import Table
 from multical.board.common import *
@@ -9,7 +10,6 @@ import numpy as np
 from structs.struct import struct, choose, subset
 from multical.optimization.parameters import Parameters
 
-import aprilgrid
 
 
 class AprilGrid(Parameters, Board):
@@ -32,11 +32,18 @@ class AprilGrid(Parameters, Board):
 
   @cached_property
   def grid(self):
-    w, h = self.size
-    family =  getattr(aprilgrid.tagFamilies, self.tag_family)
+    try:
+      import aprilgrid
 
-    return aprilgrid.AprilGrid(h, w, self.tag_length, 
-      self.tag_spacing, family=family)
+      w, h = self.size
+      family =  getattr(aprilgrid.tagFamilies, self.tag_family)
+
+      return aprilgrid.AprilGrid(h, w, self.tag_length, 
+        self.tag_spacing, family=family)
+        
+    except ImportError as err:     
+      error(err)
+      error("aprilgrid support depends on apriltags2-ethz, a pip package (linux only)")
 
   @cached_property
   def board(self):

@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 setup(
 
     name="multical",
-    version="0.1.2.2",
+    version="0.1.4",
     author="Oliver Batchelor",
     author_email="saulzar@gmail.com",
     description="Flexible multi-camera multi-board camera calibration library and application.",
@@ -42,7 +42,6 @@ setup(
         "natsort",
         "cached-property",
         "py-structs>=0.2.1",
-        "apriltags2-ethz",
         "palettable",
         "numpy-quaternion"
     ],

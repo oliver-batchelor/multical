@@ -94,7 +94,9 @@ class AprilGrid(Parameters, Board):
     t36h11 = cv2.aruco.DICT_APRILTAG_36h11
   )
   
-  def draw(self, square_length=50, margin=20):
+  def draw(self, square_scale=100, margin=20):
+    square_length = self.tag_length * square_scale
+
     spacing_length = square_length * self.tag_spacing
     dims = [int(square_length * n + spacing_length * (n + 1) + margin * 2) 
       for n in self.size]

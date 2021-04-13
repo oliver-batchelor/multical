@@ -69,7 +69,9 @@ class CharucoBoard(Parameters, Board):
     return grid_mesh(self.adjusted_points, self.size)
 
 
-  def draw(self, square_length=50, margin=20):
+  def draw(self, square_scale=100, margin=20):
+    square_length = int(self.square_length * square_scale)
+
     image_size = [dim * square_length for dim in self.size]
     return self.board.draw(tuple(image_size), marginSize=margin)
 

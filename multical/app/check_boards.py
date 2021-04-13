@@ -28,7 +28,7 @@ def show_boards(args):
 
 
   def draw_board(board):
-    board_image = board.draw(args.square_length, args.margin)
+    board_image = board.draw(args.square_scale, args.margin)
 
     if image_size is not None:
       image = np.full((image_size[1], image_size[0]), 255, dtype=np.uint8)

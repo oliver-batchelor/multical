@@ -1,18 +1,24 @@
 common:
   _type_: 'charuco'
-  size: [25, 34]
-  aruco_dict: '5X5_1000'
-  square_length: 0.032
-  marker_length: 0.022
 
   min_rows: 3
   min_points: 9
 
 boards:
   charuco_A0_0:
+    size: [20, 28]
+    aruco_dict: '5X5_1000'
+    square_length: 0.04
+    marker_length: 0.03
+
     aruco_offset: 0
 
   charuco_A0_1:
+    size: [13, 19]
+    aruco_dict: '5X5_1000'
+    square_length: 0.06
+    marker_length: 0.04
+
     aruco_offset: 425
 
 

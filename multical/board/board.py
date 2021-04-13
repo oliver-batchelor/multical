@@ -26,7 +26,7 @@ class Board(object):
   def mesh(self):
     raise NotImplementedError()
   
-  def draw(self, square_length=50, margin=20):
+  def draw(self, square_scale=100, margin=20):
     raise NotImplementedError()
   
   def detect(self, image : np.array) -> struct:    

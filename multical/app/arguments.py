@@ -65,12 +65,12 @@ def add_boards_args(parser):
     parser.add_argument('--detect', default=None,  help='show detections from an image')
 
     parser.add_argument('--write', default=None,  help='directory to write board images instead of showing on screen')
-    parser.add_argument('--square_scale', type=int, default=100,  help='multiplier of square size to pixels')
-    parser.add_argument('--margin', type=int, default=20,  help='border width in pixels')
+    parser.add_argument('--pixels_mm', type=int, default=1,  help='pixels per mm')
+    parser.add_argument('--margin_mm', type=int, default=20,  help='border width in mm')
     
-    parser.add_argument('--image_size', type=str, default=None,  help='centre board on image of specific size (WxH)')
+    parser.add_argument('--paper_size_mm', type=str, default=None,  help='paper size in mm WxH or standard size A0..A4')
 
-    parser.set_defaults(which='check_boards')
+    parser.set_defaults(which='show_boards')
 
 
 def add_show_args(parser):
@@ -92,7 +92,7 @@ def parser():
     calibrate_parser = subparsers.add_parser('calibrate', help="run calibration process")
     add_calibration_args(calibrate_parser)
 
-    boards_parser = subparsers.add_parser('check_boards', help="check the board config matches expectations")
+    boards_parser = subparsers.add_parser('show_boards', help="check the board config matches expectations")
     add_boards_args(boards_parser)
 
     show_parser = subparsers.add_parser('show_result', help="visualise the result of a calibration")

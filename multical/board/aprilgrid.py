@@ -11,6 +11,13 @@ from structs.struct import struct, choose, subset
 from multical.optimization.parameters import Parameters
 
 
+def import_aprilgrid():
+  try:
+    import aprilgrid
+    return aprilgrid
+  except ImportError as err:     
+    error(err)
+    error("aprilgrid support depends on apriltags2-ethz, a pip package (linux only)")      
 
 class AprilGrid(Parameters, Board):
   def __init__(self, size, tag_length, 
@@ -32,8 +39,7 @@ class AprilGrid(Parameters, Board):
 
   @cached_property
   def grid(self):
-    try:
-      import aprilgrid
+      aprilgrid = import_aprilgrid()
 
       w, h = self.size
       family =  getattr(aprilgrid.tagFamilies, self.tag_family)
@@ -41,9 +47,7 @@ class AprilGrid(Parameters, Board):
       return aprilgrid.AprilGrid(h, w, self.tag_length, 
         self.tag_spacing, family=family)
         
-    except ImportError as err:     
-      error(err)
-      error("aprilgrid support depends on apriltags2-ethz, a pip package (linux only)")
+
 
   @cached_property
   def board(self):
@@ -80,6 +84,9 @@ class AprilGrid(Parameters, Board):
 
   @property 
   def tags(self):
+    aprilgrid = import_aprilgrid()
+
+
     family = getattr(aprilgrid.tagFamilies, self.tag_family)
     return family[:self.size[0] * self.size[1]]
 
@@ -93,11 +100,20 @@ class AprilGrid(Parameters, Board):
     t36h10 = cv2.aruco.DICT_APRILTAG_36h10, 
     t36h11 = cv2.aruco.DICT_APRILTAG_36h11
   )
-  
-  def draw(self, square_scale=100, margin=20):
-    square_length = self.tag_length * square_scale
 
+  @property
+  def size_mm(self):
+    square_length = self.tag_length * 1000
     spacing_length = square_length * self.tag_spacing
+
+    return [int(square_length * n + spacing_length * (n + 1)) 
+      for n in self.size]
+  
+  def draw(self, pixels_mm=1, margin_mm=20):
+    square_length = self.tag_length * 1000 * pixels_mm
+    spacing_length = square_length * self.tag_spacing
+    margin = pixels_mm * margin_mm
+
     dims = [int(square_length * n + spacing_length * (n + 1) + margin * 2) 
       for n in self.size]
 

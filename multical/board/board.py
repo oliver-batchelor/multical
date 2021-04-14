@@ -21,12 +21,17 @@ class Board(object):
   @property 
   def ids(self) -> np.array:
     raise NotImplementedError()
+
+  @property
+  def size_mm(self):
+    raise NotImplementedError()
+
   
   @property
   def mesh(self):
     raise NotImplementedError()
   
-  def draw(self, square_scale=100, margin=20):
+  def draw(self, pixels_mm=1, margin=20):
     raise NotImplementedError()
   
   def detect(self, image : np.array) -> struct:    

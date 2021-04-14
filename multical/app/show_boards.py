@@ -13,6 +13,16 @@ from os import path
 
 from multical.image.detect import load_image
 
+standard_sizes = dict(
+  A4 = (210, 297),
+  A3 = (297, 420),
+  A2 = (420, 594),
+  A1 = (594, 841),
+  A0 = (841, 1189)
+)
+
+
+
 def show_boards(args):
   board_file = args.boards
   boards = board.load_config(board_file)
@@ -21,21 +31,28 @@ def show_boards(args):
   for name, b in boards.items():
     print(f"{name} {b}")
 
-  image_size = None
-  if args.image_size is not None:
-    image_size = [int(x) for x in args.image_size.split('x')]
-    assert len(image_size) == 2, "expected WxH image_size e.g. 800x600"
+  paper_size_mm = None
+  if args.paper_size_mm is not None:
+    if args.paper_size_mm in standard_sizes:
+      paper_size_mm = standard_sizes[args.paper_size_mm]
+    else:
+      paper_size_mm = [int(x) for x in args.paper_size_mm.split('x')]   
+      assert len(paper_size_mm) == 2, f"expected WxH paper_size_mm e.g. 420x594 or name, one of {list(standard_sizes.keys())}"
 
+    args.margin_mm = 0
 
   def draw_board(board):
-    board_image = board.draw(args.square_scale, args.margin)
+    board_image = board.draw(args.pixels_mm, args.margin_mm)
+    board_size = board.size_mm
 
-    if image_size is not None:
-      image = np.full((image_size[1], image_size[0]), 255, dtype=np.uint8)
+    if paper_size_mm is not None:
+      w, h = paper_size_mm[0] * args.pixels_mm, paper_size_mm[1] * args.pixels_mm
+
+      image = np.full((h, w), 255, dtype=np.uint8)
       dy, dx = [(a - b) // 2  for a, b in zip(image.shape, board_image.shape)]
 
       assert dx >= 0 and dy >= 0,\
-        f"--image_size ({args.image_size}) must be larger than board image ({board_image.shape[1]}x{board_image.shape[0]})"
+        f"--paper_size ({paper_size_mm[0]}x{paper_size_mm[1]}mm) must be larger than board size ({board_size[0]}x{board_size[1]}mm)"
 
       image[dy:dy+board_image.shape[0], dx:dx + board_image.shape[1]] = board_image
       return image

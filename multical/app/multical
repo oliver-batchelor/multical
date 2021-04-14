@@ -3,7 +3,7 @@
 from multical.app import arguments
 
 from multical.app.calibrate import calibrate
-from multical.app.check_boards import show_boards
+from multical.app.show_boards import show_boards
 from multical.app.show_result import show_result
 
 def main():

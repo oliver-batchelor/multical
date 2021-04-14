@@ -87,7 +87,7 @@ def draw_detections(image, detections, **options):
 #     display_stacked(annotated)
 
 
-def display_boards(boards, square_scale=50):
+def display_boards(boards, pixels_mm=1):
       
-  board_images = [board.draw(square_scale=square_scale) for board in boards]
+  board_images = [board.draw(pixels_mm=pixels_mm) for board in boards]
   display_stacked(board_images)

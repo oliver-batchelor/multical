@@ -6,20 +6,20 @@ common:
 
 boards:
   charuco_A0_0:
-    size: [20, 28]
+    size: [25, 36]
     aruco_dict: '5X5_1000'
-    square_length: 0.04
-    marker_length: 0.03
+    square_length: 0.032
+    marker_length: 0.024
 
     aruco_offset: 0
 
   charuco_A0_1:
-    size: [13, 19]
+    size: [16, 24]
     aruco_dict: '5X5_1000'
-    square_length: 0.06
-    marker_length: 0.04
+    square_length: 0.048
+    marker_length: 0.036
 
-    aruco_offset: 425
+    aruco_offset: 450
 
 
 

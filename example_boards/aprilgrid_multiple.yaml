@@ -1,0 +1,25 @@
+boards:
+  aprilgrid_0:
+    _type_: 'aprilgrid'
+    tag_length: 0.07
+    tag_spacing: 0.25
+    size: [8, 6]
+    start_id: 0
+    min_rows: 2
+    min_points: 12
+  aprilgrid_1:
+    _type_: 'aprilgrid'
+    tag_length: 0.07
+    tag_spacing: 0.25
+    size: [8, 6]
+    start_id: 48 # Start from different ID on different board
+    min_rows: 2
+    min_points: 12
+  aprilgrid_2:
+    _type_: 'aprilgrid'
+    tag_length: 0.07
+    tag_spacing: 0.25
+    size: [8, 6]
+    start_id: 96 # Start from different ID on different board
+    min_rows: 2
+    min_points: 12

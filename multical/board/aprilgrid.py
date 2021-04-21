@@ -20,12 +20,13 @@ def import_aprilgrid():
     error("aprilgrid support depends on apriltags2-ethz, a pip package (linux only)")      
 
 class AprilGrid(Parameters, Board):
-  def __init__(self, size, tag_length, 
-      tag_spacing, tag_family='t36h11', border_bits=2, min_rows=2, min_points=12, subpix_region=5, adjusted_points=None):
+  def __init__(self, size, tag_length, tag_spacing,
+      start_id=0, tag_family='t36h11', border_bits=2, min_rows=2, min_points=12, subpix_region=5, adjusted_points=None):
     
     assert tag_family in self.aruco_dicts
     self.size = tuple(size)
 
+    self.start_id = start_id
     self.tag_family = tag_family
     self.tag_spacing = tag_spacing
     self.tag_length = tag_length
@@ -42,10 +43,9 @@ class AprilGrid(Parameters, Board):
       aprilgrid = import_aprilgrid()
 
       w, h = self.size
-      family =  getattr(aprilgrid.tagFamilies, self.tag_family)
 
-      return aprilgrid.AprilGrid(h, w, self.tag_length, 
-        self.tag_spacing, family=family)
+      from multical.board.aprilgrid_detector import AprilGridDetector
+      return AprilGridDetector(h, w, self.tag_length, self.tag_spacing, start_id=self.start_id)
         
 
 
@@ -60,6 +60,7 @@ class AprilGrid(Parameters, Board):
   def export(self):
     return struct(
       type='aprilgrid',
+      start_id  = self.start_id,
       tag_family=self.tag_family,
       size = self.size,
       tag_length = self.tag_length,
@@ -194,6 +195,6 @@ class AprilGrid(Parameters, Board):
       return AprilGrid(**d)
 
   def __getstate__(self):
-    return subset(self.__dict__, ['size', 'tag_family', 'tag_length', 
+    return subset(self.__dict__, ['size', 'start_id', 'tag_family', 'tag_length', 
       'tag_spacing', 'min_rows', 'min_points', 'border_bits', 
       'subpix_region', 'adjusted_points'])

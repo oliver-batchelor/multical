@@ -28,6 +28,7 @@ class AprilConfig:
   _type_: str = "aprilgrid"
   size : Tuple[int, int] = MISSING
 
+  start_id   : int = 0
   tag_family : str = "t36h11"
   tag_length : float = 0.06
   tag_spacing: float = 0.3

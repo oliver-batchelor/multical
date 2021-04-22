@@ -24,6 +24,8 @@ class AprilGrid(Parameters, Board):
       start_id=0, tag_family='t36h11', border_bits=2, min_rows=2, min_points=12, subpix_region=5, adjusted_points=None):
     
     assert tag_family in self.aruco_dicts
+    assert tag_family == 't36h11', "apriltags2-ethz currently supports only t36h11, remove this once complete!"
+
     self.size = tuple(size)
 
     self.start_id = start_id
@@ -44,7 +46,7 @@ class AprilGrid(Parameters, Board):
 
       w, h = self.size
 
-      from multical.board.aprilgrid_detector import AprilGridDetector
+      from .aprilgrid_detector import AprilGridDetector
       return AprilGridDetector(h, w, self.tag_length, self.tag_spacing, start_id=self.start_id)
         
 

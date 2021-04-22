@@ -98,6 +98,16 @@ As with aniposelib, the scipy nonlinear optimizer [scipy.optimize.least_squares]
 
 OpenCV provides many useful algorithms used heavily here, for detecting calibration boards, initialization of camera parameters and camera lens distortion models.
 
+### TODO/Incomplete parts
+
+* Make the buttons on the UI operational to be a complete application rather than just a visualzer
+* Extend apriltags2_ethz to pass through tag dictionaries other than the default t36h11
+* Make the error display grid on the right hand tab use the tolerance slider and adapt color depending on metric
+* Continuous time rolling shutter camera model
+* Ability to use separate (non synchronized) image set for intrinsic calibration in the default workflow
+* Compare calibrations by using an existing calibration as input then freezing camera parameters and then calibrating only board positions
+
+
 
 ## Author
 

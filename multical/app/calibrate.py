@@ -37,6 +37,13 @@ def initialise(args, paths):
     info(args) 
 
     board_file = args.boards or path.join(args.image_path, "boards.yaml")
+    if args.boards is None:
+      assert path.isfile(board_file),\
+        f"either specify boards description file with --boards or add boards.yaml to image path"
+    else:
+      assert path.isfile(args.boards), f"board file {args.boards} not found"
+    
+    
     boards = board.load_config(board_file)
     info("Using boards:")
     for name, b in boards.items():

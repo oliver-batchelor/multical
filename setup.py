@@ -37,7 +37,7 @@ setup(
         "scipy",
         "matplotlib",
         "opencv-python>=4.2.0.0",
-        "opencv-contrib-python",
+        "opencv-contrib-python>=4.2.0.0",
 
         "natsort",
         "cached-property",

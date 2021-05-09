@@ -1,7 +1,5 @@
 import json
-from multical import tables
 from os import path
-import numpy as np
 
 from structs.struct import struct, to_dicts
 from multical.transform import matrix
@@ -63,3 +61,5 @@ def export(filename, calib, names, master=None):
   
   with open(filename, 'w') as outfile:
     json.dump(to_dicts(data), outfile, indent=2)
+
+

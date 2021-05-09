@@ -91,7 +91,6 @@ class Workspace:
     image_names, filenames = image.find.find_images(camera_paths, extensions=extensions)
     info("Found camera directories {} with {} matching images".format(camera_names, len(image_names)))
 
-
     self.names = self.names._extend(camera = camera_names, image = image_names)
     self.filenames = filenames
     self.image_path = image_path

@@ -40,9 +40,15 @@ def find_nonempty_dirs(filepath, extensions=image_extensions):
 
 
 
-def find_images(camera_dirs, extensions=image_extensions):
+def find_images_matching(camera_dirs, extensions=image_extensions):
   image_names = find_matching_files(camera_dirs, extensions)
   return image_names, filenames(camera_dirs.values(), image_names)
+
+
+def find_images_unmatched(camera_dirs, extensions=image_extensions):
+  image_names = find_unmatched_files(camera_dirs, extensions)
+  return image_names, filenames(camera_dirs.values(), image_names)
+
 
 def filenames(camera_dirs, image_names):
   return [[path.join(camera_dir, image) for image in image_names]

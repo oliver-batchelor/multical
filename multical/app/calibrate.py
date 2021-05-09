@@ -30,24 +30,30 @@ def get_paths(args):
     )
 
 
+
+def init_boards(args):
+  board_file = args.boards or path.join(args.image_path, "boards.yaml")
+  if args.boards is None:
+    assert path.isfile(board_file),\
+      f"either specify boards description file with --boards or add boards.yaml to image path"
+  else:
+    assert path.isfile(args.boards), f"board file {args.boards} not found"
+  
+  boards = board.load_config(board_file)
+  info("Using boards:")
+  for name, b in boards.items():
+    info(f"{name} {b}")
+
+  return boards
+
+
 def initialise(args, paths):
     ws = workspace.Workspace()
  
     setup_logging(args.log_level, [ws.log_handler], log_file=paths.log_file)
     info(args) 
 
-    board_file = args.boards or path.join(args.image_path, "boards.yaml")
-    if args.boards is None:
-      assert path.isfile(board_file),\
-        f"either specify boards description file with --boards or add boards.yaml to image path"
-    else:
-      assert path.isfile(args.boards), f"board file {args.boards} not found"
-    
-    
-    boards = board.load_config(board_file)
-    info("Using boards:")
-    for name, b in boards.items():
-      info(f"{name} {b}")
+    boards = init_boards(args)
 
     cameras = map_none(str.split, args.cameras, ",")
     ws.find_images_matching(args.image_path, cameras, args.camera_pattern, master = args.master)

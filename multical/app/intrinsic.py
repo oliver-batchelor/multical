@@ -1,24 +1,17 @@
-from multical.motion.static_frames import StaticFrames
-from multical.motion.rolling_frames import RollingFrames
-from multical.optimization.calibration import select_threshold
+from multical.image.detect import common_image_size
+from multical.threading import map_lists
 from multical.io.logging import setup_logging
-from multical import board, workspace
 from multical.io.logging import info
 
-from .arguments import add_calibration_args, parse_with
-from .show_result import visualize
+from .arguments import add_intrinsic_args, parse_with
 
-from structs.struct import struct, map_none
-
-from os import path
-import pathlib
-import numpy as np
-
-from multical import tables, image
+from structs.struct import map_none, map_list
+from multical import image
 
 from .calibrate import get_paths, init_boards
+from structs.numpy import struct, shape
 
-def calibrate(args):
+def calibrate_intrinsic(args):
  
     paths = get_paths(args)
 
@@ -30,19 +23,19 @@ def calibrate(args):
     cameras = map_none(str.split, args.cameras, ",")
     camera_paths = image.find.find_cameras(args.image_path, cameras, args.camera_pattern)
 
-    camera_dirs, image_files = image.find.find_images_unmatched(camera_paths)
-    image_counts = {k:len(files) for k, files in image_files.items()}
+    camera_names, image_files = image.find.find_images_unmatched(camera_paths)
+
+    image_counts = {k:len(files) for k, files in zip(camera_names, image_files)}
     info("Found camera directories with images {}".format(image_counts))
 
 
-    # info("Loading images..")
-    # self.images = image.detect.load_images(self.filenames, j=j, prefix=self.image_path)
-    # self.image_size = map_list(common_image_size, self.images)
+    info("Loading images..")
+    images = image.detect.load_images(image_files,  prefix=args.image_path, j=args.j)
+    image_sizes = map_list(common_image_size, images)
 
-    # info(f"Loaded {self.sizes.image * self.sizes.camera} images")
-    # info({k:image_size for k, image_size in zip(self.names.camera, self.image_size)})
+    info({k:image_size for k, image_size in zip(camera_names, image_sizes)})
 
-
+    
 
 
     # ws.find_images_matching(args.image_path, cameras, args.camera_pattern, master = args.master)
@@ -70,5 +63,5 @@ def calibrate(args):
 
 
 if __name__ == '__main__':
-    args = parse_with(add_calibration_args)
-    calibrate(args)
+    args = parse_with(add_intrinsic_args)
+    calibrate_intrinsic(args)

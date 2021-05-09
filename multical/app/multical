@@ -3,8 +3,10 @@
 from multical.app import arguments
 
 from multical.app.calibrate import calibrate
-from multical.app.show_boards import show_boards
-from multical.app.show_result import show_result
+from multical.app.boards import show_boards
+from multical.app.vis import visualize
+from multical.app.intrinsic import calibrate_intrinsic
+
 
 def main():
   parser = arguments.parser()
@@ -14,10 +16,12 @@ def main():
     parser.print_help()
   elif args.which == "calibrate":
     calibrate(args)
-  elif args.which == "show_boards":
+  elif args.which == "intrinsic":
+    calibrate_intrinsic(args)
+  elif args.which == "vis":
+    visualize(args)
+  elif args.which == "boards":
     show_boards(args)
-  elif args.which == "show_result":
-    show_result(args)
   else:
     assert False, f"unknown command {args.which}"
 

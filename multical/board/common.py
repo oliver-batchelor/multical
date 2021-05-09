@@ -17,8 +17,11 @@ empty_detection = struct(corners=np.zeros([0, 2]), ids=np.zeros(0, dtype=np.int)
 empty_matches = struct(points1=[], points2=[], ids=[], object_points=[])
 
 
+
 def create_dict(name, offset):
-  dict_id = getattr(cv2.aruco, f'DICT_{name}')
+  dict_id = name if isinstance(name, int)\
+    else getattr(cv2.aruco, f'DICT_{name}')
+
   aruco_dict=cv2.aruco.getPredefinedDictionary(dict_id)
   aruco_dict.bytesList=aruco_dict.bytesList[offset:]
   return aruco_dict

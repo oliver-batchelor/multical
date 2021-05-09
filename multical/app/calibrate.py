@@ -6,7 +6,7 @@ from multical import board, workspace
 from multical.io.logging import info
 
 from .arguments import add_calibration_args, parse_with
-from .show_result import visualize
+from .vis import visualize_ws
 
 from structs.struct import struct, map_none
 
@@ -31,21 +31,26 @@ def get_paths(args):
 
 
 
+
 def init_boards(args):
+  assert args.boards is None or path.isfile(args.boards), f"board file {args.boards} not found"
+
   board_file = args.boards or path.join(args.image_path, "boards.yaml")
-  if args.boards is None:
-    assert path.isfile(board_file),\
-      f"either specify boards description file with --boards or add boards.yaml to image path"
+  calico_file = path.join(args.image_path, "network_specification_file.txt")
+  boards = {}
+
+  if path.isfile(board_file):
+    boards = board.load_config(board_file)
+  elif path.isfile(calico_file):
+    # CALICO board specification file
+    boards = board.load_calico(calico_file)
   else:
-    assert path.isfile(args.boards), f"board file {args.boards} not found"
+    assert False, f"no boards found, use --boards or add boards.yaml to image path"
   
-  boards = board.load_config(board_file)
   info("Using boards:")
   for name, b in boards.items():
-    info(f"{name} {b}")
-
+    info(f"{name} {b}")  
   return boards
-
 
 def initialise(args, paths):
     ws = workspace.Workspace()
@@ -101,8 +106,8 @@ def calibrate(args):
     ws.export(paths.export_file)
     ws.dump(paths.workspace_file)
 
-    if args.show:
-      visualize(ws)
+    if args.vis:
+      visualize_ws(ws)
 
 
 if __name__ == '__main__':

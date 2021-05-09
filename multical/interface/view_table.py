@@ -28,6 +28,7 @@ def reprojection_statistics(error, valid, inlier, axis=None):
   mse = np.square(error).sum(axis=axis) / np.maximum(n, 1)
 
   outliers = (valid & ~inlier).sum(axis=axis)
+  
   quantiles = masked_quantile(
       error, valid, [0, 0.25, 0.5, 0.75, 1.0], axis=axis)
   min, lq, median, uq, max = quantiles

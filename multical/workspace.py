@@ -86,7 +86,7 @@ class Workspace:
     camera_paths = image.find.find_cameras(image_path, cameras, camera_pattern, extensions=extensions)
     camera_names = list(camera_paths.keys())
 
-    image_names, filenames = image.find.find_images(camera_paths, extensions=extensions)
+    image_names, filenames = image.find.find_images_matching(camera_paths, extensions=extensions)
     info("Found camera directories {} with {} matching images".format(camera_names, len(image_names)))
 
     self.names = self.names._extend(camera = camera_names, image = image_names)

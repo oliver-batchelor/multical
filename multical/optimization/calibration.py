@@ -288,6 +288,7 @@ class Calibration(parameters.Parameters):
 
 
   def report(self, stage):
+
     overall = error_stats(self.reprojection_error)
     inliers = error_stats(self.reprojection_inliers)
 

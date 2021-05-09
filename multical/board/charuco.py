@@ -44,6 +44,7 @@ class CharucoBoard(Parameters, Board):
       aruco_dict=self.aruco_dict,
       aruco_offset=self.aruco_offset,
       size = self.size,
+      num_ids = len(self.board.ids),
       marker_length = self.marker_length,
       square_length = self.square_length,
       aruco_params = self.aruco_params

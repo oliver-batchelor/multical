@@ -6,9 +6,9 @@ from multical.workspace import Workspace
 from multical.io.logging import error
 from multical.io.logging import setup_logging
 
-from .arguments import add_show_args, parse_with
+from .arguments import add_vis_args, parse_with
 
-def visualize(ws):
+def visualize_ws(ws):
     try:
       from multical.interface import visualizer
       visualizer.visualize(ws)
@@ -18,7 +18,7 @@ def visualize(ws):
       error("qtpy and pyvista are necessary to run the visualizer, install with 'pip install qtpy pyvista-qt'")
 
 
-def show_result(args): 
+def visualize(args): 
     np.set_printoptions(precision=4, suppress=True)
 
     filename = args.workspace_file
@@ -29,9 +29,9 @@ def show_result(args):
     setup_logging('INFO', [ws.log_handler])
     ws.load_images()
 
-    visualize(ws)
+    visualize_ws(ws)
 
 
 if __name__ == '__main__':
-  args = parse_with(add_show_args)
-  show_result(args)
+  args = parse_with(add_vis_args)
+  visualize(args)

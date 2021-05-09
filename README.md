@@ -88,6 +88,20 @@ Multical provides a convenient highlevel interface found in `multical.workspace`
 It is also the best documentation for how to use lower level library features.
 
 
+## FAQ
+
+### How do I make a (physical) board pattern?
+Here's my workflow for making board images:
+
+```multical show_boards example_boards/charuco_16x22.yaml --paper_size A2 --pixels_mm 10 --write images
+Using boards:
+charuco_16x22 CharucoBoard {type='charuco', aruco_dict='4X4_1000', aruco_offset=0, size=(16, 22), marker_length=0.01875, square_length=0.025, aruco_params={}}
+Wrote images/charuco_16x22.png
+```
+
+Then open up images/charuco_16x22.png in gimp and print-to-file (pdf) with the margins set to zero and the paper size set to A2. Print pdf to printer or send to print shop.
+
+
 ## Credits
 
 Multical derives much inspiration from the [CALICO](https://github.com/amy-tabb/calico) application, implementing largely the algorithm as presented in the paper "Calibration of Asynchronous Camera Networks: CALICO.".
@@ -106,6 +120,9 @@ OpenCV provides many useful algorithms used heavily here, for detecting calibrat
 * Continuous time rolling shutter camera model
 * Ability to use separate (non synchronized) image set for intrinsic calibration in the default workflow
 * Compare calibrations by using an existing calibration as input then freezing camera parameters and then calibrating only board positions
+
+
+
 
 
 

@@ -1,5 +1,6 @@
 
 import argparse
+from multiprocessing import cpu_count
 import os
 
 def add_paths_group(parser):
@@ -112,7 +113,7 @@ def add_calibrate_single_args(parser):
 
     misc = parser.add_argument_group('misc')
 
-    misc.add_argument('--j', default=len(os.sched_getaffinity(0)), type=int, help='concurrent jobs')
+    misc.add_argument('--j', default=cpu_count(), type=int, help='concurrent jobs')
     misc.add_argument('--log_level', default='INFO', help='logging level for output to terminal')
     misc.add_argument('--no_cache', default=False, action='store_true', help="don't load detections from cache")
     misc.add_argument('--show', default=False, action="store_true", help='show result after calibration')

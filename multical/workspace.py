@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from multiprocessing import cpu_count
 
 from natsort.natsort import natsorted
 from multical.optimization.parameters import ParamList
@@ -23,9 +24,6 @@ import pickle
 
 
 
-
-def num_threads():
-  return len(os.sched_getaffinity(0))
 
 def log_cameras(camera_names, cameras, errs):
   for name, camera, err in zip(camera_names, cameras, errs):
@@ -101,7 +99,7 @@ class Workspace:
 
 
 
-  def load_images(self, j=num_threads()):
+  def load_images(self, j=cpu_count()):
     assert self.filenames is not None 
 
     info("Loading images..")
@@ -114,7 +112,7 @@ class Workspace:
 
 
 
-  def detect_boards(self, boards, cache_file=None, load_cache=True, j=num_threads()):
+  def detect_boards(self, boards, cache_file=None, load_cache=True, j=cpu_count()):
     assert self.boards is None
  
     board_names, self.boards = split_dict(boards)

@@ -5,7 +5,6 @@ import numpy as np
 import cv2
 
 from structs.struct import subset, transpose_structs, transpose_lists
-from structs.numpy import shape
 
 from pprint import pformat
 
@@ -15,9 +14,10 @@ from structs.struct import struct
 from .optimization.parameters import Parameters
 
 from multiprocessing.pool import ThreadPool
+from multical.threading import cpu_count
+
 import cv2
 from tqdm import tqdm
-import os
 
 from structs.struct import split_list
 
@@ -210,7 +210,7 @@ def undistort_image(args):
   return cv2.remap(image, undistort_map, None, cv2.INTER_CUBIC)
 
 
-def undistort_images(images, cameras, j=len(os.sched_getaffinity(0)), chunksize=4):
+def undistort_images(images, cameras, j=cpu_count(), chunksize=4):
   with ThreadPool(processes=j) as pool:
     image_pairs = [(image, camera.undistort_map)
                    for camera, cam_images in zip(cameras, images)

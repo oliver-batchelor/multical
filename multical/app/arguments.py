@@ -3,6 +3,8 @@ import argparse
 from multiprocessing import cpu_count
 import os
 
+from structs.struct import Struct
+
 def add_paths_group(parser):
   paths = parser.add_argument_group('paths')
 
@@ -127,4 +129,9 @@ def parser():
     return parser
 
 
+def default_args():
+  parser = argparse.ArgumentParser(prog='multical')
+  add_calibration_args(parser)
 
+  defaults = vars(parser.parse_args([]))
+  return Struct(defaults)

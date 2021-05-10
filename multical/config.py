@@ -1,5 +1,5 @@
 import pickle
-import image
+import multical.image as image
 from logging import info
 from os import path
 import pathlib
@@ -68,3 +68,5 @@ def write_detections(self, filename, cache_key={}):
   )
   with open(filename, "wb") as file:
     pickle.dump(data, file)
+
+

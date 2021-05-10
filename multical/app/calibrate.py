@@ -1,3 +1,4 @@
+from multical.app.common import get_paths
 from multical.motion.static_frames import StaticFrames
 from multical.motion.rolling_frames import RollingFrames
 from multical.optimization.calibration import select_threshold
@@ -15,35 +16,17 @@ import pathlib
 import numpy as np
 
 
-def get_paths(args):
-    np.set_printoptions(precision=4, suppress=True)
-
-    output_path = args.output_path or args.image_path
-    pathlib.Path(output_path).mkdir(parents=True, exist_ok=True)
-    
-    return struct(
-      log_file = path.join(output_path, f"{args.name}.log"),
-      export_file = path.join(output_path, f"{args.name}.json"),
-
-      detection_cache = path.join(output_path, f"detections.pkl"),
-      workspace_file = path.join(output_path, f"{args.name}.pkl")
-    )
-
-
-
-
 def init_boards(args):
   assert args.boards is None or path.isfile(args.boards), f"board file {args.boards} not found"
 
   board_file = args.boards or path.join(args.image_path, "boards.yaml")
-  calico_file = path.join(args.image_path, "network_specification_file.txt")
+  calico_file = path.join(args.image_path, "../network_specification_file.txt")
   boards = {}
 
   if path.isfile(board_file):
     boards = board.load_config(board_file)
   elif path.isfile(calico_file):
-    # CALICO board specification file
-    boards = board.load_calico(calico_file)
+    boards = board.load_calico(calico_file)      # CALICO board specification file
   else:
     assert False, f"no boards found, use --boards or add boards.yaml to image path"
   
@@ -52,18 +35,14 @@ def init_boards(args):
     info(f"{name} {b}")  
   return boards
 
-def initialise(args, paths):
+def initialise(args, paths, camera_images):
     ws = workspace.Workspace()
  
     setup_logging(args.log_level, [ws.log_handler], log_file=paths.log_file)
     info(args) 
 
     boards = init_boards(args)
-
-    cameras = map_none(str.split, args.cameras, ",")
-    ws.find_images_matching(args.image_path, cameras, args.camera_pattern, master = args.master)
  
-
     ws.load_images(j=args.j)
     ws.detect_boards(boards, cache_file=paths.detection_cache, 
       load_cache=not args.no_cache, j=args.j)
@@ -98,9 +77,14 @@ def optimize(args, ws):
 
 
 def calibrate(args): 
-    paths = get_paths(args)
+    np.set_printoptions(precision=4, suppress=True)
 
-    ws = initialise(args, paths)
+    paths = get_paths(args.output_path or args.image_path)
+ 
+    cameras = map_none(str.split, args.cameras, ",")
+    camera_images = find_camera_images(args.image_path, cameras, args.camera_pattern, master = args.master)
+ 
+    ws = initialise(args, paths, camera_images)
     optimize(args, ws)
 
     ws.export(paths.export_file)

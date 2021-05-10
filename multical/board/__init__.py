@@ -54,6 +54,7 @@ def merge_schema(config, schema):
     return struct(**merged)._without('_type_')
 
 
+
 def load_config(yaml_file):
   config = OmegaConf.load(yaml_file)
   aruco_params = config.get('aruco_params', {})

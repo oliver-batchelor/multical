@@ -1,35 +1,26 @@
 from collections import OrderedDict
 from multiprocessing import cpu_count
 
-from natsort.natsort import natsorted
 from multical.optimization.parameters import ParamList
 from multical.optimization.pose_set import PoseSet
 from multical.motion import StaticFrames
+from multical import config
+
 from os import path
-from multical.io.export import export, export_cameras
+from multical.io.export import export
 from multical.image.detect import common_image_size
-import numpy as np
-from structs.numpy import shape
-import os
+
 from multical.optimization.calibration import Calibration
 from structs.struct import map_list, split_dict, struct, subset
 from . import tables, image
 from .camera import calibrate_cameras
 
-from .io.logging import MemoryHandler, info, warning, debug
+from .io.logging import MemoryHandler, info
 from .display import make_palette
-from numbers import Integral
 
 import pickle
 
 
-
-
-def log_cameras(camera_names, cameras, errs):
-  for name, camera, err in zip(camera_names, cameras, errs):
-    info(f"Calibrated {name}, with RMS={err:.2f}")
-    info(camera)
-    info("")
 
 
 class Workspace:
@@ -50,57 +41,13 @@ class Workspace:
     self.point_table = None
     self.pose_table = None
 
-    self.master = None
-
     self.log_handler = MemoryHandler()
 
-  def try_load_detections(self, filename):
-    try:
-      with open(filename, "rb") as file:
-        loaded = pickle.load(file)
-        # Check that the detections match the metadata
-        if (loaded.filenames == self.filenames and 
-            loaded.boards == self.boards and
-            loaded.image_sizes == self.image_sizes):
 
-          info(f"Loaded detections from {filename}")
-          return loaded.detected_points
-        else:
-          info(f"Config changed, not using loaded detections in {filename}")
-    except (OSError, IOError, EOFError, AttributeError) as e:
-      return None
-
-  def write_detections(self, filename):
-    data = struct(
-      filenames = self.filenames,
-      boards = self.boards,
-      image_sizes = self.image_sizes,
-      detected_points = self.detected_points
-    )
-    with open(filename, "wb") as file:
-      pickle.dump(data, file)
-
-
-  def find_images_matching(self, image_path, cameras=None, camera_pattern=None,  master=None, extensions=image.find.image_extensions):   
-        
-    camera_paths = image.find.find_cameras(image_path, cameras, camera_pattern, extensions=extensions)
-    camera_names = list(camera_paths.keys())
-
-    image_names, filenames = image.find.find_images_matching(camera_paths, extensions=extensions)
-    info("Found camera directories {} with {} matching images".format(camera_names, len(image_names)))
-
-    self.names = self.names._extend(camera = camera_names, image = image_names)
-    self.filenames = filenames
-    self.image_path = image_path
-    
-    self.master = master or self.names.camera[0]
-    assert master is None or master in self.names.camera,\
-      f"master f{master} not found in cameras f{str(camera_names)}"
-
-
-
-  def load_images(self, j=cpu_count()):
-    assert self.filenames is not None 
+  def load_camera_images(self, image_ws,  j=cpu_count()):
+    self.names = self.names._extend(camera = image_ws.camera_names, image = image_ws.image_names)
+    self.filenames = image_ws.filenames
+    self.image_path = image_ws.image_path   
 
     info("Loading images..")
     self.images = image.detect.load_images(self.filenames, j=j, prefix=self.image_path)
@@ -111,22 +58,22 @@ class Workspace:
 
 
 
-
   def detect_boards(self, boards, cache_file=None, load_cache=True, j=cpu_count()):
     assert self.boards is None
  
     board_names, self.boards = split_dict(boards)
     self.names = self.names._extend(board = board_names)
     self.board_colors = make_palette(len(boards))
+    cache_key = self.fields('filenames', 'boards', 'image_sizes')
 
-    self.detected_points = self.try_load_detections(cache_file) if load_cache else None
+    self.detected_points = config.try_load_detections(cache_file, cache_key) if load_cache else None
     if self.detected_points is None:
       info("Detecting boards..")
       self.detected_points = image.detect.detect_images(self.boards, self.images, j=j)   
 
       if cache_file is not None:
         info(f"Writing detection cache to {cache_file}")
-        self.write_detections(cache_file)
+        config.write_detections(cache_file, cache_key)
 
 
     self.point_table = tables.make_point_table(self.detected_points, self.boards)
@@ -141,7 +88,10 @@ class Workspace:
     self.cameras, errs = calibrate_cameras(self.boards, self.detected_points, 
       self.image_size, model=camera_model, fix_aspect=fix_aspect, has_skew=has_skew, max_images=max_images)
     
-    log_cameras(self.names.camera, self.cameras, errs)
+    for name, camera, err in zip(self.names.cameras, self.cameras, errs):
+      info(f"Calibrated {name}, with RMS={err:.2f}")
+      info(camera)
+      info("")
 
 
   def initialise_poses(self, motion_model=StaticFrames):
@@ -207,14 +157,18 @@ class Workspace:
       if self.cameras is not None:
         return dict(initialisation = self.cameras)
 
-  def export(self, filename):
+  def export(self, filename, master=None):
     info(f"Exporting calibration to {filename}")
+
+    master = master or self.names.camera[0]
+    assert master is None or master in self.names.camera,\
+      f"master f{master} not found in cameras f{str(self.names.camera)}"
 
     calib = self.latest_calibration
     if self.master is not None:
-      calib = calib.with_master(self.master)
+      calib = calib.with_master(master)
 
-    export(filename, calib, self.names, master=self.master)
+    export(filename, calib, self.names, master=master)
 
   def dump(self, filename):
     info(f"Dumping state and history to {filename}")
@@ -228,13 +182,15 @@ class Workspace:
       ws = pickle.load(file)
       return ws
 
+  def fields(self, *keys):
+    return subset(self.__dict__, keys)
+
   def __getstate__(self):
-    d = subset(self.__dict__, [
+    return self.fields(
        'calibrations', 'detections', 'boards', 
        'board_colors', 'filenames', 'image_path', 'names', 'image_sizes',
        'point_table', 'pose_table', 'log_handler'
-    ])
-    return d
+    )
 
   def __setstate__(self, d):
     for k, v in d.items():

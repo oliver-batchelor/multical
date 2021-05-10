@@ -8,6 +8,8 @@ from multical.display import show_detections
 from multical import board
 from multical.image.display import display, display_stacked
 
+from .common import find_config
+
 import argparse
 from os import path
 
@@ -24,8 +26,7 @@ standard_sizes = dict(
 
 
 def show_boards(args):
-  board_file = args.boards
-  boards = board.load_config(board_file)
+  boards = board.load_config(args.boards)
 
   print("Using boards:")
   for name, b in boards.items():

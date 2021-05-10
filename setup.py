@@ -39,6 +39,7 @@ setup(
         "opencv-python>=4.2.0.0",
         "opencv-contrib-python>=4.2.0.0",
 
+        "simple-parsing",
         "natsort",
         "cached-property",
         "py-structs>=0.2.1",

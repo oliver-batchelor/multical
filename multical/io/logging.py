@@ -100,5 +100,6 @@ def setup_logging(console_level='INFO', handlers=[], log_file=None):
 
 
   logger.setLevel(logging.DEBUG)
+  logger.propagate = False
 
  

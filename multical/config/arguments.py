@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from multiprocessing import cpu_count
 import os
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from structs.struct import Struct
 
@@ -20,10 +20,10 @@ class Outputs:
 @dataclass 
 class Inputs:
   """ Input files and paths """
-  image_path: str     # Path to search for image folders
-  boards : Optional[str] = None # Configuration file (YAML) for calibration boards
+  image_path: str = "."                 # Path to search for image folders
+  boards : Optional[str] = None         # Configuration file (YAML) for calibration boards
   camera_pattern: Optional[str] = None  # Camera apth pattern example "{camera}/extrinsic"
-  cameras: list[str] = list_field()     # Explicit camera list
+  cameras: List[str] = list_field()     # Explicit camera list
  
 
 @dataclass 
@@ -34,6 +34,7 @@ class Camera:
   allow_skew: bool = False  # Allow skew parameter in camera intrinsics
   distortion_model: str = choice("standard", "rational", "thin_prism", "tilted", default="standard")
   limit_intrinsic: Optional[int] = 50   # Limit intrinsic images to enable faster initialisation
+  motion_model: bool = choice("rolling", "static", default="static")  # Camera motion model to use
 
 @dataclass 
 class Runtime:
@@ -52,7 +53,6 @@ class Parameters:
   fix_motion: bool = False  # Constant camera motion estimates
 
   adjust_board: bool = False  # Enable optimization for board non-planarity
-  motion_model: bool = choice("rolling", "static", default="static")  # Camera motion model to use
   
  
 @dataclass 
@@ -65,10 +65,10 @@ class Optimizer:
   auto_scale : Optional[float] = None # Threshold for auto_scale to reduce outlier influence (factor of upper quartile of reprojection error) - requires non-linear loss
 
 
-def parse_with(command_type):
+def run_with(command_type):
     parser = ArgumentParser(prog='multical')
-    parser.add_arguments(command_type)
+    parser.add_arguments(command_type, dest="app")
 
     program = parser.parse_args()
-    return program.execute()
+    return program.app.execute()
 

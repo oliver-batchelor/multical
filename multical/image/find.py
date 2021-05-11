@@ -23,7 +23,7 @@ def find_matching_files(camera_paths, extensions):
 
 
 def find_cameras(base_dir, cameras, camera_pattern, extensions=image_extensions):
-  if cameras is None:
+  if cameras is None or len(cameras) == 0:
     cameras = natsorted(find_nonempty_dirs(base_dir, extensions))
 
   camera_pattern = camera_pattern or "{camera}" 

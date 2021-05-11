@@ -1,20 +1,20 @@
 
 import pathlib
+from typing import Optional
 
 import cv2
 import numpy as np
+from simple_parsing import choice
 
 from multical.display import show_detections
 from multical import board
 from multical.image.display import display, display_stacked
 
-from multical.app.program import add_boards_args, parse_with
-
 import argparse
 from os import path
 
 from multical.image.detect import load_image
-from .config import *
+from multical.config import *
 
 
 standard_sizes = dict(
@@ -37,7 +37,7 @@ class Boards:
   write : Optional[str] = None # Directory to write board images
 
   pixels_mm : int = 1   # Pixels per mm of pattern
-  margin_mm : int = 0  # Border width in mm
+  margin_mm : int = 20  # Border width in mm
 
   paper_size_mm : Optional[str] = None # Paper size in mm WxH 
   paper_size : Optional[str] = choice(*standard_sizes.keys())
@@ -64,7 +64,8 @@ def show_boards(args):
     paper_size_mm = [int(x) for x in args.paper_size_mm.split('x')]   
     assert len(paper_size_mm) == 2, f"expected WxH paper_size_mm e.g. 420x594 or name, one of {list(standard_sizes.keys())}"
 
-  assert paper_size_mm is None or args.margin == 0, "specify --margin or paper size (not both)"
+  if paper_size_mm is not None:
+    args.margin = 0
 
   def draw_board(board):
     board_image = board.draw(args.pixels_mm, args.margin_mm)
@@ -107,9 +108,6 @@ def show_boards(args):
 
 
 
-def main(): 
-    args = parse_with(add_boards_args)
-    show_boards(args)
 
 if __name__ == '__main__':
-    main()
+    run_with(Boards)

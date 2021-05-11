@@ -14,7 +14,7 @@ class Vis:
     workspace_file : str 
 
     def execute(self):
-      pass
+      visualize(self)
 
 
 
@@ -41,7 +41,5 @@ def visualize(args):
 
     visualize_ws(ws)
 
-
 if __name__ == '__main__':
-  args = parse_with(Vis)
-  visualize(args)
+    run_with(Vis)

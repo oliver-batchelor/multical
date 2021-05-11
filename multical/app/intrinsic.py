@@ -1,3 +1,5 @@
+from multical.app.calibrate import calibrate
+from multical.config.runtime import find_board_config, get_paths
 from multical.image.detect import common_image_size
 from multical.threading import map_lists
 from multical.io.logging import setup_logging
@@ -6,7 +8,6 @@ from multical.io.logging import info
 from structs.struct import map_none, map_list
 from multical import image
 
-from .calibrate import get_paths, init_boards
 from structs.numpy import struct, shape
 
 from multical.config.arguments import *
@@ -14,13 +15,13 @@ from multical.config.arguments import *
 @dataclass
 class Intrinsic:
   """Run separate intrinsic calibration for set of cameras"""
-  inputs  : Inputs = Inputs()
-  outputs : Outputs = Outputs()
-  camera  : Camera = Camera()
-  runtime    : Runtime = Runtime()
+  inputs  : Inputs
+  outputs : Outputs
+  camera  : Camera
+  runtime    : Runtime
 
   def execute(self):
-      pass
+      calibrate_intrinsic(self)
 
 
 def calibrate_intrinsic(args):
@@ -30,7 +31,7 @@ def calibrate_intrinsic(args):
     setup_logging(args.log_level, [], log_file=paths.log_file)
     info(args) 
 
-    boards = init_boards(args)
+    boards = find_board_config(args)
 
     cameras = map_none(str.split, args.cameras, ",")
     camera_paths = image.find.find_cameras(args.image_path, cameras, args.camera_pattern)
@@ -75,5 +76,4 @@ def calibrate_intrinsic(args):
 
 
 if __name__ == '__main__':
-    args = parse_with(add_intrinsic_args)
-    calibrate_intrinsic(args)
+  run_with(Intrinsic)

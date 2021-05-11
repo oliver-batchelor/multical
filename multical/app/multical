@@ -1,20 +1,30 @@
 #!python3
 
 from dataclasses import dataclass
+from multical.config.arguments import run_with
 from multiprocessing import cpu_count
 from typing import  Union
 
 
-from .boards import Boards
-from .calibrate import Calibrate
-from .intrinsic import Intrinsic
-from .vis import Vis
+from multical.app.boards import Boards
+from multical.app.calibrate import Calibrate
+from multical.app.intrinsic import Intrinsic
+from multical.app.vis import Vis
 
 
 @dataclass
-class Program:
-  """ multical - multi camera calibration """ 
+class Multical:
+  """multical - multi camera calibration 
+  - calibrate: multi-camera calibration
+  - intrinsic: calibrate separate intrinsic parameters
+  - boards: generate/visualize board images, test detections
+  - vis: visualize results of a calibration 
+  """ 
   command : Union[Calibrate, Intrinsic, Boards, Vis]
    
   def execute(self):
     return self.command.execute()
+
+
+if __name__ == '__main__':
+  run_with(Multical)

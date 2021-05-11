@@ -2,7 +2,7 @@ from multical import tables
 from structs.struct import struct, subset
 from multical.optimization.parameters import Parameters
 from cached_property import cached_property
-from multical.io.export import export_poses
+from multical.io.export_calib import export_poses
 
 from multical.transform import rtvec as transform_vec
 from .parameters import IndexMapper

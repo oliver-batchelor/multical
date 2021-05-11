@@ -9,7 +9,7 @@ def try_load_detections(filename, cache_key={}):
     with open(filename, "rb") as file:
       loaded = pickle.load(file)
       # Check that the detections match the metadata
-      if (loaded.get(cache_key, {}) == cache_key):
+      if (loaded.get('cache_key', {}) == cache_key):
         info(f"Loaded detections from {filename}")
         return loaded.detected_points
       else:
@@ -17,10 +17,10 @@ def try_load_detections(filename, cache_key={}):
   except (OSError, IOError, EOFError, AttributeError) as e:
     return None
 
-def write_detections(self, filename, cache_key={}):
+def write_detections(filename, detected_points, cache_key={}):
   data = struct(
     cache_key = cache_key,
-    detected_points = self.detected_points
+    detected_points = detected_points
   )
   with open(filename, "wb") as file:
     pickle.dump(data, file)

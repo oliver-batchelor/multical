@@ -57,7 +57,7 @@ Where `{camera}` is replaced by the camera names
     ...
 ```    
 
-A fixed number of images will be chosen for initial intrinsic calibration (increase for more accuracy at expense of time with `--intrinsic_images`).
+A fixed number of images will be chosen for initial intrinsic calibration (increase for more accuracy at expense of time with `--limit_intrinsic`).
 
 ### Outputs
 
@@ -100,6 +100,9 @@ Wrote images/charuco_16x22.png
 ```
 
 Then open up images/charuco_16x22.png in gimp and print-to-file (pdf) with the margins set to zero and the paper size set to A2. Print pdf to printer or send to print shop.
+
+### Can multical calibrate intrinsic and extrinsic camera parameters?
+Yes - this is the default, though the initial intrinsic calibration may be fixed for example with `--fix_intrinsic` in order to do separate intrinsic and extrinsic calibration.
 
 
 ## Credits

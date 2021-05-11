@@ -3,68 +3,23 @@ from multiprocessing import cpu_count
 
 from multical.optimization.parameters import ParamList
 from multical.optimization.pose_set import PoseSet
-from multical.motion import StaticFrames, RollingFrames
 from multical import config
 
 
 from os import path
-from multical.io.export import export
+from multical.io.export_calib import export
 from multical.image.detect import common_image_size
-from multical.app.arguments import default_args
 
-from multical.optimization.calibration import Calibration, select_threshold
+from multical.optimization.calibration import Calibration
 from structs.struct import map_list, split_dict, struct, subset
 from . import tables, image
 from .camera import calibrate_cameras
 
-from .io.logging import MemoryHandler, info, setup_logging
+from .io.logging import MemoryHandler, info
 from .display import make_palette
 
 import pickle
 
-
-def initialise(paths, camera_images, **kwargs):
-    args = default_args()._update(**kwargs)
-    ws = Workspace()
-
-    setup_logging(args.log_level, [ws.log_handler], log_file=paths.log_file)
-    info(args)
-
-    boards = config.find_board_config(args.image_path, board_file=args.boards)
-
-    ws.load_images(camera_images, j=args.j)
-    ws.detect_boards(boards, cache_file=paths.detection_cache,
-                     load_cache=not args.no_cache, j=args.j)
-
-    ws.calibrate_single(args.distortion_model, fix_aspect=args.fix_aspect,
-                        has_skew=args.allow_skew, max_images=args.intrinsic_images)
-
-    motion_model = None
-    if args.motion_model == "rolling":
-        motion_model = RollingFrames
-    elif args.motion_model == "static":
-        motion_model = StaticFrames
-    else:
-        assert False, f"unknown motion model {args.motion_model}, (static|rolling)"
-
-    ws.initialise_poses(motion_model=motion_model)
-    return ws
-
-
-def optimize(ws, **kwargs):
-    args = default_args()._update(**kwargs)
-
-    outliers = select_threshold(quantile=0.75, factor=args.outlier_threshold)
-    auto_scale = select_threshold(quantile=0.75, factor=args.auto_scale)\
-        if args.auto_scale is not None else None
-
-    ws.calibrate("calibration", loss=args.loss,
-                 boards=args.adjust_board,
-                 cameras=not args.fix_intrinsic,
-                 camera_poses=not args.fix_camera_poses,
-                 board_poses=not args.fix_board_poses,
-                 motion=not args.fix_motion,
-                 auto_scale=auto_scale, outliers=outliers)
 
 
 class Workspace:

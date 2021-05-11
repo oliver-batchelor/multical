@@ -65,78 +65,6 @@ class Optimizer:
   auto_scale : Optional[float] = None # Threshold for auto_scale to reduce outlier influence (factor of upper quartile of reprojection error) - requires non-linear loss
 
 
-
-
-@dataclass
-class Calibrate:
-    """Run camera calibration"""
-    inputs  : Inputs = Inputs()
-    outputs : Outputs = Outputs()
-    camera  : Camera = Camera()
-    parameters : Parameters = Parameters()
-    runtime    : Runtime = Runtime()
-    optimizer  : Optimizer = Optimizer()
-    vis : bool = False        # Visualize result after calibration
-
-    def execute(self):
-        pass
-
-@dataclass
-class Intrinsic:
-  """Run separate intrinsic calibration for set of cameras"""
-  inputs  : Inputs = Inputs()
-  outputs : Outputs = Outputs()
-  camera  : Camera = Camera()
-  runtime    : Runtime = Runtime()
-
-  def execute(self):
-      pass
-
-# def add_intrinsic_args(parser):
-
-#     parser.add_argument('image_path', help='input image path')
-#     parser.add_argument('--boards', default=None, help='configuration file (YAML) for calibration boards')
-
-#     add_paths_group(parser)
-#     add_image_paths_group(parser)
-#     add_camera_group(parser)
-#     add_misc_group(parser)
-
-#     parser.set_defaults(which='intrinsic')
-
-
-@dataclass 
-class Boards:
-  """ Generate boards and show/detect for configuration file """
-
-  boards : str # Configuration file (YAML) for calibration boards
-  
-  detect : Optional[str] = None # Show detections from an example image
-  show : bool = False # Show image of boards
-  write : Optional[str] = None # Directory to write board images
-
-  pixels_mm : int = 1   # Pixels per mm of pattern
-  margin_mm : int = 20  # Border width in mm
-
-  paper_size_mm : Optional[str] = None # Paper size in mm WxH or standard size A0..A4
-
-
-@dataclass
-class Vis:
-    workspace_file : str 
-
-    def execute(self):
-      pass
-
-@dataclass
-class Program:
-  """ multical - multi camera calibration """ 
-  command : Union[Calibrate, Intrinsic, Boards, Vis]
-   
-  def execute(self):
-    return self.command.execute()
-
-
 def parse_with(command_type):
     parser = ArgumentParser(prog='multical')
     parser.add_arguments(command_type)
@@ -144,12 +72,3 @@ def parse_with(command_type):
     program = parser.parse_args()
     return program.execute()
 
-
-
-
-def default_args():
-  parser = ArgumentParser(prog='multical')
-  add_calibration_args(parser)
-
-  defaults = vars(parser.parse_args([]))
-  return Struct(defaults)

@@ -3,17 +3,19 @@ import pathlib
 
 import cv2
 import numpy as np
-from multical.app.arguments import add_boards_args, parse_with
+
 from multical.display import show_detections
 from multical import board
 from multical.image.display import display, display_stacked
 
-from .common import find_config
+from multical.app.program import add_boards_args, parse_with
 
 import argparse
 from os import path
 
 from multical.image.detect import load_image
+from .config import *
+
 
 standard_sizes = dict(
   A4 = (210, 297),
@@ -24,6 +26,26 @@ standard_sizes = dict(
 )
 
 
+@dataclass 
+class Boards:
+  """ Generate boards and show/detect for configuration file """
+
+  boards : str # Configuration file (YAML) for calibration boards
+  
+  detect : Optional[str] = None # Show detections from an example image
+  show : bool = False # Show image of boards
+  write : Optional[str] = None # Directory to write board images
+
+  pixels_mm : int = 1   # Pixels per mm of pattern
+  margin_mm : int = 0  # Border width in mm
+
+  paper_size_mm : Optional[str] = None # Paper size in mm WxH 
+  paper_size : Optional[str] = choice(*standard_sizes.keys())
+
+  def execute(self):
+    show_boards(self)
+
+
 
 def show_boards(args):
   boards = board.load_config(args.boards)
@@ -32,15 +54,17 @@ def show_boards(args):
   for name, b in boards.items():
     print(f"{name} {b}")
 
-  paper_size_mm = None
-  if args.paper_size_mm is not None:
-    if args.paper_size_mm in standard_sizes:
-      paper_size_mm = standard_sizes[args.paper_size_mm]
-    else:
-      paper_size_mm = [int(x) for x in args.paper_size_mm.split('x')]   
-      assert len(paper_size_mm) == 2, f"expected WxH paper_size_mm e.g. 420x594 or name, one of {list(standard_sizes.keys())}"
+  assert args.paper_size_mm is None or args.paper_size is None, "specify --paper_size_mm or --paper_size (not both)"
 
-    args.margin_mm = 0
+  paper_size_mm = None
+  if args.paper_size is not None:
+    paper_size_mm = standard_sizes[args.paper_size]
+
+  elif args.paper_size_mm is not None:
+    paper_size_mm = [int(x) for x in args.paper_size_mm.split('x')]   
+    assert len(paper_size_mm) == 2, f"expected WxH paper_size_mm e.g. 420x594 or name, one of {list(standard_sizes.keys())}"
+
+  assert paper_size_mm is None or args.margin == 0, "specify --margin or paper size (not both)"
 
   def draw_board(board):
     board_image = board.draw(args.pixels_mm, args.margin_mm)

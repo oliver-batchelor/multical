@@ -1,20 +1,25 @@
-from multical.config import find_board_config, find_camera_images, get_paths
 
-from multical.motion.static_frames import StaticFrames
-from multical.motion.rolling_frames import RollingFrames
-from multical.optimization.calibration import select_threshold
-from multical.io.logging import setup_logging
-from multical import board, workspace
-from multical.io.logging import info
-
-from .arguments import add_calibration_args, parse_with
 from .vis import visualize_ws
 
 from structs.struct import struct, map_none
 import numpy as np
 
+from multical.config import *
+from dataclasses import dataclass
 
+@dataclass
+class Calibrate:
+    """Run camera calibration"""
+    inputs  : Inputs = Inputs()
+    outputs : Outputs = Outputs()
+    camera  : Camera = Camera()
+    parameters : Parameters = Parameters()
+    runtime    : Runtime = Runtime()
+    optimizer  : Optimizer = Optimizer()
+    vis : bool = False        # Visualize result after calibration
 
+    def execute(self):
+        calibrate(self)
 
 
 def calibrate(args): 
@@ -36,5 +41,5 @@ def calibrate(args):
 
 
 if __name__ == '__main__':
-    args = parse_with(add_calibration_args)
+    args = parse_with(Calibrate)
     calibrate(args)

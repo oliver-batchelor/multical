@@ -1,4 +1,3 @@
-import pickle
 import multical.image as image
 from logging import info
 from os import path
@@ -6,6 +5,8 @@ import pathlib
 
 from structs.struct import struct
 from multical.board import load_config, load_calico
+
+from multical.motion import StaticFrames, RollingFrames
 
 def find_board_config(image_path, board_file = None):
   assert board_file is None or path.isfile(board_file), f"board file {board_file} not found"
@@ -48,25 +49,5 @@ def find_camera_images(image_path, cameras=None, camera_pattern=None,  extension
   return struct(image_path=image_path, cameras=camera_names, image_names=image_names, filenames=filenames)
 
 
-def try_load_detections(filename, cache_key={}):
-  try:
-    with open(filename, "rb") as file:
-      loaded = pickle.load(file)
-      # Check that the detections match the metadata
-      if (loaded.get(cache_key, {}) == cache_key):
-        info(f"Loaded detections from {filename}")
-        return loaded.detected_points
-      else:
-        info(f"Config changed, not using loaded detections in {filename}")
-  except (OSError, IOError, EOFError, AttributeError) as e:
-    return None
-
-def write_detections(self, filename, cache_key={}):
-  data = struct(
-    cache_key = cache_key,
-    detected_points = self.detected_points
-  )
-  with open(filename, "wb") as file:
-    pickle.dump(data, file)
 
 

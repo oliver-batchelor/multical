@@ -3,13 +3,25 @@ from multical.threading import map_lists
 from multical.io.logging import setup_logging
 from multical.io.logging import info
 
-from .arguments import add_intrinsic_args, parse_with
-
 from structs.struct import map_none, map_list
 from multical import image
 
 from .calibrate import get_paths, init_boards
 from structs.numpy import struct, shape
+
+from multical.config.arguments import *
+
+@dataclass
+class Intrinsic:
+  """Run separate intrinsic calibration for set of cameras"""
+  inputs  : Inputs = Inputs()
+  outputs : Outputs = Outputs()
+  camera  : Camera = Camera()
+  runtime    : Runtime = Runtime()
+
+  def execute(self):
+      pass
+
 
 def calibrate_intrinsic(args):
  

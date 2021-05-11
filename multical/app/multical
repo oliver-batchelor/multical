@@ -1,31 +1,20 @@
-#!python
+#!python3
 
-from multical.app import arguments
-
-from multical.app.calibrate import calibrate
-from multical.app.boards import show_boards
-from multical.app.vis import visualize
-from multical.app.intrinsic import calibrate_intrinsic
+from dataclasses import dataclass
+from multiprocessing import cpu_count
+from typing import  Union
 
 
-def main():
-  parser = arguments.parser()
-  args = parser.parse_args()
-
-  if 'which' not in args:
-    parser.print_help()
-  elif args.which == "calibrate":
-    calibrate(args)
-  elif args.which == "intrinsic":
-    calibrate_intrinsic(args)
-  elif args.which == "vis":
-    visualize(args)
-  elif args.which == "boards":
-    show_boards(args)
-  else:
-    assert False, f"unknown command {args.which}"
+from .boards import Boards
+from .calibrate import Calibrate
+from .intrinsic import Intrinsic
+from .vis import Vis
 
 
-
-if __name__ == "__main__":
-  main()
+@dataclass
+class Program:
+  """ multical - multi camera calibration """ 
+  command : Union[Calibrate, Intrinsic, Boards, Vis]
+   
+  def execute(self):
+    return self.command.execute()

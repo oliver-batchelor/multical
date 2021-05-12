@@ -93,7 +93,9 @@ It is also the best documentation for how to use lower level library features.
 ### How do I make a (physical) board pattern?
 Here's my workflow for making board images:
 
-```multical show_boards example_boards/charuco_16x22.yaml --paper_size A2 --pixels_mm 10 --write images
+```
+multical show_boards example_boards/charuco_16x22.yaml --paper_size A2 --pixels_mm 10 --write images
+
 Using boards:
 charuco_16x22 CharucoBoard {type='charuco', aruco_dict='4X4_1000', aruco_offset=0, size=(16, 22), marker_length=0.01875, square_length=0.025, aruco_params={}}
 Wrote images/charuco_16x22.png

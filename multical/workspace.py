@@ -22,7 +22,16 @@ from .display import make_palette
 import pickle
 
 
+def check_camera_images(camera_images):
+  assert len(camera_images.cameras) == len(camera_images.filenames),\
+    f"expected filenames to be a list of equal to number of cameras"
+  for k, images in zip(camera_images.cameras, camera_images.filenames):
+    assert len(images) == len(camera_images.image_names),\
+      f"mismatch between image names and camera {k},"\
+      f"got {len(images)} filenames expected {camera_images.image_names}"
+
 class Workspace:
+
     def __init__(self, output_path, name="calibration"):
 
         self.name = name
@@ -46,6 +55,7 @@ class Workspace:
         self.log_handler = MemoryHandler()
 
     def load_camera_images(self, camera_images, j=cpu_count()):
+        check_camera_images(camera_images)
         self.names = self.names._extend(
             camera=camera_images.cameras, image=camera_images.image_names)
 
@@ -66,7 +76,7 @@ class Workspace:
     def temp_folder(self):
       folder = pathlib.Path(self.output_path).joinpath("." + self.name)
       folder.mkdir(parents=True, exist_ok=True)
-      return folder.name
+      return str(folder)
 
     @property 
     def detections_file(self):
@@ -138,7 +148,7 @@ class Workspace:
         self.calibrations["initialisation"] = calib
         return calib
 
-    def calibrate(self, name,
+    def calibrate(self, name="calibration",
         camera_poses=True, motion=True, board_poses=True, 
         cameras=False, boards=False, **opt_args):
 

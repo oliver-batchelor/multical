@@ -21,9 +21,6 @@ def get_motion_model(motion_model):
         assert False, f"unknown motion model {motion_model}, (static|rolling)"
 
 
-
-
-
 def initialise_with_images(ws, boards, camera_images, 
   camera_opts : CameraOpts = CameraOpts(), runtime : RuntimeOpts = RuntimeOpts()):
 

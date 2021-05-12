@@ -10,12 +10,10 @@ from dataclasses import dataclass
 @dataclass
 class Calibrate:
     """Run camera calibration"""
-    inputs  : Inputs 
-    outputs : Outputs 
-    camera  : Camera 
-    parameters : Parameters 
-    runtime    : Runtime 
-    optimizer  : Optimizer 
+    paths  : PathOpts 
+    camera  : CameraOpts
+    runtime    : RuntimeOpts
+    optimizer  : OptimizerOpts 
     vis : bool = False        # Visualize result after calibration
 
     def execute(self):
@@ -25,11 +23,20 @@ class Calibrate:
 def calibrate(args): 
   np.set_printoptions(precision=4, suppress=True)
 
-  ws, paths = initialise(to_structs(args))
-  optimize(ws, args)
+  # Use image path if not explicity specified
+  output_path = args.paths.image_path or args.paths.output_path 
 
-  ws.export(paths.export_file)
-  ws.dump(paths.workspace_file)
+  ws = workspace.Workspace(output_path, args.paths.name)
+  setup_logging(args.runtime.log_level, [ws.log_handler], log_file=path.join(ws.temp_folder, f"log.txt"))
+
+  boards = find_board_config(args.paths.image_path, board_file=args.paths.boards)
+  camera_images = find_camera_images(args.paths.image_path, args.paths.cameras, args.paths.camera_pattern)
+
+  initialise_with_images(ws, boards, camera_images, args.camera, args.runtime)
+  optimize(ws, args.optimizer)
+
+  ws.export()
+  ws.dump()
 
   if args.vis:
     visualize_ws(ws)

@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import pathlib
 from multical.motion import StaticFrames
 from multiprocessing import cpu_count
 
@@ -22,7 +23,10 @@ import pickle
 
 
 class Workspace:
-    def __init__(self):
+    def __init__(self, output_path, name="calibration"):
+
+        self.name = name
+        self.output_path = output_path
 
         self.calibrations = OrderedDict()
         self.detections = None
@@ -43,24 +47,33 @@ class Workspace:
 
     def load_camera_images(self, camera_images, j=cpu_count()):
         self.names = self.names._extend(
-            camera=camera_images.cameras, image=camera_images.image_names
-        )
+            camera=camera_images.cameras, image=camera_images.image_names)
+
         self.filenames = camera_images.filenames
         self.image_path = camera_images.image_path
 
         info("Loading images..")
         self.images = image.detect.load_images(
-            self.filenames, j=j, prefix=self.image_path
-        )
+            self.filenames, j=j, prefix=self.image_path)
         self.image_size = map_list(common_image_size, self.images)
 
         info(f"Loaded {self.sizes.image * self.sizes.camera} images")
         info(
             {k: image_size for k, image_size in zip(
-                self.names.camera, self.image_size)}
-        )
+                self.names.camera, self.image_size)})
 
-    def detect_boards(self, boards, cache_file=None, load_cache=True, j=cpu_count()):
+    @property
+    def temp_folder(self):
+      folder = pathlib.Path(self.output_path).joinpath("." + self.name)
+      folder.mkdir(parents=True, exist_ok=True)
+      return folder.name
+
+    @property 
+    def detections_file(self):
+      return path.join(self.temp_folder, "detections.pkl")
+
+
+    def detect_boards(self, boards, load_cache=True, j=cpu_count()):
         assert self.boards is None
 
         board_names, self.boards = split_dict(boards)
@@ -68,27 +81,21 @@ class Workspace:
         self.board_colors = make_palette(len(boards))
         cache_key = self.fields("filenames", "boards", "image_sizes")
 
-        self.detected_points = (
-            try_load_detections(cache_file, cache_key) if load_cache else None
-        )
+        self.detected_points = (try_load_detections(
+            self.detections_file, cache_key) if load_cache else None)
+
         if self.detected_points is None:
             info("Detecting boards..")
-            self.detected_points = image.detect.detect_images(
-                self.boards, self.images, j=j
-            )
+            self.detected_points = image.detect.detect_images(self.boards, self.images, j=j)
 
-            if cache_file is not None:
-                info(f"Writing detection cache to {cache_file}")
-                write_detections(cache_file, self.detected_points, cache_key)
+            info(f"Writing detection cache to {self.detections_file}")
+            write_detections(self.detections_file, self.detected_points, cache_key)
 
-        self.point_table = tables.make_point_table(
-            self.detected_points, self.boards)
+        self.point_table = tables.make_point_table(self.detected_points, self.boards)
         info("Detected point counts:")
         tables.table_info(self.point_table.valid, self.names)
 
-    def calibrate_single(
-        self, camera_model, fix_aspect=False, has_skew=False, max_images=None
-    ):
+    def calibrate_single(self, camera_model, fix_aspect=False, has_skew=False, max_images=None):
         assert self.detected_points is not None
 
         info("Calibrating single cameras..")
@@ -109,9 +116,7 @@ class Workspace:
 
     def initialise_poses(self, motion_model=StaticFrames):
         assert self.cameras is not None
-        self.pose_table = tables.make_pose_table(
-            self.point_table, self.boards, self.cameras
-        )
+        self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
 
         info("Pose counts:")
         tables.table_info(self.pose_table.valid, self.names)
@@ -133,23 +138,14 @@ class Workspace:
         self.calibrations["initialisation"] = calib
         return calib
 
-    def calibrate(
-        self,
-        name,
-        camera_poses=True,
-        motion=True,
-        board_poses=True,
-        cameras=False,
-        boards=False,
-        **opt_args,
-    ):
+    def calibrate(self, name,
+        camera_poses=True, motion=True, board_poses=True, 
+        cameras=False, boards=False, **opt_args):
+
         calib = self.latest_calibration.enable(
-            cameras=cameras,
-            boards=boards,
-            camera_poses=camera_poses,
-            motion=motion,
-            board_poses=board_poses,
-        )
+            cameras=cameras, boards=boards, camera_poses=camera_poses,
+            motion=motion, board_poses=board_poses)
+            
         calib = calib.adjust_outliers(**opt_args)
 
         self.calibrations[name] = calib
@@ -184,7 +180,9 @@ class Workspace:
         if self.cameras is not None:
             return dict(initialisation=self.cameras)
 
-    def export(self, filename, master=None):
+    def export(self, filename=None, master=None):
+
+        filename = filename or path.join(self.output_path, f"{self.name}.json")
         info(f"Exporting calibration to {filename}")
 
         master = master or self.names.camera[0]
@@ -198,7 +196,9 @@ class Workspace:
 
         export(filename, calib, self.names, master=master)
 
-    def dump(self, filename):
+    def dump(self, filename=None):
+        filename = filename or path.join(self.output_path, f"{self.name}.pkl")
+
         info(f"Dumping state and history to {filename}")
         with open(filename, "wb") as file:
             pickle.dump(self, file)

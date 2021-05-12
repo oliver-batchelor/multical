@@ -1,4 +1,3 @@
-from multical.config.arguments import Inputs
 import multical.image as image
 from logging import info
 from os import path
@@ -35,19 +34,17 @@ def get_paths(output_path, name="calibration"):
   return struct(
     log_file = path.join(output_path, f"{name}.log"),
     export_file = path.join(output_path, f"{name}.json"),
-
-    detection_cache = path.join(output_path, f"detections.pkl"),
     workspace_file = path.join(output_path, f"{name}.pkl")
   )
 
 
-def find_camera_images(inputs : Inputs,  extensions=image.find.image_extensions):   
-  camera_paths = image.find.find_cameras(inputs.image_path, inputs.cameras, inputs.camera_pattern, extensions=extensions)
+def find_camera_images(image_path, cameras=None, camera_pattern=None, extensions=image.find.image_extensions):   
+  camera_paths = image.find.find_cameras(image_path, cameras, camera_pattern, extensions=extensions)
   camera_names = list(camera_paths.keys())
 
   image_names, filenames = image.find.find_images_matching(camera_paths, extensions=extensions)
   info("Found camera directories {} with {} matching images".format(camera_names, len(image_names)))
-  return struct(image_path=inputs.image_path, cameras=camera_names, image_names=image_names, filenames=filenames)
+  return struct(image_path=image_path, cameras=camera_names, image_names=image_names, filenames=filenames)
 
 
 

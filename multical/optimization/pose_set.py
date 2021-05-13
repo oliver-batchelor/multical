@@ -7,6 +7,8 @@ from multical.io.export_calib import export_poses
 from multical.transform import rtvec as transform_vec
 from .parameters import IndexMapper
 
+import numpy as np
+
 class PoseSet(Parameters):
   def __init__(self, pose_table, names=None):
     self.pose_table = pose_table
@@ -23,6 +25,18 @@ class PoseSet(Parameters):
   @cached_property
   def inverse(self):
     return self.copy(pose_table=tables.inverse(self.pose_table))
+
+  def __getitem__(self, k):
+    if isinstance(k, str):
+      if k not in self.names:
+        raise KeyError(f"pose {k} not found in {self.names}")    
+      
+      return self.poses[self.names.index(k)]
+    else:
+      return self.poses[k]
+
+  def relative(self, src, dest):
+    return self[dest] @ np.linalg.inv(self[src])
 
   @cached_property
   def poses(self):

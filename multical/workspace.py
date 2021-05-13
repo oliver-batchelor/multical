@@ -11,7 +11,7 @@ from os import path
 from multical.io import export, try_load_detections, write_detections
 from multical.image.detect import common_image_size
 
-from multical.optimization.calibration import Calibration
+from multical.optimization.calibration import Calibration, select_threshold
 from structs.struct import map_list, split_dict, struct, subset
 from . import tables, image
 from .camera import calibrate_cameras
@@ -54,7 +54,7 @@ class Workspace:
 
         self.log_handler = MemoryHandler()
 
-    def load_camera_images(self, camera_images, j=cpu_count()):
+    def add_camera_images(self, camera_images, j=cpu_count()):
         check_camera_images(camera_images)
         self.names = self.names._extend(
             camera=camera_images.cameras, image=camera_images.image_names)
@@ -62,6 +62,9 @@ class Workspace:
         self.filenames = camera_images.filenames
         self.image_path = camera_images.image_path
 
+        self.load_images(j=j)
+
+    def load_images(self, j=cpu_count()):
         info("Loading images..")
         self.images = image.detect.load_images(
             self.filenames, j=j, prefix=self.image_path)
@@ -71,7 +74,6 @@ class Workspace:
         info(
             {k: image_size for k, image_size in zip(
                 self.names.camera, self.image_size)})
-
     @property
     def temp_folder(self):
       folder = pathlib.Path(self.output_path).joinpath("." + self.name)
@@ -150,13 +152,21 @@ class Workspace:
 
     def calibrate(self, name="calibration",
         camera_poses=True, motion=True, board_poses=True, 
-        cameras=False, boards=False, **opt_args):
+        cameras=False, boards=False,
+        loss='linear', tolerance=1e-4, num_adjustments=3,
+        quantile=0.75, auto_scale=None, outlier_threshold=5.0)  -> Calibration:
 
-        calib = self.latest_calibration.enable(
+        calib : Calibration = self.latest_calibration.enable(
             cameras=cameras, boards=boards, camera_poses=camera_poses,
             motion=motion, board_poses=board_poses)
             
-        calib = calib.adjust_outliers(**opt_args)
+        calib = calib.adjust_outliers(
+          loss=loss, 
+          tolerance=tolerance,
+          num_adjustments=num_adjustments,
+          select_outliers = select_threshold(quantile=quantile, factor=outlier_threshold),
+          select_scale = select_threshold(quantile=quantile, factor=auto_scale) if auto_scale is not None else None
+        )
 
         self.calibrations[name] = calib
         return calib
@@ -166,11 +176,11 @@ class Workspace:
         return self.names._map(len)
 
     @property
-    def initialisation(self):
+    def initialisation(self)  -> Calibration:
         return self.calibrations["initialisation"]
 
     @property
-    def latest_calibration(self):
+    def latest_calibration(self) -> Calibration:
         return list(self.calibrations.values())[-1]
 
     @property

@@ -17,9 +17,17 @@ class Vis:
       visualize(self)
 
 
+def fix_qt():
+  # work around Qt in OpenCV 
+  for k, v in os.environ.items():
+      if k.startswith("QT_") and "cv2" in v:
+          del os.environ[k]
+
 
 def visualize_ws(ws):
     try:
+      fix_qt()
+      
       from multical.interface import visualizer
       visualizer.visualize(ws)
 

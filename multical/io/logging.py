@@ -5,6 +5,7 @@ from os import path
 from sys import stdout
 from copy import copy
 
+import numpy as np
 from structs.struct import struct
 
 logger = logging.getLogger("calibration")
@@ -81,6 +82,7 @@ class IndentFormatter(logging.Formatter):
 
 
 def setup_logging(console_level='INFO', handlers=[], log_file=None):
+  np.set_printoptions(precision=4, suppress=True)
 
   for handler in handlers:
     logger.addHandler(handler)

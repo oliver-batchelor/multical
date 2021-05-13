@@ -34,7 +34,7 @@ default_optimize = struct(
   motion = True
 )
 
-def select_threshold(quantile=0.95, factor=1.0):
+def select_threshold(quantile=0.75, factor=5.0):
   def f(reprojection_error):
     return np.quantile(reprojection_error, quantile) * factor
   return f
@@ -251,17 +251,17 @@ class Calibration(parameters.Parameters):
 
     return self.copy(inlier_mask = inliers)
 
-  def adjust_outliers(self, num_adjustments=4, auto_scale=None, outliers=None, **kwargs):
+  def adjust_outliers(self, num_adjustments=3, select_scale=None, select_outliers=None, **kwargs):
     info(f"Beginning adjustments ({num_adjustments}) enabled: {self.optimize}, options: {kwargs}")
 
     for i in range(num_adjustments):
       self.report(f"Adjust_outliers {i}")
-      f_scale = apply_none(auto_scale, self.reprojection_error) or 1.0
-      if auto_scale is not None:
+      f_scale = apply_none(select_scale, self.reprojection_error) or 1.0
+      if select_scale is not None:
         info(f"Auto scaling for outliers influence at {f_scale:.2f} pixels")
       
-      if outliers is not None:
-        self = self.reject_outliers(outliers(self.reprojection_error))
+      if select_outliers is not None:
+        self = self.reject_outliers(select_outliers(self.reprojection_error))
 
       self = self.bundle_adjust(f_scale=f_scale, **kwargs)
     self.report(f"Adjust_outliers end")

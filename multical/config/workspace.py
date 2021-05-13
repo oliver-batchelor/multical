@@ -5,7 +5,8 @@ from multical.motion.static_frames import StaticFrames
 from multical.motion.rolling_frames import RollingFrames
 from multical.optimization.calibration import select_threshold
 from multical.io.logging import setup_logging
-from multical import board, workspace
+from multical import board
+from multical.workspace import Workspace
 from multical.io.logging import info
 
 from .runtime import find_board_config, find_camera_images, get_paths
@@ -21,10 +22,10 @@ def get_motion_model(motion_model):
         assert False, f"unknown motion model {motion_model}, (static|rolling)"
 
 
-def initialise_with_images(ws, boards, camera_images, 
+def initialise_with_images(ws : Workspace, boards, camera_images, 
   camera_opts : CameraOpts = CameraOpts(), runtime : RuntimeOpts = RuntimeOpts()):
 
-    ws.load_camera_images(camera_images, j=runtime.num_threads)
+    ws.add_camera_images(camera_images, j=runtime.num_threads)
     ws.detect_boards(boards, load_cache=not runtime.no_cache, j=runtime.num_threads)
 
     ws.calibrate_single(camera_opts.distortion_model, fix_aspect=camera_opts.fix_aspect,
@@ -35,10 +36,7 @@ def initialise_with_images(ws, boards, camera_images,
     return ws
 
 
-def optimize(ws, opt : OptimizerOpts = OptimizerOpts()):
-  outliers = select_threshold(quantile=0.75, factor=opt.outlier_threshold)
-  auto_scale = select_threshold(quantile=0.75, factor=opt.auto_scale)\
-      if opt.auto_scale is not None else None
+def optimize(ws : Workspace, opt : OptimizerOpts = OptimizerOpts()):
 
   ws.calibrate("calibration", loss=opt.loss,
     boards=opt.adjust_board,
@@ -46,6 +44,6 @@ def optimize(ws, opt : OptimizerOpts = OptimizerOpts()):
     camera_poses=not opt.fix_camera_poses,
     board_poses=not opt.fix_board_poses,
     motion=not opt.fix_motion,
-    auto_scale=auto_scale, outliers=outliers)
+    auto_scale=opt.auto_scale, outlier=opt.auto_scale, quantile=opt.outlier_quantile)
 
   return ws

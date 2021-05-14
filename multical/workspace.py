@@ -193,6 +193,11 @@ class Workspace:
     def get_calibrations(self):
         return self.calibrations
 
+    def push_calibration(self, name, calib):
+      if name in self.calibrations:
+        raise KeyError(f"calibration {name} exists already {list(self.calibrations.keys())}")
+      self.calibrations[name] = calib
+
     def get_camera_sets(self):
         if self.has_calibrations():
             return {k: calib.cameras for k, calib in self.calibrations.items()}

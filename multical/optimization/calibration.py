@@ -255,7 +255,7 @@ class Calibration(parameters.Parameters):
     info(f"Beginning adjustments ({num_adjustments}) enabled: {self.optimize}, options: {kwargs}")
 
     for i in range(num_adjustments):
-      self.report(f"Adjust_outliers {i}")
+      self.report(f"Adjust_outliers {i}:")
       f_scale = apply_none(select_scale, self.reprojection_error) or 1.0
       if select_scale is not None:
         info(f"Auto scaling for outliers influence at {f_scale:.2f} pixels")
@@ -264,7 +264,7 @@ class Calibration(parameters.Parameters):
         self = self.reject_outliers(select_outliers(self.reprojection_error))
 
       self = self.bundle_adjust(f_scale=f_scale, **kwargs)
-    self.report(f"Adjust_outliers end")
+    self.report(f"Adjust_outliers end:")
     return self
 
 

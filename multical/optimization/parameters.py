@@ -132,14 +132,17 @@ class IndexMapper(object):
     self.mask_coords = np.broadcast_to(np.expand_dims(valid_mask, -1), [*valid_mask.shape, 2]) 
     self.indices = np.arange(self.mask_coords.size).reshape(*self.mask_coords.shape)
 
+
   def point_indexes(self, i, axis, enabled=True):
     return np.take(self.indices, i, axis=axis).ravel() if enabled else None
 
   def param_indexes(self, params, axis):
-
     return [(p.size, self.point_indexes(i, axis=axis))
       for i, p in enumerate(params)]
 
   def pose_mapping(self, poses, axis, param_size):
     return [(param_size, self.point_indexes(i, axis, optimized))
       for i, optimized in enumerate(poses.valid)]
+
+  def all_points(self, param_size):
+    return [(param_size, self.indices)]

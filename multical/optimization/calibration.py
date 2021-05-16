@@ -287,16 +287,16 @@ class Calibration(parameters.Parameters):
     plt.show()
 
 
-  def report(self, stage):
+  def report(self, stage=""):
 
     overall = error_stats(self.reprojection_error)
     inliers = error_stats(self.reprojection_inliers)
 
     if self.inlier_mask is not None:
-      info(f"{stage}: reprojection RMS={inliers.rms:.3f} ({overall.rms:.3f}), "
+      info(f"{stage} reprojection RMS={inliers.rms:.3f} ({overall.rms:.3f}), "
            f"n={inliers.n} ({overall.n}), quantiles={overall.quantiles}")
     else:
-      info(f"{stage}: reprojection RMS={overall.rms:.3f}, n={overall.n}, "
+      info(f"{stage} reprojection RMS={overall.rms:.3f}, n={overall.n}, "
            f"quantiles={overall.quantiles}")
 
 

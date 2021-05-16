@@ -14,7 +14,7 @@ def transform_points(points, rtvec):
 size = 6
 
 def split(rtvec):
-  assert rtvec.shape[-1] == 6
+  assert rtvec.shape[-1] == size, f"split - bad shape: {rtvec.shape}"
   return rtvec[..., 0:3], rtvec[..., 3:6]
 
 def join(rvec, tvec):

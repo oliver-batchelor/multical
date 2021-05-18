@@ -237,11 +237,21 @@ def reprojection_error(points1, points2):
 def inverse(table):
   return table._extend(poses=np.linalg.inv(table.poses))
 
-def post_multiply(table, t):
-  return table._extend(poses=table.poses @ t)
 
-def pre_multiply(t, table):
-  return table._extend(poses=t @ table.poses)
+def multiply(t1, t2):
+  assert isinstance(t1, np.ndarray) or isinstance(t1, Table)
+  assert isinstance(t2, np.ndarray) or isinstance(t2, Table)
+
+  if isinstance(t1, np.ndarray):
+    if isinstance(t2, np.ndarray):
+      return t1 @ t2
+    else:
+      return t2._extend(poses=t1 @ t2.poses)
+  else:
+    if isinstance(t2, np.ndarray):
+      return t1._extend(poses=t1.poses @ t2)   
+    else:
+      return multiply_tables(t1, t2)
 
 
 def can_broadcast(shape1, shape2):

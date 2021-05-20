@@ -1,5 +1,8 @@
+from multical.workspace import detect_boards_cached
+from os import path
+import pathlib
 from multical.app.calibrate import calibrate
-from multical.config.runtime import find_board_config, get_paths
+from multical.config.runtime import find_board_config, find_camera_images
 from multical.image.detect import common_image_size
 from multical.threading import map_lists
 from multical.io.logging import setup_logging
@@ -23,37 +26,46 @@ class Intrinsic:
       calibrate_intrinsic(self)
 
 
-def calibrate_intrinsic(args):
- 
-    paths = get_paths(args)
+def setup_paths(paths):
+  output_path = paths.image_path or paths.output_path 
+  temp_folder = pathlib.Path(output_path).joinpath("." + paths.name)
+  temp_folder.mkdir(exist_ok=True, parents=True)
+  return struct(
+    output = output_path,
+    temp=str(temp_folder),
+    log_file=str(temp_folder.joinpath("log.txt")),
+    detections=str(temp_folder.joinpath("detections.pkl"))
+  )
 
-    setup_logging(args.log_level, [], log_file=paths.log_file)
+
+def calibrate_intrinsic(args):
+    paths=setup_paths(args.paths)
+
+    setup_logging(args.runtime.log_level, [], log_file=paths.log_file)
     info(args) 
 
-    boards = find_board_config(args)
+    boards = find_board_config(args.paths.image_path, args.paths.boards)
 
-    cameras = map_none(str.split, args.cameras, ",")
-    camera_paths = image.find.find_cameras(args.image_path, cameras, args.camera_pattern)
+    camera_images = find_camera_images(args.paths.image_path, 
+      args.paths.cameras, args.paths.camera_pattern, matching=False)
 
-    camera_names, image_files = image.find.find_images_unmatched(camera_paths)
 
-    image_counts = {k:len(files) for k, files in zip(camera_names, image_files)}
+    image_counts = {k:len(files) for k, files in zip(camera_images.cameras, camera_images.filenames)}
     info("Found camera directories with images {}".format(image_counts))
 
 
     info("Loading images..")
-    images = image.detect.load_images(image_files,  prefix=args.image_path, j=args.j)
+    images = image.detect.load_images(camera_images.filenames,  
+      prefix=camera_images.image_path, j=args.runtime.num_threads)
     image_sizes = map_list(common_image_size, images)
 
-    info({k:image_size for k, image_size in zip(camera_names, image_sizes)})
+    info({k:image_size for k, image_size in zip(camera_images.cameras, image_sizes)})
 
+    cache_key = struct(boards=boards, image_sizes=image_sizes, filenames=camera_images.filenames)
+
+    detected_points = detect_boards_cached(boards, images, 
+        paths.detections, cache_key, j=args.runtime.num_threads)
     
-
-
-    # ws.find_images_matching(args.image_path, cameras, args.camera_pattern, master = args.master)
- 
-
-    # ws.load_images(j=args.j)
     # ws.detect_boards(boards, cache_file=paths.detection_cache, 
     #   load_cache=not args.no_cache, j=args.j)
     

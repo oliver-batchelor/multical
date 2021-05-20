@@ -21,6 +21,19 @@ from .display import make_palette
 
 import pickle
 
+def detect_boards_cached(boards, images, detections_file, cache_key, load_cache=True, j=cpu_count()):
+  detected_points = (try_load_detections(
+    detections_file, cache_key) if load_cache else None)
+
+  if detected_points is None:
+    info("Detecting boards..")
+    detected_points = image.detect.detect_images(boards, images, j=j)
+
+    info(f"Writing detection cache to {detections_file}")
+    write_detections(detections_file, detected_points, cache_key)
+
+  return detected_points
+
 
 def check_camera_images(camera_images):
   assert len(camera_images.cameras) == len(camera_images.filenames),\
@@ -93,15 +106,8 @@ class Workspace:
         self.board_colors = make_palette(len(boards))
         cache_key = self.fields("filenames", "boards", "image_sizes")
 
-        self.detected_points = (try_load_detections(
-            self.detections_file, cache_key) if load_cache else None)
-
-        if self.detected_points is None:
-            info("Detecting boards..")
-            self.detected_points = image.detect.detect_images(self.boards, self.images, j=j)
-
-            info(f"Writing detection cache to {self.detections_file}")
-            write_detections(self.detections_file, self.detected_points, cache_key)
+        self.detected_points = detect_boards_cached(self.boards, self.images, 
+          self.detections_file, cache_key, load_cache, j=j)
 
         self.point_table = tables.make_point_table(self.detected_points, self.boards)
         info("Detected point counts:")

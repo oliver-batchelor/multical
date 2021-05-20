@@ -1,12 +1,10 @@
 import multical.image as image
 from logging import info
 from os import path
-import pathlib
 
 from structs.struct import struct
 from multical.board import load_config, load_calico
 
-from multical.motion import StaticFrames, RollingFrames
 
 def find_board_config(image_path, board_file = None):
   assert board_file is None or path.isfile(board_file), f"board file {board_file} not found"
@@ -27,22 +25,14 @@ def find_board_config(image_path, board_file = None):
     info(f"{name} {b}")  
   return boards
 
-def get_paths(output_path, name="calibration"):
 
-  pathlib.Path(output_path).mkdir(parents=True, exist_ok=True)
-  
-  return struct(
-    log_file = path.join(output_path, f"{name}.log"),
-    export_file = path.join(output_path, f"{name}.json"),
-    workspace_file = path.join(output_path, f"{name}.pkl")
-  )
-
-
-def find_camera_images(image_path, cameras=None, camera_pattern=None, extensions=image.find.image_extensions):   
+def find_camera_images(image_path, cameras=None, camera_pattern=None, matching=True, extensions=image.find.image_extensions):   
   camera_paths = image.find.find_cameras(image_path, cameras, camera_pattern, extensions=extensions)
   camera_names = list(camera_paths.keys())
 
-  image_names, filenames = image.find.find_images_matching(camera_paths, extensions=extensions)
+  find_images = image.find.find_images_matching if matching else image.find.find_images_unmatched
+
+  image_names, filenames = find_images(camera_paths, extensions=extensions)
   info("Found camera directories {} with {} matching images".format(camera_names, len(image_names)))
   return struct(image_path=image_path, cameras=camera_names, image_names=image_names, filenames=filenames)
 

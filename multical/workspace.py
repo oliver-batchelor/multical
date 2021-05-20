@@ -219,7 +219,7 @@ class Workspace:
         if master is not None:
             calib = calib.with_master(master)
 
-        export(filename, calib, self.names, master=master)
+        export(filename, calib, self.names, self.filenames, master=master)
 
     def dump(self, filename=None):
         filename = filename or path.join(self.output_path, f"{self.name}.pkl")

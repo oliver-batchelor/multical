@@ -1,7 +1,7 @@
 import json
 from os import path
 
-from structs.struct import struct, to_dicts
+from structs.struct import struct, to_dicts, transpose_lists
 from multical.transform import matrix
 
 
@@ -42,11 +42,12 @@ def export_poses(pose_table, names=None):
     if t.valid}
 
 
-def export(filename, calib, names, master=None):  
+def export(filename, calib, names, filenames, master=None):  
   if master is not None:
     calib = calib.with_master(master)
 
   camera_poses = calib.camera_poses.pose_table
+  filenames = transpose_lists(filenames)
 
   data = struct(
     cameras = export_cameras(names.camera, calib.cameras),
@@ -54,8 +55,8 @@ def export(filename, calib, names, master=None):
       if master is None else export_relative(names.camera, camera_poses, master),
     
     image_sets = struct(
-      rgb = [{camera : path.join(camera, image) for camera in names.camera}
-        for image in names.image]
+      rgb = [{camera : image for image, camera in zip(images, names.camera)}
+        for images in filenames]
     ),
   )
   

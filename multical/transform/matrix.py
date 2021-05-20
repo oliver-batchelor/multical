@@ -8,8 +8,6 @@ from . import common
 from scipy.spatial.transform import Rotation as R
 from scipy.linalg import logm, expm
 
-from logging import info
-
 def transform(*seq):
   return rtransform(*reversed(seq))
 
@@ -159,14 +157,4 @@ def pose_errors(p1, p2):
     frobius = np.linalg.norm(p1 - p2, axis=(1, 2))
   )
 
-def report_errors(name, errs):
-  rms = np.sqrt(np.square(errs).mean())
-  quantiles = np.quantile(errs, [0, 0.25, 0.5, 0.75, 1.0])
-  info(f"{name} - RMS: {rms:.4f} quantiles: {quantiles}")
 
-def report_pose_errors(p1, p2, k = ""):
-  err = pose_errors(p1, p2)
-  info(f"{k} pose errors:")
-  report_errors("position(mm)", err.translation)
-  report_errors("angle(deg)", err.angular_deg)
-  report_errors("frobius", err.frobius)

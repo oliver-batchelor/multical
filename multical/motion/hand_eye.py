@@ -45,6 +45,10 @@ class HandEye(Parameters, MotionModel):
     base_wrt_camera = tables.multiply(self.gripper_wrt_camera, self.base_wrt_gripper)
     return tables.multiply(base_wrt_camera, self.world_wrt_base)
 
+  @property
+  def frame_poses(self):
+    return self.pose_table
+
   def pre_transform(self, t):   
     return self.copy(gripper_wrt_camera = t @ self.gripper_wrt_camera)
 

@@ -9,6 +9,7 @@ from structs.struct import Struct
 from simple_parsing import ArgumentParser, choice
 from simple_parsing.helpers import list_field
 
+
 @dataclass 
 class PathOpts:
   """File and path options for inputs and outputs"""
@@ -29,8 +30,10 @@ class CameraOpts:
   fix_aspect: bool = False  # Fix aspect ratio of cameras
   allow_skew: bool = False  # Allow skew parameter in camera intrinsics
   distortion_model: str = choice("standard", "rational", "thin_prism", "tilted", default="standard")
-  limit_intrinsic: Optional[int] = 50   # Limit intrinsic images to enable faster initialisation
   motion_model: bool = choice("rolling", "static", default="static")  # Camera motion model to use
+
+  limit_intrinsic: Optional[int] = 50   # Limit intrinsic images to enable faster initialisation
+  calibration: str = None # Initialise from previous (or single camera) calibration
 
 @dataclass 
 class RuntimeOpts:

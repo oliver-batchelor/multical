@@ -42,6 +42,22 @@ def export_poses(pose_table, names=None):
     if t.valid}
 
 
+def export_images(camera_names, filenames):
+  return struct(
+      rgb = [{camera : image for image, camera in zip(images, camera_names)}
+        for images in filenames]
+    )
+
+def export_single(filename, cameras, camera_names, filenames):  
+  filenames = transpose_lists(filenames)
+  data = struct(
+    cameras = export_cameras(camera_names, cameras),
+    image_sets = export_images(camera_names, filenames)
+  )
+ 
+  with open(filename, 'w') as outfile:
+    json.dump(to_dicts(data), outfile, indent=2)
+
 def export(filename, calib, names, filenames, master=None):  
   if master is not None:
     calib = calib.with_master(master)
@@ -53,11 +69,8 @@ def export(filename, calib, names, filenames, master=None):
     cameras = export_cameras(names.camera, calib.cameras),
     camera_poses = export_camera_poses(names.camera, camera_poses)\
       if master is None else export_relative(names.camera, camera_poses, master),
-    
-    image_sets = struct(
-      rgb = [{camera : image for image, camera in zip(images, names.camera)}
-        for images in filenames]
-    ),
+    image_sets = export_images(names.camera, filenames)
+
   )
   
   with open(filename, 'w') as outfile:

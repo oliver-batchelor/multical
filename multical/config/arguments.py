@@ -39,14 +39,12 @@ class RuntimeOpts:
   log_level: str = choice('INFO', 'DEBUG', 'WARN', default='INFO') # Minimum log level
   no_cache: bool = False # Don't attempt to load detections from cache
 
- 
- 
 @dataclass 
 class OptimizerOpts:
   """ Optimizer settings including outlier rejection settings and parameters to fix/adjust """
   
   iter : int = 3 # Iterations of bundle adjustment/outlier rejection
-  loss : str = choice('linear', 'soft_l1l', 'huber', 'arctan', default='linear') # Loss function to use in bundle adjustment
+  loss : str = choice('linear', 'soft_l1', 'huber', 'arctan', default='linear') # Loss function to use in bundle adjustment
 
   outlier_quantile : float = 0.75 # Quantile for outlier rejection (multiplied by threshold factor)
   outlier_threshold : float = 5.0 # Threshold for outliers (factor of quartile of reprojection error)

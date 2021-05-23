@@ -1,5 +1,6 @@
 import json
 from os import path
+import numpy as np
 
 from structs.struct import struct, to_dicts, transpose_lists
 from multical.transform import matrix
@@ -35,6 +36,18 @@ def export_relative(camera_names, camera_poses, master):
       if valid}
 
 
+def export_sequential(camera_names, camera_poses):
+  transforms = {camera_names[0]: export_transform(np.eye(4))}
+  poses = camera_poses.poses
+
+  for i in range(1, len(camera_names)):
+    k = f"{camera_names[i]}_to_{camera_names[i - 1]}"
+    transforms[k] = export_transform(poses[i] @ np.linalg.inv(poses[i - 1]))
+    
+  return transforms
+
+
+
 def export_poses(pose_table, names=None):
   names = names or [str(i) for i in range(pose_table._size[0])]
 
@@ -65,8 +78,10 @@ def export(filename, calib, names, filenames, master=None):
   camera_poses = calib.camera_poses.pose_table
   filenames = transpose_lists(filenames)
 
+
   data = struct(
     cameras = export_cameras(names.camera, calib.cameras),
+    # camera_poses = export_sequential(names.camera, camera_poses),
     camera_poses = export_camera_poses(names.camera, camera_poses)\
       if master is None else export_relative(names.camera, camera_poses, master),
     image_sets = export_images(names.camera, filenames)

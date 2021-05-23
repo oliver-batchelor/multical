@@ -1,4 +1,5 @@
 from functools import partial
+from multical.io.report import report_pose_errors
 from .io.logging import debug, info
 import numpy as np
 
@@ -148,13 +149,19 @@ def estimate_transform(table, i, j, axis=0):
   poses_j = table_j.poses.reshape(-1, 4, 4)
 
   t, inliers = matrix.align_transforms_robust(poses_i, poses_j, valid=valid)
-  err = rms(matrix.error_transform(t, poses_i[valid], poses_j[valid]))
 
-  err_inlier = rms(matrix.error_transform(t, poses_i[inliers], poses_j[inliers]))
+  err = matrix.pose_errors(t @ poses_i[valid], poses_j[valid])._map(rms)
+  err_inlier = matrix.pose_errors(t @ poses_i[inliers], poses_j[inliers])._map(rms)
 
   info(f"Estimate transform axis={axis}, pair {(i, j)}, "
-       f"inliers {inliers.sum()}/{valid.sum()}, "
-       f"RMS (frobius) {err_inlier:.4f} ({err:.4f})")
+       f"inliers {inliers.sum()}/{valid.sum()}"
+  )
+
+  info(f"RMS (frobius): {err_inlier.frobius:.4f} ({err.frobius:.4f})"
+       f" (deg): {err_inlier.rotation_deg:.4f} ({err.rotation_deg:.4f})"
+       f" (trans): {err_inlier.translation:.4f} ({err.translation:.4f})"
+  )
+
   info(t)
   return t
 
@@ -206,8 +213,8 @@ def estimate_relative_poses(table, axis=0, hop_penalty=0.9, name=None, names=Non
     t = estimate_transform(table, parent, child, axis=axis)
     pose_dict[child] = t @ pose_dict[parent]
 
-  return fill_poses(pose_dict, n)
-
+  rel_poses = fill_poses(pose_dict, n)
+  return multiply(rel_poses, np.linalg.inv(rel_poses.poses[0]))
 
 def estimate_relative_poses_inv(table, axis=2, hop_penalty=0.9):
   return inverse(estimate_relative_poses(inverse(table), axis=axis, hop_penalty=hop_penalty))
@@ -329,9 +336,25 @@ def relative_between_n(table1, table2, axis=0, inv=False):
   return Table.stack(relative_poses)
 
 
-def initialise_poses(pose_table):
+def report_poses(k, init, ref):
+  errs = matrix.pose_errors(init, ref)  
+  for i in range(init.shape[0]):
+    info(f"{k} {i}: frobius {errs.frobius[i]:.4f}, "
+    f"rotation (deg): {errs.rotation_deg[i]:.4f}, "
+    f"translation: {errs.translation[i]:.4f}") 
+
+def initialise_poses(pose_table, camera_poses=None):
     # Find relative transforms between cameras and rig poses
   camera = estimate_relative_poses(pose_table, axis=0)
+
+  if camera_poses is not None:
+    info("Camera initialisation vs. supplied calibration")
+    report_poses("camera", camera_poses, camera.poses)
+    camera = Table.create(
+      poses=camera_poses, 
+      valid=np.ones(camera_poses.shape[0], dtype=np.bool)
+    )
+    
   board  = estimate_relative_poses_inv(pose_table, axis=2)
 
   # solve for the rig transforms cam @ rig @ board = pose

@@ -153,7 +153,7 @@ def pose_errors(p1, p2):
 
   return struct(  
     translation = np.linalg.norm(t, axis=(1)),
-    angular_deg = R.magnitude(R.from_matrix(r)) * 180.0 / math.pi,
+    rotation_deg = R.magnitude(R.from_matrix(r)) * 180.0 / math.pi,
     frobius = np.linalg.norm(p1 - p2, axis=(1, 2))
   )
 

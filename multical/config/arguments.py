@@ -33,7 +33,7 @@ class CameraOpts:
   motion_model: bool = choice("rolling", "static", default="static")  # Camera motion model to use
 
   limit_intrinsic: Optional[int] = 50   # Limit intrinsic images to enable faster initialisation
-  calibration: str = None # Initialise from previous (or single camera) calibration
+  calibration: Optional[str] = None # Initialise from previous (or single camera) calibration
 
 @dataclass 
 class RuntimeOpts:

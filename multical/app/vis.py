@@ -45,7 +45,7 @@ def visualize(args):
       
     ws = Workspace.load(filename)
     setup_logging('INFO', [ws.log_handler])
-    ws.load_images()
+    ws._load_images()
 
     visualize_ws(ws)
 

@@ -1,5 +1,7 @@
 from collections import OrderedDict
 import pathlib
+
+import numpy as np
 from multical.motion import StaticFrames
 from multiprocessing import cpu_count
 
@@ -77,9 +79,11 @@ class Workspace:
         self.filenames = camera_images.filenames
         self.image_path = camera_images.image_path
 
-        self.load_images(j=j)
+        self._load_images(j=j)
 
-    def load_images(self, j=cpu_count()):
+    def _load_images(self, j=cpu_count()):
+        assert self.filenames is not None, "_load_images: no filenames set"
+
         info("Loading images..")
         self.images = image.detect.load_images(
             self.filenames, j=j, prefix=self.image_path)
@@ -101,7 +105,8 @@ class Workspace:
 
 
     def detect_boards(self, boards, load_cache=True, j=cpu_count()):
-        assert self.boards is None
+        assert self.boards is None, "detect_boards: boards already set"
+        assert self.images is not None, "detect_boards: no images loaded, first use add_camera_images"
 
         board_names, self.boards = split_dict(boards)
         self.names = self.names._extend(board=board_names)
@@ -115,8 +120,19 @@ class Workspace:
         info("Detected point counts:")
         tables.table_info(self.point_table.valid, self.names)
 
+    def set_calibration(self, cameras):
+      assert set(self.names.camera) == set(cameras.keys()),\
+         f"set_calibration: cameras don't match"\
+         f"{set(self.names.camera)} vs. {set(cameras.keys())}"
+
+      self.cameras = [cameras[k] for k in self.names.camera]
+      info("Cameras set...")
+      for name, camera in zip(self.names.camera, self.cameras):
+          info(f"{name} {camera}")
+          info("")
+
     def calibrate_single(self, camera_model, fix_aspect=False, has_skew=False, max_images=None):
-        assert self.detected_points is not None
+        assert self.detected_points is not None, "calibrate_single: no points found, first use detect_boards to find corner points"
 
         info("Calibrating single cameras..")
         self.cameras, errs = calibrate_cameras(
@@ -134,14 +150,16 @@ class Workspace:
             info(camera)
             info("")
 
-    def initialise_poses(self, motion_model=StaticFrames):
-        assert self.cameras is not None
+    def initialise_poses(self, motion_model=StaticFrames, camera_poses=None):
+        assert self.cameras is not None, "initialise_poses: no cameras set, first use calibrate_single or set_cameras"
         self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
 
         info("Pose counts:")
         tables.table_info(self.pose_table.valid, self.names)
 
-        pose_init = tables.initialise_poses(self.pose_table)
+        pose_init = tables.initialise_poses(self.pose_table, 
+          camera_poses=None if camera_poses is None else np.array([camera_poses[k] for k in self.names.camera])
+        )
 
         calib = Calibration(
             ParamList(self.cameras, self.names.camera),

@@ -12,5 +12,5 @@ def report_pose_errors(p1, p2, k = ""):
   err = matrix.pose_errors(p1, p2)
   info(f"{k} pose errors:")
   report_errors("translation", err.translation)
-  report_errors("angle(deg)", err.angular_deg)
+  report_errors("angle(deg)", err.rotation_deg)
   report_errors("frobius", err.frobius)

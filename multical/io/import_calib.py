@@ -34,7 +34,7 @@ def propagate_poses(next, relative):
 
     poses[k] = t
     for r in relative.get(k, []):
-      t_dest = r.transform @ t
+      t_dest = t @ r.transform 
       if r.dest in poses:
         assert np.allclose(t_dest, poses[r.dest]), f"inconsistent poses for {r.dest} found"
       else:
@@ -62,8 +62,8 @@ def import_pose_graph(poses, names):
     if "_to_" in k:
       source, dest = k.split("_to_")
 
-      insert_relation(source, struct(dest=dest, transform=t))
-      insert_relation(dest, struct(dest=source, transform=np.linalg.inv(t)))
+      insert_relation(source, struct(dest=dest, transform=np.linalg.inv(t)))
+      insert_relation(dest, struct(dest=source, transform=t))
     else:
       check_camera(k)
       known[k] = t

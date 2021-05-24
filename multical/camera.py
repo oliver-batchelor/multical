@@ -3,6 +3,7 @@ import operator
 from cached_property import cached_property
 import numpy as np
 import cv2
+from structs.numpy import shape
 
 from structs.struct import subset, transpose_structs, transpose_lists
 
@@ -200,6 +201,7 @@ def calibration_points(boards, detections):
 
 
 def calibrate_cameras(boards, points, image_sizes, **kwargs):
+
   with ThreadPool() as pool:
     f = partial(Camera.calibrate, boards, **kwargs)
     return transpose_lists(pool.starmap(f, zip(points, image_sizes)))

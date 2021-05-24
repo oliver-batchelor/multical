@@ -1,14 +1,16 @@
 from dataclasses import dataclass
+from os import path
 from .charuco import CharucoBoard
 from .aprilgrid import AprilGrid
+from .calico_config import load_calico
+
 
 from typing import Tuple
 
 from omegaconf.omegaconf import OmegaConf, MISSING
 from structs.struct import struct
 
-from multical.io.logging import debug, info
-
+from multical.io.logging import debug, info, error
 
 @dataclass 
 class CharucoConfig:
@@ -52,6 +54,7 @@ def merge_schema(config, schema):
     return struct(**merged)._without('_type_')
 
 
+
 def load_config(yaml_file):
   config = OmegaConf.load(yaml_file)
   aruco_params = config.get('aruco_params', {})
@@ -59,7 +62,6 @@ def load_config(yaml_file):
   boards = {k:OmegaConf.merge(config.common, board) for k, board in config.boards.items()} if 'common' in config\
     else config.boards
 
-  
   def instantiate_board(config):
     if config._type_ == "charuco":
       schema = OmegaConf.structured(CharucoConfig)
@@ -71,3 +73,5 @@ def load_config(yaml_file):
       assert False, f"unknown board type: {config._type_}, options are (charuco | aprilgrid | checkerboard)"
 
   return {k:instantiate_board(board) for k, board in boards.items()}
+
+

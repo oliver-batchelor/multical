@@ -23,7 +23,7 @@ def find_matching_files(camera_paths, extensions):
 
 
 def find_cameras(base_dir, cameras, camera_pattern, extensions=image_extensions):
-  if cameras is None:
+  if cameras is None or len(cameras) == 0:
     cameras = natsorted(find_nonempty_dirs(base_dir, extensions))
 
   camera_pattern = camera_pattern or "{camera}" 
@@ -40,9 +40,19 @@ def find_nonempty_dirs(filepath, extensions=image_extensions):
 
 
 
-def find_images(camera_dirs, extensions=image_extensions):
+def find_images_matching(camera_dirs, extensions=image_extensions):
   image_names = find_matching_files(camera_dirs, extensions)
   return image_names, filenames(camera_dirs.values(), image_names)
+
+
+def find_images_unmatched(camera_dirs, extensions=image_extensions):
+  image_files = find_unmatched_files(camera_dirs, extensions)
+
+  image_filenames = [[path.join(camera_dir, file) for file in image_names]
+    for camera_dir, image_names in image_files.items()]
+
+  return image_files.keys(), image_filenames
+
 
 def filenames(camera_dirs, image_names):
   return [[path.join(camera_dir, image) for image in image_names]

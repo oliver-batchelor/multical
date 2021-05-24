@@ -1,10 +1,21 @@
 import numpy as np
+import math
+
 from structs.numpy import shape
-from structs.struct import choose
+from structs.struct import choose, struct
 from . import common
 
 from scipy.spatial.transform import Rotation as R
 from scipy.linalg import logm, expm
+
+def transform(*seq):
+  return rtransform(*reversed(seq))
+
+def rtransform(*seq):
+  m, *rest = seq
+  for t in rest:
+    m = m @ t
+  return m
 
 
 def homog_points(points):
@@ -134,3 +145,16 @@ def align_transforms_robust(m1, m2, valid=None, threshold=1.5):
   m = align_transforms_mean(m1[inliers], m2[inliers])
 
   return m, inliers
+
+
+def pose_errors(p1, p2):
+  d = p1 @ np.linalg.inv(p2)
+  r, t = split(d)
+
+  return struct(  
+    translation = np.linalg.norm(t, axis=(1)),
+    rotation_deg = R.magnitude(R.from_matrix(r)) * 180.0 / math.pi,
+    frobius = np.linalg.norm(p1 - p2, axis=(1, 2))
+  )
+
+

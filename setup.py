@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 setup(
 
     name="multical",
-    version="0.1.6",
+    version="0.2.0",
     author="Oliver Batchelor",
     author_email="saulzar@gmail.com",
     description="Flexible multi-camera multi-board camera calibration library and application.",
@@ -39,9 +39,10 @@ setup(
         "opencv-python>=4.2.0.0",
         "opencv-contrib-python>=4.2.0.0",
 
+        "simple-parsing",
         "natsort",
         "cached-property",
-        "py-structs>=0.2.1",
+        "py-structs>=0.2.7",
         "palettable",
         "numpy-quaternion"
     ],

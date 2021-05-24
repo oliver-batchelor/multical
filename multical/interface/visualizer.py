@@ -1,17 +1,17 @@
-from collections import OrderedDict
-import math
-from multical.interface.ui_files import load_ui
+import qtpy.QtWidgets as QtWidgets
+from qtpy import uic, QtCore
+from qtpy.QtCore import QStringListModel, Qt
 
 from .viewer_3d.viewer_3d import Viewer3D
 from .viewer_3d.moving_board import MovingBoard
 from .viewer_3d.moving_cameras import MovingCameras
 
+from collections import OrderedDict
+import math
+from multical.interface.ui_files import load_ui
+
 from . import camera_params, view_table
 from .layout import h_layout, v_layout, widget
-import qtpy.QtWidgets as QtWidgets
-
-from qtpy import uic, QtCore
-from qtpy.QtCore import QStringListModel, Qt
 
 from multical import image, tables
 
@@ -19,7 +19,7 @@ from .viewer_image import ViewerImage, annotate_image
 from structs.struct import struct, split_dict
 
 import qtawesome as qta
-
+import os
 
 def visualize(workspace):
   app = QtWidgets.QApplication([])

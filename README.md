@@ -37,7 +37,7 @@ The default method is to have folders named separately for each camera, with ima
 
 Camera names and image directories can be also specified by manually specifying camera names, and optionally specifying a pattern for the directory structure. 
 
-`multical calibrate --camera_pattern '{camera}\extrinsic' --cameras cam1,cam2,cam3` 
+`multical calibrate --camera_pattern '{camera}/extrinsic' --cameras cam1,cam2,cam3` 
 
 By default the current directory is searched, it can be specified with `--image_path`.
 
@@ -103,7 +103,7 @@ It is also the best documentation for how to use lower level library features.
 Here's my workflow for making board images:
 
 ```
-multical show_boards example_boards/charuco_16x22.yaml --paper_size A2 --pixels_mm 10 --write images
+multical show_boards example_boards/charuco_16x22.yaml --paper_size A2 --pixels_mm 10 --write_images
 
 Using boards:
 charuco_16x22 CharucoBoard {type='charuco', aruco_dict='4X4_1000', aruco_offset=0, size=(16, 22), marker_length=0.01875, square_length=0.025, aruco_params={}}

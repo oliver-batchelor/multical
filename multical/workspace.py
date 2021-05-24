@@ -93,15 +93,9 @@ class Workspace:
         info(
             {k: image_size for k, image_size in zip(
                 self.names.camera, self.image_size)})
-    @property
-    def temp_folder(self):
-      folder = pathlib.Path(self.output_path).joinpath("." + self.name)
-      folder.mkdir(parents=True, exist_ok=True)
-      return str(folder)
-
     @property 
     def detections_file(self):
-      return path.join(self.temp_folder, "detections.pkl")
+      return path.join(self.output_path, f"{self.name}.detections.pkl")
 
 
     def detect_boards(self, boards, load_cache=True, j=cpu_count()):

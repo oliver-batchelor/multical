@@ -28,7 +28,7 @@ def calibrate(args):
   output_path = args.paths.image_path or args.paths.output_path 
 
   ws = workspace.Workspace(output_path, args.paths.name)
-  setup_logging(args.runtime.log_level, [ws.log_handler], log_file=path.join(ws.temp_folder, f"log.txt"))
+  setup_logging(args.runtime.log_level, [ws.log_handler], log_file=path.join(output_path, f"{args.paths.name}.txt"))
 
   boards = find_board_config(args.paths.image_path, board_file=args.paths.boards)
   camera_images = find_camera_images(args.paths.image_path, args.paths.cameras, args.paths.camera_pattern)

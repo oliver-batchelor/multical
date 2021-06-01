@@ -3,7 +3,7 @@ import numpy as np
 from . import matrix
 
 
-def hand_eye_robot_world_t(camera_wrt_world, gripper_wrt_base, method=cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH):
+def hand_eye_robot_world_t(camera_wrt_world, gripper_wrt_base, method=None):
   """
     A version of hand_eye_robot_world: Using the opposite transform convention:
     gripper_wrt_base represents poses of the gripper in the base frame, and
@@ -13,7 +13,7 @@ def hand_eye_robot_world_t(camera_wrt_world, gripper_wrt_base, method=cv2.CALIB_
       np.linalg.inv(camera_wrt_world), np.linalg.inv(gripper_wrt_base), method)
   return np.linalg.inv(base_wrt_world), np.linalg.inv(gripper_wrt_camera), err
 
-def hand_eye_robot_world(world_wrt_camera, base_wrt_gripper, method=cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH):
+def hand_eye_robot_world(world_wrt_camera, base_wrt_gripper, method=None):
   """
     Solve the robot-world hand-eye problem AX=ZB
     In particular more commonly solve for known world_camera and base_gripper
@@ -23,6 +23,7 @@ def hand_eye_robot_world(world_wrt_camera, base_wrt_gripper, method=cv2.CALIB_RO
     describing coordinate change of points
   """
 
+  method=method or cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH
   assert world_wrt_camera.shape[0] == base_wrt_gripper.shape[0]
 
   world_camera_r, world_camera_t = matrix.split(world_wrt_camera)
@@ -40,7 +41,7 @@ def hand_eye_robot_world(world_wrt_camera, base_wrt_gripper, method=cv2.CALIB_RO
   return base_wrt_world, gripper_wrt_camera, np.linalg.norm(err, axis=(1, 2))
 
 
-def hand_eye_t(camera_wrt_world, gripper_wrt_base, method=cv2.CALIB_HAND_EYE_PARK):
+def hand_eye_t(camera_wrt_world, gripper_wrt_base, method=None):
   """
     A version of hand_eye_robot_world: Using the opposite transform convention:
     base_gripper represents poses of the gripper in the base frame, and
@@ -50,7 +51,7 @@ def hand_eye_t(camera_wrt_world, gripper_wrt_base, method=cv2.CALIB_HAND_EYE_PAR
       np.linalg.inv(camera_wrt_world), np.linalg.inv(gripper_wrt_base), method)
   return np.linalg.inv(gripper_camera)
 
-def hand_eye(world_wrt_camera, base_wrt_gripper, method=cv2.CALIB_HAND_EYE_PARK):
+def hand_eye(world_wrt_camera, base_wrt_gripper, method=None):
   """
     Solve the hand-eye problem AX=XB
     See cv2.calibrateHandEye for details. 
@@ -62,6 +63,7 @@ def hand_eye(world_wrt_camera, base_wrt_gripper, method=cv2.CALIB_HAND_EYE_PARK)
     transform which sends a *point* in the world frame to the same point in camera frame.
   """
 
+  method=method or cv2.CALIB_HAND_EYE_PARK
   assert world_wrt_camera.shape[0] == base_wrt_gripper.shape[0]
 
   camera_world_r, camera_world_t = matrix.split(np.linalg.inv(world_wrt_camera))

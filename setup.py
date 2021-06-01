@@ -36,15 +36,14 @@ setup(
         "numba",
         "scipy",
         "matplotlib",
-        "opencv-python>=4.2.0.0",
-        "opencv-contrib-python>=4.2.0.0",
-
+        "opencv-contrib-python>=4.5.0.0",
         "simple-parsing",
         "natsort",
         "cached-property",
         "py-structs>=0.2.7",
         "palettable",
-        "numpy-quaternion"
+        "numpy-quaternion",
+        "omegaconf"
     ],
 
     extras_require={

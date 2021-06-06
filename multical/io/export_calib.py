@@ -31,7 +31,7 @@ def export_camera_poses(camera_names, camera_poses):
 def export_relative(camera_names, camera_poses, master):
   assert master in camera_names
 
-  return {k if master is k else f"{k}_to_{master}" : export_transform(pose) 
+  return {k if master == k else f"{k}_to_{master}" : export_transform(pose) 
     for k, pose, valid in zip(camera_names, camera_poses.poses, camera_poses.valid) 
       if valid}
 

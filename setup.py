@@ -43,7 +43,8 @@ setup(
         "py-structs>=0.2.7",
         "palettable",
         "numpy-quaternion",
-        "omegaconf"
+        "omegaconf",
+        "packaging"
     ],
 
     extras_require={

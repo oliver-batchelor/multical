@@ -1,5 +1,5 @@
 import multical.image as image
-from logging import info
+from multical.io.logging import info
 from os import path
 
 from structs.struct import struct

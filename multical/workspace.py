@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import pathlib
+from multical.board.board import Board
 
 import numpy as np
 from multical.motion import StaticFrames
@@ -17,6 +18,8 @@ from multical.optimization.calibration import Calibration, select_threshold
 from structs.struct import map_list, split_dict, struct, subset
 from . import tables, image
 from .camera import calibrate_cameras
+
+from structs.numpy import shape
 
 from .io.logging import MemoryHandler, info
 from .display import make_palette
@@ -38,14 +41,38 @@ def detect_boards_cached(boards, images, detections_file, cache_key, load_cache=
 
   return detected_points
 
+def num_valid_detections(boards, frames):
+  n = 0
+  for frame_detections in frames:
+    for board, dets in zip(boards, frame_detections):
+      if board.has_min_detections(dets): n = n + 1
+  return n
+
+def check_detections(camera_names, boards, detected_points):
+  cameras = [k for k, fame_detections in zip(camera_names, detected_points)
+    if num_valid_detections(boards, fame_detections) == 0]
+    
+  assert len(cameras) == 0,\
+    f"cameras {cameras} have no valid detections, check board config"
+    
+
+def check_image_lengths(cameras, filenames, image_names):
+  for k, images in zip(cameras, filenames):
+    assert len(images) == len(image_names),\
+      f"mismatch between image names and camera {k}, "\
+      f"got {len(images)} filenames expected {len(image_names)}"
+
 
 def check_camera_images(camera_images):
   assert len(camera_images.cameras) == len(camera_images.filenames),\
-    f"expected filenames to be a list of equal to number of cameras"
-  for k, images in zip(camera_images.cameras, camera_images.filenames):
-    assert len(images) == len(camera_images.image_names),\
-      f"mismatch between image names and camera {k},"\
-      f"got {len(images)} filenames expected {camera_images.image_names}"
+    f"expected filenames to be a list of equal to number of cameras "\
+    f"{len(camera_images.cameras)} vs. {len(camera_images.filenames)}"
+
+  check_image_lengths(camera_images.cameras, camera_images.filenames, camera_images.image_names)
+  if 'images' in camera_images is not None:
+    check_image_lengths(camera_images.cameras, camera_images.images, camera_images.image_names)
+
+
 
 class Workspace:
 
@@ -78,8 +105,12 @@ class Workspace:
 
         self.filenames = camera_images.filenames
         self.image_path = camera_images.image_path
-
-        self._load_images(j=j)
+        
+        if 'images' in camera_images:
+          self.images = camera_images.images
+          self.image_size = map_list(common_image_size, self.images)
+        else:
+          self._load_images(j=j)
 
     def _load_images(self, j=cpu_count()):
         assert self.filenames is not None, "_load_images: no filenames set"
@@ -93,6 +124,8 @@ class Workspace:
         info(
             {k: image_size for k, image_size in zip(
                 self.names.camera, self.image_size)})
+
+              
     @property 
     def detections_file(self):
       return path.join(self.output_path, f"{self.name}.detections.pkl")
@@ -127,6 +160,8 @@ class Workspace:
 
     def calibrate_single(self, camera_model, fix_aspect=False, has_skew=False, max_images=None):
         assert self.detected_points is not None, "calibrate_single: no points found, first use detect_boards to find corner points"
+
+        check_detections(self.names.camera, self.boards, self.detected_points)
 
         info("Calibrating single cameras..")
         self.cameras, errs = calibrate_cameras(

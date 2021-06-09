@@ -1,4 +1,4 @@
-from logging import error
+from multical.io.logging import error
 from multical.board.board import Board
 from structs.numpy import Table
 from multical.board.common import *

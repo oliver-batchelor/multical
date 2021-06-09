@@ -23,6 +23,7 @@ from tqdm import tqdm
 from structs.struct import split_list
 
 
+
 class Camera(Parameters):
   def __init__(self, image_size, intrinsic, dist, model='standard', fix_aspect=False, has_skew=False):
 
@@ -184,6 +185,7 @@ def top_detection_size(detections, k):
   sizes = [-ids.size for ids in detections.ids]
   sorted = detections._map(index_list, np.argsort(sizes))
   return sorted._map(lambda xs: xs[:k])
+
 
 
 def image_bins(image_size, approx_bins=10):

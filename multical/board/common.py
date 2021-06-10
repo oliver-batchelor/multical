@@ -49,10 +49,8 @@ def estimate_pose_points(board, camera, detections):
 
 def subpix_corners(image, detections, window):
   criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.0001)               
-
   reshaped = np.array(detections.corners).reshape(-1, 1, 2).astype(np.float32)
   refined = cv2.cornerSubPix(image, reshaped, (window, window), (-1, -1), criteria)
-
   return detections._extend(corners=refined.reshape(-1, 2))
 
 

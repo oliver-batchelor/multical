@@ -38,7 +38,7 @@ class CameraOpts:
 @dataclass 
 class RuntimeOpts:
   """ Miscellaneous runtime parameters """
-  num_threads: int = cpu_count()  # Number of cpu threads to use
+  num_threads: int = cpu_count() - 1  # Number of cpu threads to use
   log_level: str = choice('INFO', 'DEBUG', 'WARN', default='INFO') # Minimum log level
   no_cache: bool = False # Don't attempt to load detections from cache
 

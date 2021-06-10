@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from multical.threading import parmap_lists
 import pathlib
 from multical.board.board import Board
 

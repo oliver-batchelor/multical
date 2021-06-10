@@ -1,4 +1,5 @@
 from functools import partial
+from multiprocessing.pool import ThreadPool
 import os
 import os.path as path
 import cv2
@@ -10,7 +11,7 @@ from multiprocessing import Pool
 
 import numpy as np
 from multical.camera import  stereo_calibrate
-from multical.threading import map_lists
+from multical.threading import parmap_lists
 
 from structs.struct import transpose_structs, struct, filter_none
 
@@ -39,14 +40,14 @@ def load_images(filenames, prefix=None, **map_options):
       filenames = [[path.join(prefix, file) for file in camera_files]
         for camera_files in filenames]
 
-    return map_lists(load_image, filenames, **map_options)
+    return parmap_lists(load_image, filenames, **map_options)
 
 def detect_image(image, boards):
   return [board.detect(image) for board in boards]
 
 def detect_images(boards, images, **map_options):
-  return map_lists(partial(detect_image, boards=boards), images, **map_options, pool=Pool)
-
+  detect = partial(detect_image, boards=boards)
+  return parmap_lists(detect, images, **map_options, pool=Pool)
 
 
 def intersect_detections(board, d1, d2):

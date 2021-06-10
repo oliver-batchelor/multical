@@ -50,7 +50,6 @@ class AprilGrid(Parameters, Board):
       return AprilGridDetector(h, w, self.tag_length, self.tag_spacing, start_id=self.start_id)
         
 
-
   @cached_property
   def board(self):
     spacing_length = self.tag_length * self.tag_spacing
@@ -171,13 +170,12 @@ class AprilGrid(Parameters, Board):
     corner_detections = [struct(ids = id * 4 + k % 4, corners=corner)
       for k, id, corner in zip(range(len(detections.ids)), detections.ids, detections.image_points)]
 
-    return subpix_corners(image, Table.stack(corner_detections), self.subpix_region)
-          
+    refined = subpix_corners(image, Table.stack(corner_detections), self.subpix_region)
+    return refined
 
   def has_min_detections(self, detections):
     tag_ids = detections.ids // 4
     return has_min_detections_grid(self.size, tag_ids, min_points=self.min_points, min_rows=self.min_rows)
-
 
 
   def estimate_pose_points(self, camera, detections):

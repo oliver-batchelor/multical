@@ -8,6 +8,7 @@ def try_load_detections(filename, cache_key={}):
   try:
     with open(filename, "rb") as file:
       loaded = pickle.load(file)
+      
       # Check that the detections match the metadata
       if (loaded.get('cache_key', {}) == cache_key):
         info(f"Loaded detections from {filename}")

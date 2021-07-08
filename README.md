@@ -163,7 +163,7 @@ OpenCV provides many useful algorithms used heavily here, for detecting calibrat
 * Extend apriltags2_ethz to pass through tag dictionaries other than the default t36h11
 * Make the error display grid on the right hand tab use the tolerance slider and adapt color depending on metric
 * Continuous time rolling shutter camera model
-
+* Add ability to calibrate with cameras which have no overlap (using hand-eye AX = ZB initialization method)
 
 
 

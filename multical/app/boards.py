@@ -33,7 +33,6 @@ class Boards:
   boards : str # Configuration file (YAML) for calibration boards
   
   detect : Optional[str] = None # Show detections from an example image
-  show : bool = False # Show image of boards
   write : Optional[str] = None # Directory to write board images
 
   pixels_mm : int = 1   # Pixels per mm of pattern

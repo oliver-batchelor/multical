@@ -72,12 +72,18 @@ def export_single(filename, cameras, camera_names, filenames):
     json.dump(to_dicts(data), outfile, indent=2)
 
 def export(filename, calib, names, filenames, master=None):  
+  data = export_json(calib, names, filenames, master=master)
+  
+  with open(filename, 'w') as outfile:
+    json.dump(data, outfile, indent=2)
+
+
+def export_json(calib, names, filenames, master=None):  
   if master is not None:
     calib = calib.with_master(master)
 
   camera_poses = calib.camera_poses.pose_table
   filenames = transpose_lists(filenames)
-
 
   data = struct(
     cameras = export_cameras(names.camera, calib.cameras),
@@ -87,8 +93,7 @@ def export(filename, calib, names, filenames, master=None):
     image_sets = export_images(names.camera, filenames)
 
   )
-  
-  with open(filename, 'w') as outfile:
-    json.dump(to_dicts(data), outfile, indent=2)
 
+  return to_dicts(data)
+  
 

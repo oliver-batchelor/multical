@@ -12,7 +12,7 @@ from multical.optimization.pose_set import PoseSet
 from multical import config
 
 from os import path
-from multical.io import export, try_load_detections, write_detections
+from multical.io import export_json, try_load_detections, write_detections
 from multical.image.detect import common_image_size
 
 from multical.optimization.calibration import Calibration, select_threshold
@@ -261,11 +261,7 @@ class Workspace:
         if self.cameras is not None:
             return dict(initialisation=self.cameras)
 
-    def export(self, filename=None, master=None):
-
-        filename = filename or path.join(self.output_path, f"{self.name}.json")
-        info(f"Exporting calibration to {filename}")
-
+    def export_json(self, master=None):
         master = master or self.names.camera[0]
         assert (
             master is None or master in self.names.camera
@@ -275,8 +271,17 @@ class Workspace:
         if master is not None:
             calib = calib.with_master(master)
 
-        export(filename, calib, self.names, self.filenames, master=master)
+        return export_json(calib, self.names, self.filenames, master=master)
 
+
+    def export(self, filename=None, master=None):
+      filename = filename or path.join(self.output_path, f"{self.name}.json")
+      info(f"Exporting calibration to {filename}")
+
+      data = self.export_json(master=master)
+      with open(filename, 'w') as outfile:
+        json.dump(to_dicts(data), outfile, indent=2)
+        
     def dump(self, filename=None):
         filename = filename or path.join(self.output_path, f"{self.name}.pkl")
 

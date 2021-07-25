@@ -74,6 +74,11 @@ class HandEyeCalibration:
     return self.copy(
       calib = self.calib.bundle_adjust())
   
+  def adjust_outliers(self, **kwargs):
+    return self.copy(
+      calib=self.calib.adjust_outliers(**kwargs))
+
+
   @cached_property
   def cameras_wrt_gripper(self):
     def with_master(k):

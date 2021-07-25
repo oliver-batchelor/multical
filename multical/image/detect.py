@@ -1,12 +1,7 @@
 from functools import partial
-from multiprocessing.pool import ThreadPool
-import os
 import os.path as path
 import cv2
-from natsort.natsort import natsorted
-from structs.numpy import shape
 
-from tqdm import tqdm
 from multiprocessing import Pool                                          
 
 import numpy as np
@@ -14,7 +9,6 @@ from multical.camera import  stereo_calibrate
 from multical.threading import parmap_lists
 
 from structs.struct import transpose_structs, struct, filter_none
-
 
 def load_image(filename):
   assert path.isfile(filename), f"load_image: file {filename} does not exist"
@@ -31,8 +25,6 @@ def common_image_size(images):
 
   assert all([image.shape == image_shape for image in images])
   return (w, h)
-
-
 
 
 def load_images(filenames, prefix=None, **map_options):

@@ -75,7 +75,7 @@ def export(filename, calib, names, filenames, master=None):
   data = export_json(calib, names, filenames, master=master)
   
   with open(filename, 'w') as outfile:
-    json.dump(data, outfile, indent=2)
+    json.dump(to_dicts(data), outfile, indent=2)
 
 
 def export_json(calib, names, filenames, master=None):  
@@ -94,6 +94,6 @@ def export_json(calib, names, filenames, master=None):
 
   )
 
-  return to_dicts(data)
+  return data
   
 

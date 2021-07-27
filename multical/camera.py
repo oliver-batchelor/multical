@@ -69,7 +69,7 @@ class Camera(Parameters):
 
     points = calibration_points(boards, detections)
     if max_images is not None:
-      points = top_detection_size(points, max_images)
+      points = top_detection_coverage(points, max_images, image_size)
 
     # termination criteria
     criteria = (cv2.TERM_CRITERIA_EPS +
@@ -181,16 +181,28 @@ def index_list(xs, indexes):
   return np.array(xs, dtype=object)[indexes].tolist()
 
 
-def top_detection_size(detections, k):
-  sizes = [-ids.size for ids in detections.ids]
-  sorted = detections._map(index_list, np.argsort(sizes))
-  return sorted._map(lambda xs: xs[:k])
+def coverage(corners, bins):
+  hist, _, _ = np.histogram2d(corners[:, 0], corners[:, 1], bins)
+  counts = np.count_nonzero(hist)
 
-
+  return counts
 
 def image_bins(image_size, approx_bins=10):
-  bin_sizes = min(image_size[0] / approx_bins, image_size[1] / approx_bins)
-  return [np.linspace(0, image_size[axis], bin_sizes[axis]) for axis in [0, 1]]
+  bin_size = min(image_size[0] / approx_bins, image_size[1] / approx_bins)
+
+  return [np.linspace(0, image_size[axis], int(image_size[axis] / bin_size)) 
+    for axis in [0, 1]]
+
+
+def top_detection_coverage(detections, k, image_size, approx_bins=10, jitter=0.1):
+  bins = image_bins(image_size, approx_bins=10)
+  bin_jitter = jitter * (approx_bins * approx_bins)
+
+  sizes = [-coverage(corners, bins) + np.random.normal(0, bin_jitter) 
+    for corners in detections.corners]
+
+  sorted = detections._map(index_list, np.argsort(sizes))
+  return sorted._map(lambda xs: xs[:k])
 
 
 def calibration_points(boards, detections):

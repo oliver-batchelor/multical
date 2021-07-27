@@ -16,7 +16,7 @@ from multical.io import export_json, try_load_detections, write_detections
 from multical.image.detect import common_image_size
 
 from multical.optimization.calibration import Calibration, select_threshold
-from structs.struct import map_list, split_dict, struct, subset
+from structs.struct import map_list, split_dict, struct, subset, to_dicts
 from . import tables, image
 from .camera import calibrate_cameras
 

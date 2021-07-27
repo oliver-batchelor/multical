@@ -26,6 +26,7 @@ from .io.logging import MemoryHandler, info
 from .display import make_palette
 
 import pickle
+import json
 
 def detect_boards_cached(boards, images, detections_file, cache_key, load_cache=True, j=cpu_count()):
   assert isinstance(boards, list)

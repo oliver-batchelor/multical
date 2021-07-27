@@ -79,8 +79,10 @@ class ParamList(Parameters, Generic[T]):
     return [p.param_vec for p in self.param_objects]
 
   def with_params(self, params):
-    return ParamList([obj.with_param_vec(p) 
-      for obj, p in zip(self.param_objects, params)])
+
+    updated = [obj.with_param_vec(p) 
+      for obj, p in zip(self.param_objects, params)]
+    return ParamList(updated, self.names)
 
 
 def count(params):

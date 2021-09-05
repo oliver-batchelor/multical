@@ -39,7 +39,7 @@ class Boards:
   margin_mm : int = 20  # Border width in mm
 
   paper_size_mm : Optional[str] = None # Paper size in mm WxH 
-  paper_size : Optional[str] = choice(*standard_sizes.keys())
+  paper_size : Optional[str] = choice(*standard_sizes.keys(), default=None)
 
   def execute(self):
     show_boards(self)

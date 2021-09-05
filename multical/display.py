@@ -4,15 +4,15 @@ import numpy as np
 from .transform import rtvec
 from . import tables
 
-from structs.struct import transpose_lists, choose
+from structs.struct import struct
 from .image.display import display_stacked
 import palettable.colorbrewer.qualitative as palettes
 
 
-def make_palette(n):
-  n_colors = max(n, 4)
-  colors = getattr(palettes, f"Set1_{n_colors}").colors
-  return np.array(colors) / 255
+color_sets = struct(
+  set1 = np.array(palettes.Set1_9.colors) / 255,
+  paired = np.array(palettes.Paired_12.colors) / 255
+)
 
 
 def draw_board_detections(image, detections, color, thickness=1, radius=10, show_ids=True):
@@ -34,8 +34,7 @@ def show_detections(image, detections, **options):
 
 
 def draw_detections(image, detections, **options):
-  colors = make_palette(len(detections))
-  for color, board_detections in zip(colors, detections):
+  for color, board_detections in zip(color_sets['set1'], detections):
     draw_board_detections(image, board_detections, color, **options)
   return image
 

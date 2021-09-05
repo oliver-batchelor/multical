@@ -23,7 +23,7 @@ from .camera import calibrate_cameras
 from structs.numpy import shape
 
 from .io.logging import MemoryHandler, info
-from .display import make_palette
+from .display import color_sets
 
 import pickle
 import json
@@ -139,7 +139,7 @@ class Workspace:
 
         board_names, self.boards = split_dict(boards)
         self.names = self.names._extend(board=board_names)
-        self.board_colors = make_palette(len(boards))
+        self.board_colors = color_sets['set1']
         cache_key = self.fields("filenames", "boards", "image_sizes")
 
         self.detected_points = detect_boards_cached(self.boards, self.images, 

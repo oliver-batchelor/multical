@@ -29,6 +29,7 @@ def transform_homog(t, points):
   return transformed[..., :3]
 
 
+
 def join(r, t):
   assert t.ndim == r.ndim - 1 and t.shape[-1] == 3 and r.shape[-2:] == (3, 3)
 
@@ -41,6 +42,11 @@ def join(r, t):
 def split(m):
   assert m.shape[-2:] == (4, 4)
   return m[..., :3, :3], m[..., :3, 3]
+
+def expand_identity(m, shape=(4, 4)):
+    expanded = np.eye(*shape)
+    expanded[0:m.shape[0], 0:m.shape[1]] = m
+    return expanded
 
 
 def translation(m):

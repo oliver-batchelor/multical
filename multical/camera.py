@@ -99,12 +99,11 @@ class Camera(Parameters):
         points.reshape(-1, 1, 2), self.intrinsic, self.dist, P=self.intrinsic)
     return undistorted.reshape(*points.shape[:-1], 2)
 
-  def project(self, points, extrinsic=None):
-    rvec, tvec = rtvec.split(rtvec.as_rtvec(extrinsic))
+  def project(self, points):
 
     projected, _ = cv2.projectPoints(
-        points.reshape(-1, 1, 3), rvec, tvec, self.intrinsic, self.dist)
-    return projected.reshape(*points.shape[:-1], 2)
+        cv2.UMat(points.reshape(-1, 1, 3)), np.zeros(3), np.zeros(3), self.intrinsic, self.dist)
+    return projected.get().reshape(*points.shape[:-1], 2)
 
   @cached_property
   def focal_length(self):

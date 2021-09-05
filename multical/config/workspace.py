@@ -19,6 +19,7 @@ def get_motion_model(motion_model):
 def initialise_with_images(ws : Workspace, boards, camera_images, 
   camera_opts : CameraOpts = CameraOpts(), runtime : RuntimeOpts = RuntimeOpts()):
 
+
     ws.add_camera_images(camera_images, j=runtime.num_threads)
     ws.detect_boards(boards, load_cache=not runtime.no_cache, j=runtime.num_threads)
 
@@ -27,8 +28,10 @@ def initialise_with_images(ws : Workspace, boards, camera_images,
     if calib is not None:
       ws.set_calibration(calib.cameras)
     else:
-      ws.calibrate_single(camera_opts.distortion_model, fix_aspect=camera_opts.fix_aspect,
-                        has_skew=camera_opts.allow_skew, max_images=camera_opts.limit_intrinsic)
+      ws.calibrate_single(camera_opts.distortion_model, 
+          fix_aspect=camera_opts.fix_aspect,
+          has_skew=camera_opts.allow_skew, 
+          max_images=camera_opts.limit_intrinsic)
 
     ws.initialise_poses(
         motion_model=get_motion_model(camera_opts.motion_model),

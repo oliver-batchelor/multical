@@ -22,6 +22,8 @@ class PathOpts:
   camera_pattern: Optional[str] = None  # Camera apth pattern example "{camera}/extrinsic"
   cameras: List[str] = list_field()     # Explicit camera list
 
+  limit_images: Optional[int] = 200   # Limit images to enable faster calibration
+
 
 @dataclass 
 class CameraOpts:
@@ -31,9 +33,9 @@ class CameraOpts:
   allow_skew: bool = False  # Allow skew parameter in camera intrinsics
   distortion_model: str = choice("standard", "rational", "thin_prism", "tilted", default="standard")
   motion_model: str = choice("rolling", "static", default="static")  # Camera motion model to use
-
-  limit_intrinsic: Optional[int] = 50   # Limit intrinsic images to enable faster initialisation
+  
   calibration: Optional[str] = None # Initialise from previous (or single camera) calibration
+  limit_intrinsic: Optional[int] = 50   # Limit intrinsic images to enable faster initialisation
 
 @dataclass 
 class RuntimeOpts:
@@ -41,6 +43,7 @@ class RuntimeOpts:
   num_threads: int = cpu_count() - 1  # Number of cpu threads to use
   log_level: str = choice('INFO', 'DEBUG', 'WARN', default='INFO') # Minimum log level
   no_cache: bool = False # Don't attempt to load detections from cache
+  seed : int = 0 # Seed for repeatable runs
 
 @dataclass 
 class OptimizerOpts:

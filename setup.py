@@ -44,11 +44,12 @@ setup(
         "palettable",
         "numpy-quaternion",
         "omegaconf",
-        "packaging"
+        "packaging",
+        "tqdm"
     ],
-
+    
     extras_require={
-        'interactive': ['matplotlib', 'qtpy', 'pyvistaqt', 'pyvista', 'colour'],
+        'interactive': ['matplotlib', 'qtpy', 'pyvistaqt', 'pyvista', 'colour', 'qtawesome'],
     },
 
     python_requires='>=3.6',

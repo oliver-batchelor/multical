@@ -17,6 +17,8 @@ from multical.image.detect import common_image_size
 
 from multical.optimization.calibration import Calibration, select_threshold
 from structs.struct import map_list, split_dict, struct, subset, to_dicts
+
+from multical.transform.matrix import sample_poses
 from . import tables, image
 from .camera import calibrate_cameras
 
@@ -98,6 +100,8 @@ class Workspace:
         self.point_table = None
         self.pose_table = None
 
+        self.pose_init = None
+
         self.log_handler = MemoryHandler()
 
     def add_camera_images(self, camera_images, j=cpu_count()):
@@ -149,6 +153,31 @@ class Workspace:
         info("Detected point counts:")
         tables.table_info(self.point_table.valid, self.names)
 
+
+    def sample_images(self, max_images=None):
+      assert self.pose_init is not None, "sample_images: run initialise_pose first"
+      
+      if max_images is not None:
+        indexes = sample_poses(self.pose_init.times.poses, max_images)
+        self.mask_frames(indexes)
+
+
+    def mask_frames(self, valid):
+      if self.pose_init is not None:
+        self.pose_init.times = self.pose_init.times._index_select(valid)
+
+      if self.pose_table is not None:
+        self.pose_table = self.pose_table._index_select(valid, axis=1)
+
+      def mask_list(xs):
+        return np.array(xs)[valid].tolist()
+
+      self.names.image = mask_list(self.names.image)
+      self.filenames = [mask_list(cam_images) for cam_images in self.filenames]
+
+      self.point_table = self.point_table._index_select(valid, axis=1)
+
+
     def set_calibration(self, cameras):
       assert set(self.names.camera) == set(cameras.keys()),\
          f"set_calibration: cameras don't match"\
@@ -162,6 +191,7 @@ class Workspace:
 
     def calibrate_single(self, camera_model, fix_aspect=False, has_skew=False, max_images=None):
         assert self.detected_points is not None, "calibrate_single: no points found, first use detect_boards to find corner points"
+
 
         check_detections(self.names.camera, self.boards, self.detected_points)
 
@@ -181,28 +211,42 @@ class Workspace:
             info(camera)
             info("")
 
-    def initialise_poses(self, motion_model=StaticFrames, camera_poses=None):
+    
+
+
+
+    def initialise_poses(self,  camera_poses=None, min_valid_cameras=1):
         assert self.cameras is not None, "initialise_poses: no cameras set, first use calibrate_single or set_cameras"
         self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
 
         info("Pose counts:")
         tables.table_info(self.pose_table.valid, self.names)
 
-        pose_init = tables.initialise_poses(self.pose_table, 
+        visible_cameras = np.sum(np.any(self.pose_table.valid, axis=-1), axis=0) 
+        valid = visible_cameras >= min_valid_cameras
+
+        info(f"Found {valid.sum()}/{valid.shape[0]} valid frames")
+        self.mask_frames(np.nonzero(valid)[0])
+
+
+        self.pose_init = tables.initialise_poses(self.pose_table, 
           camera_poses=None if camera_poses is None else np.array([camera_poses[k] for k in self.names.camera])
         )
+
+
+
+
+    def initialise_calibration(self, motion_model=StaticFrames):
+        assert self.pose_init is not None, "filter_images: run initialise_pose first"
 
         calib = Calibration(
             ParamList(self.cameras, self.names.camera),
             ParamList(self.boards, self.names.board),
             self.point_table,
-            PoseSet(pose_init.camera, self.names.camera),
-            PoseSet(pose_init.board, self.names.board),
-            motion_model.init(pose_init.times, self.names.image),
+            PoseSet(self.pose_init.camera, self.names.camera),
+            PoseSet(self.pose_init.board, self.names.board),
+            motion_model.init(self.pose_init.times, self.names.image),
         )
-
-        # calib = calib.reject_outliers_quantile(0.75, 5)
-        calib.report(f"Initialisation")
 
         self.calibrations["initialisation"] = calib
         return calib

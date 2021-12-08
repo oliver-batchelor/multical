@@ -102,14 +102,16 @@ def map_pairs(f, table, axis=0):
 
 def common_entries(row1, row2):
   valid = np.nonzero(row1.valid  & row2.valid)
-  return row1._index[valid], row2._index[valid], valid[0]
+  return row1._index[valid], row2._index[valid], valid
 
 def matching_points(points, board, cam1, cam2):
   points1, points2 = points._index[cam1], points._index[cam2]
   matching = []
 
   for i, j in zip(points1._sequence(0), points2._sequence(0)):
-    row1, row2, ids = common_entries(i, j)
+    row1, row2, valid = common_entries(i, j)
+    ids = valid[-1]
+
     matching.append(struct(
         points1=row1.points,
         points2=row2.points,
@@ -317,8 +319,8 @@ def mean_robust_n(pose_table, axis=0):
 
 def relative_between(table1, table2):
   common1, common2, valid = common_entries(table1, table2)
-  if valid.size == 0:
-    return invalid_pose
+  if valid[0].size == 0:
+    return struct(poses=np.eye(4), valid=False)
   else:
     t, _ = matrix.align_transforms_robust(common1.poses, common2.poses)
     return valid_pose(t)
@@ -328,6 +330,7 @@ def relative_between_inv(table1, table2):
 
 
 def relative_between_n(table1, table2, axis=0, inv=False):
+
 
   f = relative_between_inv if inv else relative_between 
   relative_poses = [f(poses1, poses2) for poses1, poses2 
@@ -368,10 +371,6 @@ def initialise_poses(pose_table, camera_poses=None):
 
   return struct(times=times, camera=camera, board=board)
 
-
-def stereo_calibrate(points, board, cameras, i, j, **kwargs):
-  matching = matching_points(points, board, i, j)
-  return stereo_calibrate((cameras[i], cameras[j]), matching, **kwargs)
 
 
 def stack_boards(boards):

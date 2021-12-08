@@ -2,7 +2,7 @@ import contextlib
 import math
 from numbers import Integral
 from multical.motion.motion_model import MotionModel
-from multical.optimization.pose_set import PoseSet
+from multical.optimization.pose_set import PoseSet, pose_str
 from multical.board.board import Board
 from multical.camera import Camera
 
@@ -96,7 +96,7 @@ class Calibration(parameters.Parameters):
       times = self.motion.frame_poses
     )
 
-  def with_master(self, camera):
+  def with_master(self, camera=0):
     if isinstance(camera, str):
       camera = self.camera_poses.names.index(camera)
 
@@ -219,6 +219,17 @@ class Calibration(parameters.Parameters):
     optimize = self.optimize._extend(**flags)
     return self.copy(optimize=optimize)
 
+
+  def __str__(self):
+    cameras = [f"{k}:\t{camera} {pose_str(self.camera_poses[k])}"  
+      for k, camera in self.cameras.items()]
+  
+    return "\n".join(cameras)
+
+
+  def __repr__(self):
+    return self.__str__()
+
   def __getstate__(self):
     attrs = ['cameras', 'boards', 'point_table', 'camera_poses', 'board_poses', 
       'motion', 'inlier_mask', 'optimize'
@@ -293,12 +304,14 @@ class Calibration(parameters.Parameters):
     inliers = error_stats(self.reprojection_inliers)
 
     if self.inlier_mask is not None:
-      info(f"{stage} reprojection RMS={inliers.rms:.3f} ({overall.rms:.3f}), "
+      info(f"{stage}: reprojection RMS={inliers.rms:.3f} ({overall.rms:.3f}), "
            f"n={inliers.n} ({overall.n}), quantiles={overall.quantiles}")
     else:
       info(f"{stage} reprojection RMS={overall.rms:.3f}, n={overall.n}, "
            f"quantiles={overall.quantiles}")
 
+    info(str(self.with_master()))
+    info("")
 
 
 def error_stats(errors):  

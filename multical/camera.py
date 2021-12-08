@@ -46,9 +46,14 @@ class Camera(Parameters):
   )
 
   def __str__(self):
-    d = dict(intrinsic=self.intrinsic, dist=self.dist,
-             image_size=self.image_size)
-    return "Camera " + pformat(d)
+    fx, fy = self.focal_length
+    px, py = self.principle_point  
+
+    dist_str = " ".join([f"{d: .4f}" for d in self.dist.flatten().tolist()])
+    w, h = self.image_size
+
+    return f"{w}x{h}: f=({fx:.1f}, {fy:.1f}) p=({px:.1f}, {py:.1f}) d=({dist_str})"
+
 
   def __repr__(self):
     return self.__str__()
@@ -238,7 +243,7 @@ def undistort_images(images, cameras, j=cpu_count(), chunksize=4):
 
 
 def stereo_calibrate(cameras, matches, max_iter=60, eps=1e-6,
-                     fix_aspect=False, fix_intrinsic=True):
+                     fix_aspect=False, fix_intrinsic=False):
 
   left, right = cameras
   criteria = (cv2.TERM_CRITERIA_EPS +

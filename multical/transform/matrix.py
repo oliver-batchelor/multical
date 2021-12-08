@@ -132,6 +132,17 @@ def align_transforms_ls(m1, m2):
   return join(r, t)
 
 
+
+def sample_poses(poses, n):
+  assert poses.ndim == 3 
+
+  r, t = split(poses)
+  num_poses = poses.shape[0]
+  
+  r_diff = r.reshape(num_poses, 1, 3, 3) @ np.linalg.inv(r).reshape(1, num_poses, 3, 3)
+  print(r_diff.shape)
+
+
 def test_outlier(errs, threshold=2.0):
   uq = np.quantile(errs, 0.75)
   return errs < uq * threshold

@@ -34,9 +34,11 @@ def initialise_with_images(ws : Workspace, boards, camera_images,
           max_images=camera_opts.limit_intrinsic)
 
     ws.initialise_poses(
-        motion_model=get_motion_model(camera_opts.motion_model),
-        camera_poses=calib.camera_poses if calib is not None else None
-      )
+        camera_poses=calib.camera_poses if calib is not None else None)
+
+    ws.sample_images(max_images = camera_opts.limit_images)
+
+    ws.initialise_calibration(motion_model=get_motion_model(camera_opts.motion_model))
     return ws
 
 

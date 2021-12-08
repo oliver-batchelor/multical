@@ -7,7 +7,19 @@ from multical.io.export_calib import export_poses
 from multical.transform import rtvec as transform_vec
 from .parameters import IndexMapper
 
+from multical.transform import qtvec
+
 import numpy as np
+
+def pose_str(pose):
+  vec = qtvec.from_matrix(pose)
+  qx, qy, qz, qw, x, y, z = vec
+
+  t_str = f"{x: .4f} {y: .4f} {z: .4f}" 
+  q_str = f"{qx: .3f} {qy: .3f} {qz: .3f} {qw: .3f}"
+
+  return f"t=({t_str}) q=({q_str})"
+      
 
 class PoseSet(Parameters):
   def __init__(self, pose_table, names=None):

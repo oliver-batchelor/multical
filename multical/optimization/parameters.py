@@ -64,6 +64,12 @@ class ParamList(Parameters, Generic[T]):
   def __iter__(self):
     return self.param_objects.__iter__()
 
+  def items(self):
+    if self.names is not None:
+      return zip(self.names, self.param_objects)
+    else:
+      return enumerate(self.param_objects)
+
   def __len__(self):
     return self.param_objects.__len__()
 
@@ -106,22 +112,7 @@ def join(params):
   return np.concatenate([param.ravel() for param in params_list])
 
 
-def build_sparse(params, mapper):
-  """ Build a scipy sparse matrix based on pairs of parameter counts and given point indexes 
-  """
 
-  total_params = sum([n for n, _ in params])
-  sparsity = lil_matrix((mapper.mask_coords.size, total_params), dtype='int16')
-
-  param_count = 0
-  for (num_params, point_indexes) in params:
-    if point_indexes is not None:
-      param_indexes = param_count + np.arange(num_params)
-      sparsity[point_indexes.reshape(1, -1), param_indexes.reshape(-1, 1)] = 1
-
-    param_count += num_params
-
-  return sparsity[mapper.mask_coords.ravel()]
 
 
 
@@ -148,3 +139,20 @@ class IndexMapper(object):
 
   def all_points(self, param_size):
     return [(param_size, self.indices)]
+
+def build_sparse(params, mapper : IndexMapper):
+  """ Build a scipy sparse matrix based on pairs of parameter counts and given point indexes 
+  """
+
+  total_params = sum([n for n, _ in params])
+  sparsity = lil_matrix((mapper.mask_coords.size, total_params), dtype='int16')
+
+  param_count = 0
+  for (num_params, point_indexes) in params:
+    if point_indexes is not None:
+      param_indexes = param_count + np.arange(num_params)
+      sparsity[point_indexes.reshape(1, -1), param_indexes.reshape(-1, 1)] = 1
+
+    param_count += num_params
+
+  return sparsity[mapper.mask_coords.ravel()]

@@ -39,13 +39,13 @@ def find_camera_images(image_path, cameras=None,
   image_names, filenames = find_images(camera_paths, extensions=extensions)
   info("Found camera directories {} with {} matching images".format(camera_names, len(image_names)))
 
-  if limit is not None and len(image_names) > limit:
-    inds = np.random.permutation(len(image_names))[:limit]
+  # if limit is not None and len(image_names) > limit:
+  #   inds = np.random.permutation(len(image_names))[:limit]
     
-    image_names = sample_inds(image_names, inds)
-    filenames = [sample_inds(cam_files, inds) for cam_files in filenames]
+  #   image_names = sample_inds(image_names, inds)
+  #   filenames = [sample_inds(cam_files, inds) for cam_files in filenames]
 
-    info(f"Restricting to {len(inds)} images (--limit_images)")
+  #   info(f"Restricting to {len(inds)} images (--limit_images)")
 
 
   return struct(image_path=image_path, cameras=camera_names, image_names=image_names, filenames=filenames)

@@ -157,9 +157,11 @@ class Workspace:
     def sample_images(self, max_images=None):
       assert self.pose_init is not None, "sample_images: run initialise_pose first"
       
-      if max_images is not None:
+      if max_images is not None and max_images < self.sizes.image:
         indexes = sample_poses(self.pose_init.times.poses, max_images)
-        self.mask_frames(indexes)
+        info(f"filtering images down to {max_images}/{self.sizes.image} by furthest sampling")
+
+        self.mask_frames(np.sort(indexes))
 
 
     def mask_frames(self, valid):
@@ -170,11 +172,15 @@ class Workspace:
         self.pose_table = self.pose_table._index_select(valid, axis=1)
 
       def mask_list(xs):
-        return np.array(xs)[valid].tolist()
+        arr = np.empty(len(xs), object)
+        arr[:] = xs
+        return arr[valid].tolist()
 
       self.names.image = mask_list(self.names.image)
-      self.filenames = [mask_list(cam_images) for cam_images in self.filenames]
+      self.filenames = [mask_list(cam_filenames) for cam_filenames in self.filenames]
+      self.detected_points = [mask_list(points) for points in self.detected_points]
 
+      self.images = [mask_list(images) for images in self.images]
       self.point_table = self.point_table._index_select(valid, axis=1)
 
 

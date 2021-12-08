@@ -22,8 +22,6 @@ def mean_robust(vectors):
 
 
 
-
-
 def sample_furthest_distances(distances, n):
     num_points = distances.shape[0]
     
@@ -36,6 +34,5 @@ def sample_furthest_distances(distances, n):
         indexes.append(index)
         ds = np.minimum(ds, distances[index, :])
 
-
-    return indexes
+    return np.array(indexes)
 

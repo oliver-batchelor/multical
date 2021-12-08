@@ -134,6 +134,8 @@ def annotate_image(workspace, calibration, layer, state, options):
   pixmap = QPixmap(qt_image(image))
   scene.addPixmap(pixmap)
 
+  # print(shape(workspace.point_table))
+
   detections = workspace.point_table._index[state.camera, state.frame]
   if layer == "detections":
 

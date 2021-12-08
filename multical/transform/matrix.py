@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from scipy.cluster.vq import whiten
 
 from structs.numpy import shape
 from structs.struct import choose, struct
@@ -7,6 +8,7 @@ from . import common
 
 from scipy.spatial.transform import Rotation as R
 from scipy.linalg import logm, expm
+from scipy.spatial import distance_matrix
 
 def transform(*seq):
   return rtransform(*reversed(seq))
@@ -109,6 +111,9 @@ def mean_robust_averaging(m):
 def mean_robust(m):
   from . import rtvec
 
+  if m.shape[0] == 1:
+    return m.squeeze(0)
+
   rtvecs = rtvec.from_matrix(m)
   return rtvec.to_matrix(common.mean_robust(rtvecs))
 
@@ -133,15 +138,24 @@ def align_transforms_ls(m1, m2):
 
 
 
-def sample_poses(poses, n):
+def pose_distances(poses, angle_scale=math.pi):
   assert poses.ndim == 3 
 
   r, t = split(poses)
   num_poses = poses.shape[0]
   
   r_diff = r.reshape(num_poses, 1, 3, 3) @ np.linalg.inv(r).reshape(1, num_poses, 3, 3)
-  print(r_diff.shape)
+  m = R.from_matrix(r_diff.reshape(-1, 3, 3)).magnitude().reshape(num_poses, num_poses)
 
+  t = (t - t.mean(0)) / t.std(0).max()
+  return distance_matrix(t, t) + m / angle_scale
+
+
+def sample_poses(poses, n, angle_scale=math.pi * 2):
+  d = pose_distances(poses, angle_scale)
+  indexes = common.sample_furthest_distances(d, n)
+
+  return indexes
 
 def test_outlier(errs, threshold=2.0):
   uq = np.quantile(errs, 0.75)

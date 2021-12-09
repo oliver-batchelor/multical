@@ -182,14 +182,12 @@ class Calibration(parameters.Parameters):
     Optional - but optimization runs much faster.
     """
 
-
-
     mapper = parameters.IndexMapper(self.inliers)
     camera_params = self.cameras.param_vec.reshape(self.size.cameras, -1)
-    board_params =  concat_lists([board.param_vec.reshape(-1, 3) for board in self.boards])
+    board_params =  [board.param_vec.reshape(-1, 3) for board in self.boards]
 
     param_mappings = struct(
-      boards = mapper.param_indexes(board_params, axis=3),
+      boards = concat_lists([mapper.param_indexes(p, axis=3) for p in board_params]),
       camera_poses = self.camera_poses.sparsity(mapper, axis=0),
       board_poses = self.board_poses.sparsity(mapper, axis=2),
       motion = self.motion.sparsity(mapper, axis=1),
@@ -201,7 +199,7 @@ class Calibration(parameters.Parameters):
     sparsity = sparsity[mapper.mask_coords.ravel()]
 
     reg_mappings = struct(
-      boards = parameters.identity_mapping(board_params)
+      boards = concat_lists([parameters.identity_mapping(p) for p in board_params])
     )
 
     reg_mappings = concat_lists(self.filter_enabled(reg_mappings).values())
@@ -210,10 +208,21 @@ class Calibration(parameters.Parameters):
         total_params=sparsity.shape[1],
         num_outputs=parameters.mapping_size(reg_mappings))
 
-    # print(sparsity.shape, self.inliers.sum() * 2, )
     return sparse.vstack([sparsity, reg_sparsity])
 
 
+  def regularization(self):
+
+    num_cameras, num_frames, *_ = self.point_table.valid.shape
+    reg_scale = num_cameras * num_frames 
+
+    compute_reg = struct(
+      boards = lambda: np.concatenate([board.regularization.ravel() * reg_scale for board in self.boards])
+    )
+
+    reg_terms = [f() for f in self.filter_enabled(compute_reg).values()]
+    return np.zeros(0) if len(reg_terms) == 0 else np.concatenate(reg_terms)
+    
 
   
   def bundle_adjust(self, tolerance=1e-4, f_scale=1.0, max_iterations=100, loss='linear'):
@@ -223,7 +232,10 @@ class Calibration(parameters.Parameters):
 
     def evaluate(param_vec):
       calib = self.with_param_vec(param_vec)
-      return (calib.reprojected.points - calib.point_table.points)[self.inliers].ravel()
+      point_error = (calib.reprojected.points - calib.point_table.points)[self.inliers].ravel()
+      reg_terms = calib.regularization()
+
+      return np.concatenate([point_error, reg_terms])
 
     with contextlib.redirect_stdout(LogWriter.info()):
       res = optimize.least_squares(evaluate, self.param_vec, jac_sparsity=self.sparsity_matrix, 

@@ -34,6 +34,12 @@ class CharucoBoard(Parameters, Board):
     return cv2.aruco.CharucoBoard_create(width, height,
       self.square_length, self.marker_length, aruco_dict)
 
+
+  @cached_property
+  def regularization(self):
+    return np.abs(self.points - self.adjusted_points)
+
+
   @cached_property
   def aruco_config(self):
     return aruco_config(self.aruco_params)  

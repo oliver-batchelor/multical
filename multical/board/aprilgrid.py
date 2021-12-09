@@ -111,6 +111,12 @@ class AprilGrid(Parameters, Board):
     return [int(square_length * n + spacing_length * (n + 1)) 
       for n in self.size]
   
+
+  @cached_property
+  def regularization(self):
+    return np.abs(self.points - self.adjusted_points)
+
+
   def draw(self, pixels_mm=1, margin_mm=20):
     square_length = self.tag_length * 1000 * pixels_mm
     spacing_length = square_length * self.tag_spacing

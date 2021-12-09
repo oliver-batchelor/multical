@@ -15,7 +15,7 @@ def pose_str(pose):
   vec = qtvec.from_matrix(pose)
   qx, qy, qz, qw, x, y, z = vec
 
-  t_str = f"{x: .4f} {y: .4f} {z: .4f}" 
+  t_str = f"{x: .5f} {y: .5f} {z: .5f}" 
   q_str = f"{qx: .3f} {qy: .3f} {qz: .3f} {qw: .3f}"
 
   return f"t=({t_str}) q=({q_str})"

@@ -52,7 +52,7 @@ class Camera(Parameters):
     dist_str = " ".join([f"{d: .4f}" for d in self.dist.flatten().tolist()])
     w, h = self.image_size
 
-    return f"{w}x{h}: f=({fx:.1f}, {fy:.1f}) p=({px:.1f}, {py:.1f}) d=({dist_str})"
+    return f"{w}x{h}: f=({fx:.2f}, {fy:.2f}) p=({px:.2f}, {py:.2f}) d=({dist_str})"
 
 
   def __repr__(self):

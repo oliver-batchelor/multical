@@ -125,7 +125,6 @@ class IndexMapper(object):
     self.mask_coords = np.broadcast_to(np.expand_dims(valid_mask, -1), [*valid_mask.shape, 2]) 
     self.indices = np.arange(self.mask_coords.size).reshape(*self.mask_coords.shape)
 
-
   def point_indexes(self, i, axis, enabled=True):
     return np.take(self.indices, i, axis=axis).ravel() if enabled else None
 
@@ -140,12 +139,29 @@ class IndexMapper(object):
   def all_points(self, param_size):
     return [(param_size, self.indices)]
 
-def build_sparse(params, mapper : IndexMapper):
+
+def identity_mapping(params):  
+  n = size(params)
+  return [(1, np.array([i])) for i in np.arange(n)]
+
+
+
+def mapping_size(params):
+  return sum([n for n, _ in params])
+
+
+def size(params):
+    return sum([param.size for param in params])
+
+
+
+def build_sparse(params, num_outputs, total_params=None):
   """ Build a scipy sparse matrix based on pairs of parameter counts and given point indexes 
   """
 
-  total_params = sum([n for n, _ in params])
-  sparsity = lil_matrix((mapper.mask_coords.size, total_params), dtype='int16')
+  total_params=total_params or mapping_size(params)
+
+  sparsity = lil_matrix((num_outputs, total_params), dtype='int16')
 
   param_count = 0
   for (num_params, point_indexes) in params:
@@ -155,4 +171,4 @@ def build_sparse(params, mapper : IndexMapper):
 
     param_count += num_params
 
-  return sparsity[mapper.mask_coords.ravel()]
+  return sparsity

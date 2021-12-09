@@ -21,7 +21,7 @@ from .parameters import ParamList
 from structs.numpy import Table, shape
 from structs.struct import concat_lists, apply_none, struct, choose, subset, when
 
-from scipy import optimize
+from scipy import optimize, sparse
 
 from cached_property import cached_property
 
@@ -144,22 +144,25 @@ class Calibration(parameters.Parameters):
   @cached_property
   def param_objects(self):
     return struct(
+      boards = self.boards,
       camera_poses = self.camera_poses,
       board_poses = self.board_poses,
       motion = self.motion,
 
-      cameras = self.cameras,
-      boards = self.boards
+      cameras = self.cameras
     )
+
+  def filter_enabled(self, param_sets):
+    isEnabled = lambda k: self.optimize[k] is True 
+    return param_sets._filterWithKey(isEnabled)
+
 
   @cached_property
   def params(self):
     """ Extract parameters as a structs and lists (to be flattened to a vector later)
     """
     all_params =  self.param_objects._map(lambda p: p.param_vec)
-    isEnabled = lambda k: self.optimize[k] is True 
-    return all_params._filterWithKey(isEnabled)
-
+    return self.filter_enabled(all_params)
 
   def with_params(self, params):
     """ Return a new Calibration object with updated parameters 
@@ -170,30 +173,47 @@ class Calibration(parameters.Parameters):
 
     return self.copy(**updated)
 
+  
+
   @cached_property
   def sparsity_matrix(self):
     """ Sparsity matrix for scipy least_squares,
     Mapping between input parameters and output (point) errors.
     Optional - but optimization runs much faster.
     """
+
+
+
     mapper = parameters.IndexMapper(self.inliers)
     camera_params = self.cameras.param_vec.reshape(self.size.cameras, -1)
+    board_params =  concat_lists([board.param_vec.reshape(-1, 3) for board in self.boards])
 
     param_mappings = struct(
+      boards = mapper.param_indexes(board_params, axis=3),
       camera_poses = self.camera_poses.sparsity(mapper, axis=0),
       board_poses = self.board_poses.sparsity(mapper, axis=2),
       motion = self.motion.sparsity(mapper, axis=1),
-
       cameras = mapper.param_indexes(camera_params, axis=0),
-      boards = concat_lists(
-        [mapper.param_indexes(board.param_vec.reshape(-1, 3), axis=3) 
-          for board in self.boards])
     )
 
-    mapping_list = [mapping for k, mapping in param_mappings.items() 
-      if self.optimize[k] is True]
+    sparsity =  parameters.build_sparse(
+      concat_lists(self.filter_enabled(param_mappings).values()), num_outputs = self.inliers.size * 2)
+    sparsity = sparsity[mapper.mask_coords.ravel()]
 
-    return parameters.build_sparse(sum(mapping_list, []), mapper)
+    reg_mappings = struct(
+      boards = parameters.identity_mapping(board_params)
+    )
+
+    reg_mappings = concat_lists(self.filter_enabled(reg_mappings).values())
+
+    reg_sparsity = parameters.build_sparse( reg_mappings, 
+        total_params=sparsity.shape[1],
+        num_outputs=parameters.mapping_size(reg_mappings))
+
+    # print(sparsity.shape, self.inliers.sum() * 2, )
+    return sparse.vstack([sparsity, reg_sparsity])
+
+
 
   
   def bundle_adjust(self, tolerance=1e-4, f_scale=1.0, max_iterations=100, loss='linear'):

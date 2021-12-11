@@ -13,9 +13,62 @@ def aruco_config(attrs):
     setattr(config, k, v)  
   return config
 
-empty_detection = struct(corners=np.zeros([0, 2]), ids=np.zeros(0, dtype=np.int))
+empty_detection = struct(corners=np.zeros([0, 2], dtype=np.float32), ids=np.zeros(0, dtype=np.int))
 empty_matches = struct(points1=[], points2=[], ids=[], object_points=[])
 
+
+
+  
+
+def masked_detection_quality(image, detection_sets):
+  valid = False
+
+  mask = np.zeros(image.shape[:2], np.int8)
+  for detections in detection_sets:
+    if detections.ids.size > 0:
+      hull = cv2.convexHull(detections.corners)
+      if hull is not None:
+        valid = True
+        cv2.fillConvexPoly(mask, hull.astype(np.int), color=255)
+
+  lap = cv2.Laplacian(image, cv2.CV_32F)
+  return lap[mask > 0].std() if valid else 0
+
+
+
+def detect_blur_fft(image, low_filter=50):
+  # grab the dimensions of the image and use the dimensions to
+  # derive the center (x, y)-coordinates
+  (h, w) = image.shape
+  (cX, cY) = (int(w / 2.0), int(h / 2.0))
+
+  # compute the FFT to find the frequency transform, then shift
+  # the zero frequency component (i.e., DC component located at
+  # the top-left corner) to the center where it will be more
+  # easy to analyze
+  fft = np.fft.fft2(image)
+  fftShift = np.fft.fftshift(fft)
+
+  # zero-out the center of the FFT shift (i.e., remove low
+  # frequencies), apply the inverse shift such that the DC
+  # component once again becomes the top-left, and then apply
+  # the inverse FFT
+  fftShift[cY - low_filter:cY + low_filter, cX - low_filter:cX + low_filter] = 0
+  fftShift = np.fft.ifftshift(fftShift)
+  recon = np.fft.ifft2(fftShift)
+
+  magnitude = 20 * np.log(np.abs(recon))
+  mean = np.mean(magnitude)
+
+
+  return mean
+
+
+
+def image_quality(image):
+  lap = cv2.Laplacian(image, cv2.CV_32F)
+  median, max = np.quantile(np.abs(lap), [0.5, 1.0])
+  return max - median
 
 
 def create_dict(name, offset):

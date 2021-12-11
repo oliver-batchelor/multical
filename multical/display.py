@@ -5,6 +5,8 @@ from .transform import rtvec
 from . import tables
 
 from structs.struct import struct
+from structs.numpy import shape_info
+
 from .image.display import display_stacked
 import palettable.colorbrewer.qualitative as palettes
 
@@ -15,26 +17,32 @@ color_sets = struct(
 )
 
 
+
+
+
 def draw_board_detections(image, detections, color, thickness=1, radius=10, show_ids=True):
   r, g, b = color
   color = np.array([b, g, r]) * 255
   
   for id, corner in zip(detections.ids, detections.corners):
-    cv2.drawMarker(image, tuple(corner), color=color, markerSize=radius*2, thickness=int(thickness), line_type=cv2.LINE_AA)
+
+    cv2.drawMarker(image, tuple(corner.astype(np.int)), color=color, markerSize=radius*2, thickness=int(thickness), line_type=cv2.LINE_AA)
     x, y = corner
     if show_ids:
       cv2.putText(image, str(id), (int(x + 2), int(y - 2)), cv2.FONT_HERSHEY_SIMPLEX, 
         radius/40, color=color, lineType=cv2.LINE_AA)
+
+
   return image
 
 
-def show_detections(image, detections, **options):
+def show_detections(image, detection_sets, **options):
   image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-  return draw_detections(image, detections, **options)
+  return draw_detections(image, detection_sets, **options)
 
 
-def draw_detections(image, detections, **options):
-  for color, board_detections in zip(color_sets['set1'], detections):
+def draw_detections(image, detection_sets, **options):
+  for color, board_detections in zip(color_sets['set1'], detection_sets):
     draw_board_detections(image, board_detections, color, **options)
   return image
 

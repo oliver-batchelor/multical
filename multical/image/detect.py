@@ -1,4 +1,5 @@
 from functools import partial
+from multiprocessing.pool import ThreadPool
 import os.path as path
 import cv2
 
@@ -7,8 +8,10 @@ from multiprocessing import Pool
 import numpy as np
 from multical.camera import  stereo_calibrate
 from multical.threading import parmap_lists
+from structs.numpy import shape
 
 from structs.struct import transpose_structs, struct, filter_none
+from multical.board.common import image_quality, masked_detection_quality
 
 def load_image(filename):
   assert path.isfile(filename), f"load_image: file {filename} does not exist"
@@ -40,6 +43,21 @@ def detect_image(image, boards):
 def detect_images(boards, images, **map_options):
   detect = partial(detect_image, boards=boards)
   return parmap_lists(detect, images, **map_options, pool=Pool)
+
+
+
+def _detection_quality(image_detections):
+  image, detections = image_detections
+  return masked_detection_quality(image, detections)
+
+
+def estimate_quality(images, detections, **map_options):
+  # image_detections = [list(zip(cam_images, cam_dets))  
+  #   for cam_images, cam_dets in zip(images, detections)]
+
+  return parmap_lists(image_quality, images, **map_options, pool=ThreadPool)
+
+
 
 
 def intersect_detections(board, d1, d2):

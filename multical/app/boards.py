@@ -16,6 +16,8 @@ from os import path
 from multical.image.detect import load_image
 from multical.config import *
 
+from multical.board.common import image_quality
+
 
 standard_sizes = dict(
   A4 = (210, 297),
@@ -90,10 +92,14 @@ def show_boards(args):
     image = load_image(args.detect)
     detections = [board.detect(image) for board in boards.values()]
 
+    quality = image_quality(image)
+    print(f"Image {args.detect}, image quality: {quality:.2f}")
+    
     for k, d in zip(boards.keys(), detections):
       print(f"Board {k}: detected {d.ids.size} points")
 
-    image = show_detections(image, detections, radius=10)
+
+    image = show_detections(image, detections, radius=20)
     display(image)
 
   elif args.write is not None:

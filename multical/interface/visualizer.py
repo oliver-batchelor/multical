@@ -162,8 +162,8 @@ class Visualizer(QtWidgets.QMainWindow):
     with(self.updating):
       ws = self.workspace
 
-      self.view_model = view_table.ViewModelDetections(ws.point_table, ws.names)\
-          if calibration is None else view_table.ViewModelCalibrated(calibration, ws.names)
+      self.view_model = view_table.ViewModelDetections(ws)\
+          if calibration is None else view_table.ViewModelCalibrated(calibration, ws)
 
       self.view_table.setModel(self.view_model)
       self.view_table.setSelectionMode(

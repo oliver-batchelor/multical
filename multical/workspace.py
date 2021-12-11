@@ -13,7 +13,7 @@ from multical import config
 
 from os import path
 from multical.io import export_json, try_load_detections, write_detections
-from multical.image.detect import common_image_size
+from multical.image.detect import common_image_size, estimate_quality
 
 from multical.optimization.calibration import Calibration, select_threshold
 from structs.struct import map_list, split_dict, struct, subset, to_dicts
@@ -87,6 +87,8 @@ class Workspace:
 
         self.calibrations = OrderedDict()
         self.detections = None
+        self.image_quality = None
+
         self.boards = None
         self.board_colors = None
 
@@ -153,6 +155,10 @@ class Workspace:
         info("Detected point counts:")
         tables.table_info(self.point_table.valid, self.names)
 
+        info("Estimating image quality")
+        self.image_quality = np.array(estimate_quality(self.images, self.detected_points))
+
+
 
     def sample_images(self, max_images=None):
       assert self.pose_init is not None, "sample_images: run initialise_pose first"
@@ -176,9 +182,14 @@ class Workspace:
         arr[:] = xs
         return arr[valid].tolist()
 
+      def mask_lists(xss):
+        return [mask_list(xs) for xs in xss]
+
       self.names.image = mask_list(self.names.image)
-      self.filenames = [mask_list(cam_filenames) for cam_filenames in self.filenames]
-      self.detected_points = [mask_list(points) for points in self.detected_points]
+      self.filenames = mask_lists(self.filenames)
+      self.detected_points = mask_lists(self.detected_points)
+
+      self.image_quality = self.image_quality[:, valid]
 
       self.images = [mask_list(images) for images in self.images]
       self.point_table = self.point_table._index_select(valid, axis=1)
@@ -190,7 +201,7 @@ class Workspace:
          f"{set(self.names.camera)} vs. {set(cameras.keys())}"
 
       self.cameras = [cameras[k] for k in self.names.camera]
-      info("Cameras set...")
+      info("Camera initialization set externally:")
       for name, camera in zip(self.names.camera, self.cameras):
           info(f"{name} {camera}")
           info("")
@@ -358,6 +369,7 @@ class Workspace:
             "boards",
             "board_colors",
             "filenames",
+            "image_quality",
             "image_path",
             "names",
             "image_sizes",

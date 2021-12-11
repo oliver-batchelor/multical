@@ -14,6 +14,8 @@ from structs.struct import struct, split_dict
 from structs.numpy import shape, Table
 
 from colour import Color
+from multical.optimization.calibration import Calibration
+from multical.workspace import Workspace
 
 
 def masked_quantile(error, mask, quantiles, axis=None):
@@ -52,6 +54,8 @@ def reprojection_tables(calib, inlier_only=False):
   return sum_axes._map(f)
 
 
+
+
 def get_view_metric(reprojection_table, metric, board=None):
   views = (reprojection_table.views if board is None 
     else reprojection_table.board_views._index[:, :, board])
@@ -83,14 +87,18 @@ def lerp_table(t, x, y):
 
 
 class ViewModelCalibrated(QAbstractTableModel):
-  def __init__(self, calib, names):
+  def __init__(self, calib : Calibration, ws : Workspace):
     super(ViewModelCalibrated, self).__init__()
 
     self.calib = calib
     self.reproj = reprojection_tables(calib)
     self.reproj_inl = reprojection_tables(calib, inlier_only=True)
 
-    self.names = names
+    self.ws = ws
+
+    self.other_metrics = struct(
+      image_quality = ws.image_quality
+    )
 
     self.metric_types = OrderedDict(
         detected='Detected',
@@ -98,7 +106,8 @@ class ViewModelCalibrated(QAbstractTableModel):
         upper_q='Upper quartile',
         max='Maximum',
         rms='Root Mean Square',
-        mse='Mean Square Error'
+        mse='Mean Square Error',
+        image_quality='Image Quality'
     )
 
     self.set_metric(0, None)
@@ -106,6 +115,10 @@ class ViewModelCalibrated(QAbstractTableModel):
   @property
   def metric_labels(self):
     return list(self.metric_types.values())
+
+  @property 
+  def names(self):
+    return self.ws.names
 
 
   def make_cell_color_table(self, board):
@@ -122,7 +135,10 @@ class ViewModelCalibrated(QAbstractTableModel):
     return colors 
 
   def get_metric_tables(self, metric, board=None):
-    return get_view_metric(self.reproj, metric, board), get_view_metric(self.reproj_inl, metric, board)
+    if metric in self.reproj.views:
+      return get_view_metric(self.reproj, metric, board), get_view_metric(self.reproj_inl, metric, board)
+    else:
+      return self.other_metrics[metric], None
 
   def set_metric(self, index, board=None):
     assert isinstance(index, int) and index < len(self.metric_types)
@@ -137,16 +153,22 @@ class ViewModelCalibrated(QAbstractTableModel):
     def format_nan(x):
       return "" if math.isnan(x) else f"{x:.2f}"
 
-    all = self.view_table[index.column(), index.row()]
-    inlier = self.view_table_inl[index.column(), index.row()]
 
     if role == Qt.DisplayRole:
-      return f"{inlier} ({all})" if isinstance(inlier, Integral)\
-        else f"{format_nan(inlier)} ({format_nan(all)})" 
+      all = self.view_table[index.column(), index.row()]
+  
+      if self.view_table_inl is not None:
+        inlier = self.view_table_inl[index.column(), index.row()]
+        return f"{inlier} ({all})" if isinstance(inlier, Integral)\
+          else f"{format_nan(inlier)} ({format_nan(all)})" 
+      else:
+        return f"{format_nan(all)}"
+
 
     if role == Qt.BackgroundRole:
       hsl = self.cell_color_table[index.column(), index.row()]
       return QBrush(QColor.fromHslF(*hsl))
+
 
   def headerData(self, index, orientation, role):
     if role == Qt.DisplayRole:

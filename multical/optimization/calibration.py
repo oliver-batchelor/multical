@@ -301,7 +301,10 @@ class Calibration(parameters.Parameters):
 
 
 
-def error_stats(errors):  
+def error_stats(errors):
+  # Handling empty error array
+  if(len(errors)==0):
+    errors = np.zeros((1,1),np.float32)
   mse = np.square(errors).mean()
   quantiles = np.array([np.quantile(errors, n) for n in [0, 0.25, 0.5, 0.75, 1]])
   return struct(mse = mse, rms = np.sqrt(mse), quantiles=quantiles, n = errors.size)

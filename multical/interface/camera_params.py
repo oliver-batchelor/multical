@@ -75,6 +75,8 @@ class CameraParams(QtWidgets.QWidget):
   def set_camera(self, camera):
     w, h = camera.image_size
     self.groupBox.setTitle(f"{self.camera_name} ({w}x{h})")
+    # fisheye.calibrate dist matrix is of shape (4,1) instead of (1,5)
+    dist_format_rows = camera.dist.shape[0] > 1
 
     for i in range(3):
       for j in range(3):
@@ -83,7 +85,10 @@ class CameraParams(QtWidgets.QWidget):
 
     self.dist_table.setColumnCount(camera.dist.size)
     for i in range(camera.dist.size):
-      v = camera.dist[0, i]
+      if dist_format_rows:
+        v = camera.dist[i, 0]
+      else:
+        v = camera.dist[0, i]
       self.dist_table.setItem(0, i, QtWidgets.QTableWidgetItem(f"{v:.4f}"))
 
 

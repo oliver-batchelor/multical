@@ -33,6 +33,7 @@ class CameraOpts:
   allow_skew: bool = False  # Allow skew parameter in camera intrinsics
   distortion_model: str = choice("standard", "rational", "thin_prism", "tilted", default="standard")
   motion_model: str = choice("rolling", "static", default="static")  # Camera motion model to use
+  isFisheye: bool = False # Use fisheye camera -> changes distortion models
   
   calibration: Optional[str] = None # Initialise from previous (or single camera) calibration
   limit_intrinsic: Optional[int] = 50   # Limit intrinsic images to enable faster initialisation

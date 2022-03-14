@@ -22,6 +22,7 @@ from .camera import calibrate_cameras
 
 from structs.numpy import shape
 
+from .camera_fisheye import calibrate_cameras_fisheye
 from .io.logging import MemoryHandler, info
 from .display import color_sets
 
@@ -160,28 +161,37 @@ class Workspace:
           info(f"{name} {camera}")
           info("")
 
-    def calibrate_single(self, camera_model, fix_aspect=False, has_skew=False, max_images=None):
+    def calibrate_single(self, camera_model, fix_aspect=False, has_skew=False, max_images=None, isFisheye=False):
         assert self.detected_points is not None, "calibrate_single: no points found, first use detect_boards to find corner points"
 
         check_detections(self.names.camera, self.boards, self.detected_points)
 
         info("Calibrating single cameras..")
-        self.cameras, errs = calibrate_cameras(
-            self.boards,
-            self.detected_points,
-            self.image_size,
-            model=camera_model,
-            fix_aspect=fix_aspect,
-            has_skew=has_skew,
-            max_images=max_images,
-        )
+        if not isFisheye:
+            self.cameras, errs = calibrate_cameras(
+                self.boards,
+                self.detected_points,
+                self.image_size,
+                model=camera_model,
+                fix_aspect=fix_aspect,
+                has_skew=has_skew,
+                max_images=max_images)
+        else:
+            self.cameras, errs = calibrate_cameras_fisheye(
+                self.boards,
+                self.detected_points,
+                self.image_size,
+                model=camera_model,
+                fix_aspect=fix_aspect,
+                has_skew=has_skew,
+                max_images=max_images)
 
         for name, camera, err in zip(self.names.camera, self.cameras, errs):
             info(f"Calibrated {name}, with RMS={err:.2f}")
             info(camera)
             info("")
 
-    def initialise_poses(self, motion_model=StaticFrames, camera_poses=None):
+    def initialise_poses(self, motion_model=StaticFrames, camera_poses=None, isFisheye=False):
         assert self.cameras is not None, "initialise_poses: no cameras set, first use calibrate_single or set_cameras"
         self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
 

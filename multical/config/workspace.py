@@ -31,7 +31,8 @@ def initialise_with_images(ws : Workspace, boards, camera_images,
       ws.calibrate_single(camera_opts.distortion_model, 
           fix_aspect=camera_opts.fix_aspect,
           has_skew=camera_opts.allow_skew, 
-          max_images=camera_opts.limit_intrinsic)
+          max_images=camera_opts.limit_intrinsic,
+          isFisheye=camera_opts.isFisheye)
 
     ws.initialise_poses(
         motion_model=get_motion_model(camera_opts.motion_model),

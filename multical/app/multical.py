@@ -1,5 +1,3 @@
-#!python3
-
 from dataclasses import dataclass
 from multical.config.arguments import run_with
 from multiprocessing import cpu_count
@@ -26,5 +24,8 @@ class Multical:
     return self.command.execute()
 
 
-if __name__ == '__main__':
+def cli():
   run_with(Multical)
+
+if __name__ == '__main__':
+  cli()

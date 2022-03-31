@@ -15,7 +15,6 @@ setup(
     description="Flexible multi-camera multi-board camera calibration library and application.",
     url="https://github.com/saulzar/multical",
     packages=find_namespace_packages(),
-    scripts=['multical/app/multical'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
@@ -25,6 +24,11 @@ setup(
         "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera"
     ],
 
+    entry_points={
+        'console_scripts': [
+            'multical = multical.app.multical:cli',
+        ],
+    },
 
     long_description=long_description,
     long_description_content_type='text/markdown',

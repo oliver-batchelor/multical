@@ -116,11 +116,29 @@ class AprilGrid(Parameters, Board):
     spacing_length = square_length * self.tag_spacing
     margin = pixels_mm * margin_mm
 
+    def index2coord(x_index, y_index):
+      x_coord = int(x_index * square_length + spacing_length * (x_index + 1) + margin)
+      y_coord = int(y_index * square_length + spacing_length * (y_index + 1) + margin)
+      return x_coord, y_coord
+
+    def marker_x_index_flip(marker):
+      for y_index in range(self.size[1]):
+        for x_index in range(self.size[0] // 2):
+          x_index_to_change = 5 - x_index
+          x_coord, y_coord = index2coord(x_index, y_index)
+          x_coord_to_change, _ = index2coord(x_index_to_change, y_index)
+          marker1 = copy(markers[y_coord:y_coord + int(square_length), x_coord_to_change:x_coord_to_change + int(square_length)])
+          marker2 = copy(markers[y_coord:y_coord + int(square_length), x_coord:x_coord + int(square_length)])
+          markers[y_coord:y_coord + int(square_length), x_coord:x_coord + int(square_length)] = marker1
+          markers[y_coord:y_coord + int(square_length), x_coord_to_change:x_coord_to_change + int(square_length)] = marker2
+      return marker
+
     dims = [int(square_length * n + spacing_length * (n + 1) + margin * 2) 
       for n in self.size]
 
     markers = self.board.draw(tuple(dims), marginSize=int(margin + spacing_length), 
       borderBits=int(self.border_bits))
+    markers = marker_x_index_flip(markers)
 
     step = square_length + spacing_length
     for i in range(self.size[0] + 1):

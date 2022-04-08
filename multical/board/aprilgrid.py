@@ -1,3 +1,5 @@
+from copy import copy
+
 from multical.io.logging import error
 from multical.board.board import Board
 from structs.numpy import Table

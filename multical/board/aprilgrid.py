@@ -54,9 +54,10 @@ class AprilGrid(Parameters, Board):
   def board(self):
     spacing_length = self.tag_length * self.tag_spacing
     aruco_dict=cv2.aruco.getPredefinedDictionary(self.aruco_dicts[self.tag_family])
-
-    return cv2.aruco.GridBoard_create(self.size[0], self.size[1], 
+    grid_board = cv2.aruco.GridBoard_create(self.size[0], self.size[1], 
       self.tag_length, spacing_length,  aruco_dict)
+    grid_board.ids = [id_ + self.start_id for id_ in grid_board.ids] 
+    return grid_board
 
   def export(self):
     return struct(

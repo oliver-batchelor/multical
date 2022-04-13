@@ -20,7 +20,7 @@ def draw_board_detections(image, detections, color, thickness=1, radius=10, show
   color = np.array([b, g, r]) * 255
   
   for id, corner in zip(detections.ids, detections.corners):
-    cv2.drawMarker(image, tuple(corner), color=color, markerSize=radius*2, thickness=int(thickness), line_type=cv2.LINE_AA)
+    cv2.drawMarker(image, tuple([int(corner[0]), int(corner[1])]), color=color, markerSize=radius*2, thickness=int(thickness), line_type=cv2.LINE_AA)
     x, y = corner
     if show_ids:
       cv2.putText(image, str(id), (int(x + 2), int(y - 2)), cv2.FONT_HERSHEY_SIMPLEX, 

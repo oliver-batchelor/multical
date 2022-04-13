@@ -1,3 +1,5 @@
+from copy import copy
+
 from multical.io.logging import error
 from multical.board.board import Board
 from structs.numpy import Table
@@ -54,9 +56,10 @@ class AprilGrid(Parameters, Board):
   def board(self):
     spacing_length = self.tag_length * self.tag_spacing
     aruco_dict=cv2.aruco.getPredefinedDictionary(self.aruco_dicts[self.tag_family])
-
-    return cv2.aruco.GridBoard_create(self.size[0], self.size[1], 
+    grid_board = cv2.aruco.GridBoard_create(self.size[0], self.size[1], 
       self.tag_length, spacing_length,  aruco_dict)
+    grid_board.ids = [id_ + self.start_id for id_ in grid_board.ids] 
+    return grid_board
 
   def export(self):
     return struct(
@@ -116,11 +119,29 @@ class AprilGrid(Parameters, Board):
     spacing_length = square_length * self.tag_spacing
     margin = pixels_mm * margin_mm
 
+    def index2coord(x_index, y_index):
+      x_coord = int(x_index * square_length + spacing_length * (x_index + 1) + margin)
+      y_coord = int(y_index * square_length + spacing_length * (y_index + 1) + margin)
+      return x_coord, y_coord
+
+    def marker_x_index_flip(marker):
+      for y_index in range(self.size[1]):
+        for x_index in range(self.size[0] // 2):
+          x_index_to_change = 5 - x_index
+          x_coord, y_coord = index2coord(x_index, y_index)
+          x_coord_to_change, _ = index2coord(x_index_to_change, y_index)
+          marker1 = copy(markers[y_coord:y_coord + int(square_length), x_coord_to_change:x_coord_to_change + int(square_length)])
+          marker2 = copy(markers[y_coord:y_coord + int(square_length), x_coord:x_coord + int(square_length)])
+          markers[y_coord:y_coord + int(square_length), x_coord:x_coord + int(square_length)] = marker1
+          markers[y_coord:y_coord + int(square_length), x_coord_to_change:x_coord_to_change + int(square_length)] = marker2
+      return marker
+
     dims = [int(square_length * n + spacing_length * (n + 1) + margin * 2) 
       for n in self.size]
 
     markers = self.board.draw(tuple(dims), marginSize=int(margin + spacing_length), 
       borderBits=int(self.border_bits))
+    markers = marker_x_index_flip(markers)
 
     step = square_length + spacing_length
     for i in range(self.size[0] + 1):

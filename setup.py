@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 setup(
 
     name="multical",
-    version="0.2.0",
+    version="0.2.1",
     author="Oliver Batchelor",
     author_email="saulzar@gmail.com",
     description="Flexible multi-camera multi-board camera calibration library and application.",

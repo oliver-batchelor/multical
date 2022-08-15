@@ -127,7 +127,7 @@ class AprilGrid(Parameters, Board):
     def marker_x_index_flip(marker):
       for y_index in range(self.size[1]):
         for x_index in range(self.size[0] // 2):
-          x_index_to_change = 5 - x_index
+          x_index_to_change = self.size[0] - 1 - x_index
           x_coord, y_coord = index2coord(x_index, y_index)
           x_coord_to_change, _ = index2coord(x_index_to_change, y_index)
           marker1 = copy(markers[y_coord:y_coord + int(square_length), x_coord_to_change:x_coord_to_change + int(square_length)])

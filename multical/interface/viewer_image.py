@@ -101,7 +101,7 @@ def add_point_markers(scene, points, board, color, options):
 
 def add_reprojections(scene, points, projected, inliers, boards, valid_boards, options):
   marker_font = QFont()
-  marker_font.setPixelSize(options.marker_size * 0.75)
+  marker_font.setPixelSize(int(options.marker_size * 0.75))
 
   frame_table = points._extend(proj=projected.points, inlier=inliers)
 

@@ -16,11 +16,11 @@ from multical.io import export_json, try_load_detections, write_detections
 from multical.image.detect import common_image_size
 
 from multical.optimization.calibration import Calibration, select_threshold
-from structs.struct import map_list, split_dict, struct, subset, to_dicts
+from py_structs import map_list, split_dict, struct, subset, to_dicts
 from . import tables, image
 from .camera import calibrate_cameras
 
-from structs.numpy import shape
+from py_structs.numpy import shape
 
 from .camera_fisheye import calibrate_cameras_fisheye
 from .io.logging import MemoryHandler, info

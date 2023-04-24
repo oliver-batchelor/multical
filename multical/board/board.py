@@ -1,6 +1,6 @@
 from cached_property import cached_property
 import numpy as np
-from structs.struct import struct
+from py_structs import struct
 
 class Board(object):
   

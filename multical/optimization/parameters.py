@@ -3,11 +3,11 @@ from operator import add
 from pprint import pformat
 from typing import Any, Dict, Generic, List, TypeVar
 import numpy as np
-from structs.numpy import map_arrays, reduce_arrays, shape
+from py_structs.numpy import map_arrays, reduce_arrays, shape
 
 from cached_property import cached_property
 from scipy.sparse import lil_matrix
-from structs.struct import subset
+from py_structs import subset
 from numbers import Number
 
 

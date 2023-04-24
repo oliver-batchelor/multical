@@ -8,10 +8,10 @@ from multical.image.detect import common_image_size
 from multical.io.logging import setup_logging
 from multical.io.logging import info
 
-from structs.struct import  map_list, pformat_struct, split_dict
+from py_structs import struct, map_list, pformat_struct, split_dict
 from multical import image
 
-from structs.numpy import struct, shape
+from py_structs.numpy import shape
 
 from multical.config.arguments import *
 

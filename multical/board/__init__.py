@@ -8,7 +8,7 @@ from .calico_config import load_calico
 from typing import Tuple
 
 from omegaconf.omegaconf import OmegaConf, MISSING
-from structs.struct import struct
+from py_structs import struct
 
 from multical.io.logging import debug, info, error
 

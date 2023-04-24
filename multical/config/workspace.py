@@ -1,4 +1,4 @@
-from structs.struct import map_none
+from py_structs import map_none
 from multical.io.import_calib import load_calibration
 from multical.motion.static_frames import StaticFrames
 from multical.motion.rolling_frames import RollingFrames

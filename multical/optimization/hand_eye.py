@@ -1,8 +1,8 @@
 from multical.io.report import report_pose_errors
 from cached_property import cached_property
 import numpy as np
-from structs.numpy import table
-from structs.struct import subset
+from py_structs.numpy import table
+from py_structs import subset
 from .calibration import Calibration
 from multical.transform.hand_eye import hand_eye_robot_world
 

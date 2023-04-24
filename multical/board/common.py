@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-from structs.struct import struct
+from py_structs import struct
 from multical.transform import rtvec
 
 

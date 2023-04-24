@@ -1,12 +1,12 @@
 from multical.motion.static_frames import project_cameras
 from cached_property import cached_property
 import numpy as np
-from structs.struct import struct, subset
+from py_structs import struct, subset
 from .motion_model import MotionModel
 
 from multical.optimization.parameters import IndexMapper, Parameters
 from multical import tables
-from structs.numpy import Table, shape
+from py_structs.numpy import Table, shape
 
 from multical.transform import rtvec, matrix
 from multical.transform.interpolate import interpolate_poses, lerp

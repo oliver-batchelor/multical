@@ -1,6 +1,6 @@
 from multical.motion.static_frames import project_points
 import numpy as np
-from structs.struct import struct, subset
+from py_structs import struct, subset
 from multical import tables
 from multical.io.export_calib import export_poses
 from multical.optimization.parameters import IndexMapper, Parameters

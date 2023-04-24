@@ -2,7 +2,7 @@
 from multical.io.logging import setup_logging
 from .vis import visualize_ws
 
-from structs.struct import struct, map_none, to_structs
+from py_structs import struct, map_none, to_structs
 import numpy as np
 
 from multical.config import *

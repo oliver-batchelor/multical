@@ -1,8 +1,8 @@
 import numpy as np
 import math
 
-from structs.numpy import shape
-from structs.struct import choose, struct
+from py_structs.numpy import shape
+from py_structs import choose, struct
 from . import common
 
 from scipy.spatial.transform import Rotation as R

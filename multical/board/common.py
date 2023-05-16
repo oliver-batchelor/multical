@@ -13,7 +13,7 @@ def aruco_config(attrs):
     setattr(config, k, v)  
   return config
 
-empty_detection = struct(corners=np.zeros([0, 2]), ids=np.zeros(0, dtype=np.int))
+empty_detection = struct(corners=np.zeros([0, 2]), ids=np.zeros(0, dtype=int))
 empty_matches = struct(points1=[], points2=[], ids=[], object_points=[])
 
 

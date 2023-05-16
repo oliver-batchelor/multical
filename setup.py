@@ -44,7 +44,7 @@ setup(
         "simple-parsing",
         "natsort",
         "cached-property",
-        "py-structs>=0.2.7",
+        "py-structs<=1.0",
         "palettable",
         "numpy-quaternion",
         "omegaconf",

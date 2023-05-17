@@ -3,8 +3,8 @@ from multical.io.report import report_pose_errors
 from .io.logging import debug, info
 import numpy as np
 
-from structs.struct import transpose_structs, invert_keys
-from structs.numpy import shape_info, struct, Table, shape
+from py_structs import struct, transpose_structs, invert_keys
+from py_structs.numpy import shape_info, Table, shape
 
 from .transform import rtvec, matrix
 from . import graph

@@ -1,5 +1,5 @@
 from multical import tables
-from structs.struct import struct, subset
+from py_structs import struct, subset
 from multical.optimization.parameters import Parameters
 from cached_property import cached_property
 from multical.io.export_calib import export_poses

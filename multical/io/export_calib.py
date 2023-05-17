@@ -2,7 +2,7 @@ import json
 from os import path
 import numpy as np
 
-from structs.struct import struct, to_dicts, transpose_lists
+from py_structs import struct, to_dicts, transpose_lists
 from multical.transform import matrix
 
 

@@ -4,7 +4,7 @@ import numpy as np
 from .transform import rtvec
 from . import tables
 
-from structs.struct import struct
+from py_structs import struct
 from .image.display import display_stacked
 import palettable.colorbrewer.qualitative as palettes
 

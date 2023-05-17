@@ -2,8 +2,8 @@ from cached_property import cached_property
 from multical.motion.motion_model import MotionModel
 from multical.optimization.pose_set import PoseSet
 import numpy as np
-from structs.numpy import Table, shape
-from structs.struct import struct, subset
+from py_structs.numpy import Table, shape
+from py_structs import struct, subset
 from multical import tables
 
 

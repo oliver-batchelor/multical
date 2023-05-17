@@ -8,7 +8,7 @@ import numpy as np
 from multical.camera import  stereo_calibrate
 from multical.threading import parmap_lists
 
-from structs.struct import transpose_structs, struct, filter_none
+from py_structs import transpose_structs, struct, filter_none
 
 def load_image(filename):
   assert path.isfile(filename), f"load_image: file {filename} does not exist"

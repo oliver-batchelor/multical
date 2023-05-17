@@ -2,7 +2,7 @@
 import pickle
 from multical.io.logging import info
 
-from structs.struct import struct
+from py_structs import struct
 
 def try_load_detections(filename, cache_key={}):
   try:

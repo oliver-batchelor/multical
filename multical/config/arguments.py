@@ -4,7 +4,7 @@ from multiprocessing import cpu_count
 import os
 from typing import List, Optional, Union
 
-from structs.struct import Struct
+from py_structs import Struct
 
 from simple_parsing import ArgumentParser, choice
 from simple_parsing.helpers import list_field

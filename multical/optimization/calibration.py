@@ -18,8 +18,8 @@ from multical.io.logging import LogWriter, info
 from . import parameters
 from .parameters import ParamList
 
-from structs.numpy import Table, shape
-from structs.struct import concat_lists, apply_none, struct, choose, subset, when
+from py_structs.numpy import Table, shape
+from py_structs import concat_lists, apply_none, struct, choose, subset, when
 
 from scipy import optimize
 

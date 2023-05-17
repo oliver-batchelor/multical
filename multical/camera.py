@@ -3,15 +3,15 @@ import operator
 from cached_property import cached_property
 import numpy as np
 import cv2
-from structs.numpy import shape
+from py_structs.numpy import shape
 
-from structs.struct import subset, transpose_structs, transpose_lists
+from py_structs import subset, transpose_structs, transpose_lists
 
 from pprint import pformat
 
 from .transform import rtvec, matrix
 
-from structs.struct import struct
+from py_structs import struct
 from .optimization.parameters import Parameters
 
 from multiprocessing.pool import ThreadPool
@@ -20,7 +20,7 @@ from multical.threading import cpu_count
 import cv2
 from tqdm import tqdm
 
-from structs.struct import split_list
+from py_structs import split_list
 
 
 

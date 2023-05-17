@@ -3,7 +3,7 @@ import multical.image as image
 from multical.io.logging import info
 from os import path
 
-from structs.struct import struct
+from py_structs import struct
 from multical.board import load_config, load_calico
 
 

@@ -6,7 +6,7 @@ from sys import stdout
 from copy import copy
 
 import numpy as np
-from structs.struct import struct
+from py_structs import struct
 
 logger = logging.getLogger("calibration")
 

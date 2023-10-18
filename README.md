@@ -12,6 +12,9 @@ Multi-camera calibration using one or more calibration patterns.
 
 The software here is presented as a library installable from PyPi `pip install multical`, and installs a script of the same name `multical`.
 
+To build locally:
+`sudo python setup.py build; sudo python setup.py install`. If rebuilding delete *build* and *dist* folder
+
 
 ## Running multical application
 

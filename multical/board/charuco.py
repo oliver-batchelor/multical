@@ -31,7 +31,7 @@ class CharucoBoard(Parameters, Board):
   def board(self):
     aruco_dict = create_dict(self.aruco_dict, self.aruco_offset)
     width, height = self.size
-    return cv2.aruco.CharucoBoard_create(width, height,
+    return cv2.aruco.CharucoBoard((width, height),
       self.square_length, self.marker_length, aruco_dict)
 
   @cached_property
@@ -44,7 +44,7 @@ class CharucoBoard(Parameters, Board):
       aruco_dict=self.aruco_dict,
       aruco_offset=self.aruco_offset,
       size = self.size,
-      num_ids = len(self.board.ids),
+      num_ids = len(self.board.getIds()),
       marker_length = self.marker_length,
       square_length = self.square_length,
       aruco_params = self.aruco_params
@@ -55,7 +55,7 @@ class CharucoBoard(Parameters, Board):
 
   @property
   def points(self):
-    return self.board.chessboardCorners
+    return self.board.getChessboardCorners()
   
   @property
   def num_points(self):
@@ -79,7 +79,8 @@ class CharucoBoard(Parameters, Board):
     square_length = int(self.square_length * 1000 * pixels_mm)
 
     image_size = [dim * square_length for dim in self.size]
-    return self.board.draw(tuple(image_size), marginSize=margin)
+    img = np.array((image_size[0], image_size[1], 3), dtype=np.uint8)
+    return self.board.generateImage(tuple(image_size), img, marginSize=margin)
 
 
   def __str__(self):
@@ -92,7 +93,7 @@ class CharucoBoard(Parameters, Board):
 
   def detect(self, image):    
     corners, ids, _ = cv2.aruco.detectMarkers(image, 
-      self.board.dictionary, parameters=aruco_config(self.aruco_params))     
+      self.board.getDictionary(), parameters=aruco_config(self.aruco_params))     
     if ids is None: return empty_detection
 
     _, corners, ids = cv2.aruco.interpolateCornersCharuco(

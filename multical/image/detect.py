@@ -28,10 +28,12 @@ def common_image_size(images):
 
 
 def load_images(filenames, prefix=None, **map_options):
+    '''
+    print(filenames)
     if prefix is not None:
       filenames = [[path.join(prefix, file) for file in camera_files]
         for camera_files in filenames]
-
+    '''
     return parmap_lists(load_image, filenames, **map_options)
 
 def detect_image(image, boards):

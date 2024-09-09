@@ -28,7 +28,7 @@ def initialise_with_images(ws : Workspace, boards, camera_images,
     if calib is not None:
       ws.set_calibration(calib.cameras)
     else:
-      ws.calibrate_single(camera_opts.distortion_model, 
+      ws.calibrate_single(camera_opts.distortion_model, camera_opts.intrinsic_error_limit,
           fix_aspect=camera_opts.fix_aspect,
           has_skew=camera_opts.allow_skew, 
           max_images=camera_opts.limit_intrinsic,
@@ -36,7 +36,10 @@ def initialise_with_images(ws : Workspace, boards, camera_images,
 
     ws.initialise_poses(
         motion_model=get_motion_model(camera_opts.motion_model),
-        camera_poses=calib.camera_poses if calib is not None else None
+        camera_poses=calib.camera_poses if calib is not None else None,
+        exclude_bad_poses=runtime.exclude_bad_poses,
+        pose_error_limit=runtime.pose_error_limit,
+        is_non_overlapping=runtime.is_non_overlapping
       )
     return ws
 

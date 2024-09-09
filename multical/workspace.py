@@ -19,6 +19,7 @@ from multical.optimization.calibration import Calibration, select_threshold
 from structs.struct import map_list, split_dict, struct, subset, to_dicts
 from . import tables, image
 from .camera import calibrate_cameras
+from .hand_eye.hand_eye import *
 
 from structs.numpy import shape
 
@@ -161,7 +162,7 @@ class Workspace:
           info(f"{name} {camera}")
           info("")
 
-    def calibrate_single(self, camera_model, fix_aspect=False, has_skew=False, max_images=None, isFisheye=False):
+    def calibrate_single(self, camera_model, intrinsic_error_limit, fix_aspect=False, has_skew=False, max_images=None, isFisheye=False):
         assert self.detected_points is not None, "calibrate_single: no points found, first use detect_boards to find corner points"
 
         check_detections(self.names.camera, self.boards, self.detected_points)
@@ -172,6 +173,7 @@ class Workspace:
                 self.boards,
                 self.detected_points,
                 self.image_size,
+                intrinsic_error_limit,
                 model=camera_model,
                 fix_aspect=fix_aspect,
                 has_skew=has_skew,
@@ -191,14 +193,20 @@ class Workspace:
             info(camera)
             info("")
 
-    def initialise_poses(self, motion_model=StaticFrames, camera_poses=None, isFisheye=False):
+    def initialise_poses(self, motion_model=StaticFrames, camera_poses=None, exclude_bad_poses=True, pose_error_limit=1.0, is_non_overlapping=False):
         assert self.cameras is not None, "initialise_poses: no cameras set, first use calibrate_single or set_cameras"
-        self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras)
+        self.pose_table = tables.make_pose_table(self.point_table, self.boards, self.cameras, exclude_bad_poses, pose_error_limit)
 
         info("Pose counts:")
         tables.table_info(self.pose_table.valid, self.names)
 
-        pose_init = tables.initialise_poses(self.pose_table, 
+        # Non-overlapping case consideration
+        if is_non_overlapping and camera_poses is None:
+            handeye = HandEye(self.pose_table, self.names.camera, self.image_path)
+            handeye.initialise_camera_poses()
+            camera_poses = handeye.cam_init
+
+        pose_init = tables.initialise_poses(self.pose_table,
           camera_poses=None if camera_poses is None else np.array([camera_poses[k] for k in self.names.camera])
         )
 

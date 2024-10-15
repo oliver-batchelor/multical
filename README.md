@@ -94,7 +94,26 @@ Visualization can be run by :
 
 Multical provides a convenient highlevel interface found in `multical.workspace` which contains most typical useage, from finding images, loading images, initial single camera calibration, board pose extraction, pose initialisation, and finally bundle adjustment optimization and data export.
 
-It is also the best documentation for how to use lower level library features.
+It is also the best documentation for how to use lower-level library features.
+
+
+## Non-overlapping case (cameras don't overlap at all in their view)
+
+Thank you very much to Tasnim Tabassum Nova, who contributed a hand-eye calibration mode (configured with the option `is_non_overlapping`).
+
+She has kindly provided the code and a dataset with 6 cameras that did not have overlapping views. The dataset for this project is available [here](https://zenodo.org/records/13294455)
+ 
+<img src="https://github.com/user-attachments/assets/2b58c4cb-cdc6-49ba-b1d0-63af123a6473" width="300" height="300">
+<img src="https://github.com/user-attachments/assets/9256dff5-e3c8-463b-a43d-588e74d33182" width="300" height="300">
+
+1. A hand-eye calibration method to address the non-overlapping camera scenario.
+2. An iterative approach for calculating intrinsic parameters, which proves more robust for large datasets and reduces the need to select suitable images for intrinsic calibration manually.
+3. Functionality to reject outlier poses from further calculations.
+
+The complete visualization for the initial guess for camera extrinsic calibration and the final estimation is available [here](https://chart-studio.plotly.com/~Tabassum_Nova/7/#/plot)
+![ex_viz1](https://github.com/user-attachments/assets/f9b0bba8-6e36-42f2-be33-d7ca540b2795)
+
+
 
 
 ## FAQ

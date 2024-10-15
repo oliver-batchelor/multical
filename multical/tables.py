@@ -8,6 +8,7 @@ from structs.numpy import shape_info, struct, Table, shape
 
 from .transform import rtvec, matrix
 from . import graph
+from .hand_eye.hand_eye import *
 
 
 
@@ -34,27 +35,34 @@ def sparse_points(points):
   ids = np.flatnonzero(points.valid)
   return struct(corners=points.points[ids], ids=ids)
 
-invalid_pose = struct(poses=np.eye(4), num_points=0, valid=False)
+invalid_pose = struct(poses=np.eye(4), num_points=0, valid=False, reprojection_error=0, view_angles=[0, 0, 0])
 
-def valid_pose(t):
-  return struct(poses=t, valid=True)
+def valid_pose(t, num_points=0, error=0, angles=[0, 0, 0]):
+  return struct(poses=t, valid=True, num_points=num_points, reprojection_error=error, view_angles=angles)
 
 
-def extract_pose(points, board, camera):
+def extract_pose(points, board, camera, exclude_bad_poses, pose_error_limit):
   detections = sparse_points(points)
-  poses = board.estimate_pose_points(camera, detections)
+  poses, error = board.estimate_pose_points(camera, detections)
 
-  return valid_pose(rtvec.to_matrix(poses))._extend(num_points=len(detections.ids))\
-      if poses is not None else invalid_pose
+  if (exclude_bad_poses and error>pose_error_limit) or (poses is None):
+      poses = None
+      angles = [0, 0, 0]
+  else:
+    angles = rtvec.rtvec_to_euler(poses)
 
-def map_table(f, point_table, boards, cameras):
-  return [[[f(points, board, camera)
+  return valid_pose(t=rtvec.to_matrix(poses), num_points=len(detections.ids), error=error,
+                    angles=list(angles)) \
+    if poses is not None else invalid_pose
+
+def map_table(f, point_table, boards, cameras, exclude_bad_poses, pose_error_limit):
+  return [[[f(points, board, camera, exclude_bad_poses, pose_error_limit)
            for points, board in zip(frame_points._sequence(), boards)]  
              for frame_points in points_camera._sequence()]
                for points_camera, camera in zip(point_table._sequence(), cameras)]
 
-def make_pose_table(point_table, boards, cameras):
-  poses = map_table(extract_pose, point_table, boards, cameras)
+def make_pose_table(point_table, boards, cameras, exclude_bad_poses, pose_error_limit):
+  poses = map_table(extract_pose, point_table, boards, cameras, exclude_bad_poses, pose_error_limit)
   return make_nd_table(poses, n = 3)
 
 def make_point_table(detections, boards):
@@ -351,7 +359,7 @@ def initialise_poses(pose_table, camera_poses=None):
     info("Camera initialisation vs. supplied calibration")
     report_poses("camera", camera_poses, camera.poses)
     camera = Table.create(
-      poses=camera_poses, 
+      poses=camera_poses,
       valid=np.ones(camera_poses.shape[0], dtype=np.bool)
     )
     

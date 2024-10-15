@@ -34,6 +34,7 @@ class CameraOpts:
   distortion_model: str = choice("standard", "rational", "thin_prism", "tilted", default="standard")
   motion_model: str = choice("rolling", "static", default="static")  # Camera motion model to use
   isFisheye: bool = False # Use fisheye camera -> changes distortion models
+  intrinsic_error_limit: float = 0.5  # for iterative intrinsic calculation
   
   calibration: Optional[str] = None # Initialise from previous (or single camera) calibration
   limit_intrinsic: Optional[int] = 50   # Limit intrinsic images to enable faster initialisation
@@ -45,6 +46,10 @@ class RuntimeOpts:
   log_level: str = choice('INFO', 'DEBUG', 'WARN', default='INFO') # Minimum log level
   no_cache: bool = False # Don't attempt to load detections from cache
   seed : int = 0 # Seed for repeatable runs
+  exclude_bad_poses : bool = True # Exclude poses which has error greater than pose_error_limit
+  pose_error_limit: float = 1.0
+  is_non_overlapping: bool = False  # for non-overlapping case consider hand-eye calibration
+
 
 @dataclass 
 class OptimizerOpts:

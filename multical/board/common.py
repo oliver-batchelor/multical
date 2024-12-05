@@ -39,7 +39,7 @@ def estimate_pose_points(board, camera, detections):
 
     undistorted = camera.undistort_points(detections.corners).astype('float32')
     objPoints = board.points[detections.ids].astype('float32')
-    valid, rvec, tvec, error = cv2.solvePnPGeneric(objPoints, undistorted, camera.intrinsic, camera.dist)
+    valid, rvec, tvec, error = cv2.solvePnPGeneric(objPoints, undistorted, camera.intrinsic, distCoeffs=np.zeros((0,), dtype=np.float32))
 
     if not valid:
       return None, 0

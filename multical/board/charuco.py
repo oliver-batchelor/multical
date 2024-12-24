@@ -98,7 +98,7 @@ class CharucoBoard(Parameters, Board):
     _, corners, ids = cv2.aruco.interpolateCornersCharuco(
         corners, ids, image, self.board)
     
-    if ids is None: return empty_detection
+    if ids is None or len(ids) < 10: return empty_detection # DLT needs at least 6 points, 10 gives some margin
     return struct(corners = corners.squeeze(1), ids = ids.squeeze(1))
 
   def has_min_detections(self, detections):

@@ -43,8 +43,8 @@ class Camera(Parameters):
   model = struct(
       standard=0,
       rational=cv2.CALIB_RATIONAL_MODEL,
-      tilted=cv2.CALIB_TILTED_MODEL,
-      thin_prism=cv2.CALIB_THIN_PRISM_MODEL
+      thin_prism=cv2.CALIB_RATIONAL_MODEL | cv2.CALIB_THIN_PRISM_MODEL,
+      tilted=cv2.CALIB_RATIONAL_MODEL | cv2.CALIB_THIN_PRISM_MODEL | cv2.CALIB_TILTED_MODEL,
   )
 
   def __str__(self):
